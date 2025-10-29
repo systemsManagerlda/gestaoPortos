@@ -108,13 +108,15 @@ export default function PortManagementDashboard() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [portData, setPortData] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("overview");
+  const [userRole, setUserRole] = useState("Administrador");
+  
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [alerts, setAlerts] = useState<AlertType[]>([
-    { id: 1, type: "warning", message: "Navio MV Horizon atrasado em 2 dias" },
+    { id: 1, type: "warning", message: "Carga #02458 atrasada em 2 dias" },
     {
       id: 2,
       type: "info",
-      message: "Manutenção programada para o cais 3 amanhã",
+      message: "8 cargas em trânsito atualmente",
     },
   ]);
 
@@ -124,6 +126,10 @@ export default function PortManagementDashboard() {
       try {
         await new Promise((resolve) => setTimeout(resolve, 1000));
         setPortData(mockPortData);
+        
+        // Recupera o role do localStorage
+        const savedRole = localStorage.getItem("userRole") || "Administrador";
+        setUserRole(savedRole);
       } catch (error) {
         console.error("Erro ao carregar dados:", error);
       } finally {
@@ -134,28 +140,24 @@ export default function PortManagementDashboard() {
     fetchData();
   }, [startDate, endDate]);
 
-  // Dados para os gráficos com tipagem
+  // Dados atualizados baseados no segundo código
   const vesselsData: VesselStatus = {
-    labels: ["Atracados", "Em Espera", "Em Operação"],
+    labels: ["Cargas Ativas", "Em Trânsito", "Pendentes", "Concluídas"],
     datasets: [
       {
-        label: "Navios",
-        data: [12, 3, 8],
+        label: "Cargas",
+        data: [24, 8, 12, 156],
         backgroundColor: [
-          theme === "dark"
-            ? "rgba(74, 222, 128, 0.7)"
-            : "rgba(16, 185, 129, 0.7)",
-          theme === "dark"
-            ? "rgba(250, 204, 21, 0.7)"
-            : "rgba(234, 179, 8, 0.7)",
-          theme === "dark"
-            ? "rgba(96, 165, 250, 0.7)"
-            : "rgba(59, 130, 246, 0.7)",
+          theme === "dark" ? "rgba(59, 130, 246, 0.7)" : "rgba(59, 130, 246, 0.7)",
+          theme === "dark" ? "rgba(16, 185, 129, 0.7)" : "rgba(16, 185, 129, 0.7)",
+          theme === "dark" ? "rgba(234, 179, 8, 0.7)" : "rgba(234, 179, 8, 0.7)",
+          theme === "dark" ? "rgba(107, 114, 128, 0.7)" : "rgba(107, 114, 128, 0.7)",
         ],
         borderColor: [
-          theme === "dark" ? "rgb(74, 222, 128)" : "rgb(16, 185, 129)",
-          theme === "dark" ? "rgb(250, 204, 21)" : "rgb(234, 179, 8)",
-          theme === "dark" ? "rgb(96, 165, 250)" : "rgb(59, 130, 246)",
+          theme === "dark" ? "rgb(59, 130, 246)" : "rgb(59, 130, 246)",
+          theme === "dark" ? "rgb(16, 185, 129)" : "rgb(16, 185, 129)",
+          theme === "dark" ? "rgb(234, 179, 8)" : "rgb(234, 179, 8)",
+          theme === "dark" ? "rgb(107, 114, 128)" : "rgb(107, 114, 128)",
         ],
         borderWidth: 1,
       },
@@ -166,8 +168,8 @@ export default function PortManagementDashboard() {
     labels: ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun"],
     datasets: [
       {
-        label: "Carga (toneladas)",
-        data: [45000, 52000, 48000, 61000, 65000, 72000],
+        label: "Cargas Processadas",
+        data: [45, 52, 48, 61, 65, 72],
         backgroundColor:
           theme === "dark"
             ? "rgba(59, 130, 246, 0.5)"
@@ -183,7 +185,7 @@ export default function PortManagementDashboard() {
     datasets: [
       {
         label: "Combustível",
-        data: [85000, 92000, 88000, 95000, 102000, 110000],
+        data: [85, 92, 88, 95, 102, 110],
         backgroundColor:
           theme === "dark"
             ? "rgba(239, 68, 68, 0.7)"
@@ -191,7 +193,7 @@ export default function PortManagementDashboard() {
       },
       {
         label: "Manutenção",
-        data: [45000, 38000, 52000, 48000, 55000, 60000],
+        data: [45, 38, 52, 48, 55, 60],
         backgroundColor:
           theme === "dark"
             ? "rgba(234, 179, 8, 0.7)"
@@ -199,7 +201,7 @@ export default function PortManagementDashboard() {
       },
       {
         label: "Salários",
-        data: [120000, 120000, 125000, 125000, 130000, 130000],
+        data: [120, 120, 125, 125, 130, 130],
         backgroundColor:
           theme === "dark"
             ? "rgba(59, 130, 246, 0.7)"
@@ -227,11 +229,11 @@ export default function PortManagementDashboard() {
       {
         label: "Camiões",
         data: [
-          { x: 5, y: 85 },
-          { x: 3, y: 60 },
-          { x: 7, y: 92 },
-          { x: 2, y: 45 },
-          { x: 6, y: 88 },
+          { x: 15, y: 85 },
+          { x: 12, y: 60 },
+          { x: 18, y: 92 },
+          { x: 8, y: 45 },
+          { x: 16, y: 88 },
         ],
         backgroundColor:
           theme === "dark"
@@ -245,8 +247,8 @@ export default function PortManagementDashboard() {
     labels: ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun"],
     datasets: [
       {
-        label: "Lucro (USD)",
-        data: [350000, 420000, 380000, 450000, 500000, 550000],
+        label: "Receita (k MZN)",
+        data: [350, 420, 380, 450, 500, 550],
         backgroundColor: "transparent",
         borderColor:
           theme === "dark" ? "rgb(16, 185, 129)" : "rgb(5, 150, 105)",
@@ -261,34 +263,44 @@ export default function PortManagementDashboard() {
       id: 1,
       type: "IRPS",
       amount: 125000,
-      dueDate: "2023-06-30",
+      dueDate: "2024-06-30",
       status: "pending",
     },
     {
       id: 2,
       type: "INSS",
       amount: 85000,
-      dueDate: "2023-06-15",
+      dueDate: "2024-06-15",
       status: "paid",
     },
     {
       id: 3,
       type: "Salários",
       amount: 130000,
-      dueDate: "2023-06-05",
+      dueDate: "2024-06-05",
       status: "paid",
     },
     {
       id: 4,
-      type: "Imposto Portuário",
+      type: "Taxas Portuárias",
       amount: 45000,
-      dueDate: "2023-06-20",
+      dueDate: "2024-06-20",
       status: "pending",
     },
   ];
 
   const handleGenerateReport = (type: string): void => {
     alert(`Relatório de ${type} gerado com sucesso!`);
+  };
+
+  // Atualizar métricas principais baseadas no segundo código
+  const mainMetrics = {
+    activeCargos: 24,
+    inTransit: 8,
+    pending: 12,
+    completed: 156,
+    revenue: 2450000,
+    occupancy: 78
   };
 
   return (
@@ -301,11 +313,11 @@ export default function PortManagementDashboard() {
               Dashboard de Gestão Portuária
             </h1>
             <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
-              Monitoramento completo das operações portuárias
+              Perfil: <strong>{userRole}</strong> - Monitoramento completo das operações portuárias
             </p>
           </div>
 
-       <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
             <div className="flex items-center gap-2 bg-white dark:bg-gray-800 p-2 rounded-lg shadow-xs border border-gray-200 dark:border-gray-700">
               <FiFilter className="text-gray-500 flex-shrink-0" />
               <div className="flex flex-col sm:flex-row gap-2">
@@ -384,45 +396,31 @@ export default function PortManagementDashboard() {
             {/* Métricas Principais */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               <MetricCard
-                title="Navios Atracados"
-                value={portData?.vesselsDocked || "..."}
-                icon={<FaShip className="w-6 h-6" />}
+                title="Cargas Ativas"
+                value={mainMetrics.activeCargos.toString()}
+                icon={<FiPackage className="w-6 h-6" />}
                 change="+2 em relação à semana passada"
                 loading={isLoading}
               />
               <MetricCard
-                title="Carga Movimentada"
-                value={
-                  portData
-                    ? `${(portData.cargoMoved / 1000).toFixed(1)}k ton`
-                    : "..."
-                }
-                icon={<FiPackage className="w-6 h-6" />}
-                change="+5% em relação ao mês passado"
+                title="Em Trânsito"
+                value={mainMetrics.inTransit.toString()}
+                icon={<FiTruck className="w-6 h-6" />}
+                change="+1 em relação ao mês passado"
                 loading={isLoading}
               />
               <MetricCard
                 title="Receita Total"
-                value={
-                  portData
-                    ? `$${(portData.totalRevenue / 1000000).toFixed(1)}M`
-                    : "..."
-                }
+                value={`${(mainMetrics.revenue / 1000000).toFixed(1)}M MZN`}
                 icon={<FiDollarSign className="w-6 h-6" />}
-                change="+12% em relação ao trimestre passado"
+                change="+8% em relação ao trimestre passado"
                 loading={isLoading}
               />
               <MetricCard
-                title="Ocupação do Porto"
-                value={portData ? `${portData.portOccupancy}%` : "..."}
+                title="Taxa de Ocupação"
+                value={`${mainMetrics.occupancy}%`}
                 icon={<FiAnchor className="w-6 h-6" />}
-                change={
-                  portData?.occupancyChange
-                    ? `${portData.occupancyChange > 0 ? "+" : ""}${
-                        portData.occupancyChange
-                      }%`
-                    : ""
-                }
+                change="+3% em relação ao mês anterior"
                 loading={isLoading}
               />
             </div>
@@ -431,7 +429,7 @@ export default function PortManagementDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
               <Card className="lg:col-span-1">
                 <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
-                  Status dos Navios
+                  Status das Cargas
                 </h3>
                 <div className="h-64">
                   <Pie
@@ -454,7 +452,7 @@ export default function PortManagementDashboard() {
 
               <Card className="lg:col-span-2">
                 <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
-                  Movimentação de Carga
+                  Cargas Processadas (Últimos 6 meses)
                 </h3>
                 <div className="h-64">
                   <Bar
@@ -503,7 +501,7 @@ export default function PortManagementDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
               <Card>
                 <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
-                  Lucro Mensal
+                  Receita Mensal (k MZN)
                 </h3>
                 <div className="h-64">
                   <Line
@@ -517,7 +515,7 @@ export default function PortManagementDashboard() {
                           ticks: {
                             color: theme === "dark" ? "#E5E7EB" : "#374151",
                             callback: (value) =>
-                              `$${(Number(value) / 1000).toFixed(0)}k`,
+                              `${value}k MZN`,
                           },
                           grid: {
                             color:
@@ -548,7 +546,7 @@ export default function PortManagementDashboard() {
                           callbacks: {
                             label: (context) => {
                               const value = context.raw as number;
-                              return `$${value.toLocaleString()}`;
+                              return `${value.toLocaleString()}k MZN`;
                             },
                           },
                         },
@@ -752,7 +750,7 @@ export default function PortManagementDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card>
                 <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
-                  Custos Mensais
+                  Custos Mensais (k MZN)
                 </h3>
                 <div className="h-64">
                   <Bar
@@ -766,7 +764,7 @@ export default function PortManagementDashboard() {
                           ticks: {
                             color: theme === "dark" ? "#E5E7EB" : "#374151",
                             callback: (value) =>
-                              `$${(Number(value) / 1000).toFixed(0)}k`,
+                              `${value}k MZN`,
                           },
                           grid: {
                             color:
@@ -803,7 +801,7 @@ export default function PortManagementDashboard() {
 
               <Card>
                 <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
-                  Balanço Financeiro
+                  Balanço Financeiro (k MZN)
                 </h3>
                 <div className="h-64">
                   <Line
@@ -821,7 +819,7 @@ export default function PortManagementDashboard() {
                                 typeof value === "number"
                                   ? value
                                   : Number(value);
-                              return `$${(numericValue / 1000).toFixed(0)}k`;
+                              return `${numericValue}k MZN`;
                             },
                           },
                           grid: {
@@ -853,7 +851,7 @@ export default function PortManagementDashboard() {
                           callbacks: {
                             label: (tooltipItem: TooltipItem<"line">) => {
                               if (typeof tooltipItem.raw === "number") {
-                                return `$${tooltipItem.raw.toLocaleString()}`;
+                                return `${tooltipItem.raw.toLocaleString()}k MZN`;
                               }
                               return "";
                             },
@@ -1029,7 +1027,7 @@ export default function PortManagementDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card>
                 <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
-                  Distribuição Salarial
+                  Distribuição Salarial (k MZN)
                 </h3>
                 <div className="h-64">
                   <Bar

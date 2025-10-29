@@ -1,15 +1,15 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FiHome, FiUsers, FiTruck, FiFileText, FiSettings, FiLogOut } from "react-icons/fi";
+import { FiUsers, FiTruck, FiSettings, FiLogOut } from "react-icons/fi";
 import { Avatar } from "@nextui-org/avatar";
 import { Divider } from "@nextui-org/divider";
 
 const menuItems = [
-  { label: "Dashboard", href: "/dashboard", icon: <FiHome size={18} /> },
-  { label: "Gestão", href: "/gestao", icon: <FiUsers size={18} /> },
-  { label: "Monitoramento", href: "/monitoring", icon: <FiTruck size={18} /> },
-  { label: "Relatórios", href: "/relatorios", icon: <FiFileText size={18} /> },
+  // { label: "Dashboard", href: "/dashboard", icon: <FiHome size={18} /> },
+  { label: "Clientes", href: "/gestao", icon: <FiUsers size={18} /> },
+  { label: "Transportador", href: "/monitoring", icon: <FiTruck size={18} /> },
+  // { label: "Relatórios", href: "/relatorios", icon: <FiFileText size={18} /> },
 ];
 
 export default function DashboardSidebar({ isCollapsed }: { isCollapsed?: boolean }) {
