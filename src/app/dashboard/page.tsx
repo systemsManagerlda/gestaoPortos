@@ -32,7 +32,6 @@ import { mockPortData } from "@/data/mockPortData";
 import { FinancialReportsTable } from "@/components/tables/FinancialReportsTable";
 import { PortActivityTable } from "@/components/tables/PortActivityTable";
 import { SalaryTable } from "@/components/tables/SalaryTable";
-import { FaShip } from "react-icons/fa6";
 import { Alert, Card, MetricCard, Tab, Tabs } from "@/components/ui";
 
 // Tipos para os dados do dashboard
