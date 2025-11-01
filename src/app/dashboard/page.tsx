@@ -26,7 +26,6 @@ import {
   TooltipItem,
 } from "chart.js";
 import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
 import { useTheme } from "next-themes";
 import { mockPortData } from "@/data/mockPortData";
 import { FinancialReportsTable } from "@/components/tables/FinancialReportsTable";
