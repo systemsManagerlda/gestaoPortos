@@ -2253,7 +2253,7 @@ export default function DashboardTransportador() {
                 </label>
                 <select
                   value={novoRelatorio.tipo}
-                  onChange={(e) => setNovoRelatorio(prev => ({ ...prev, tipo: e.target.value as any }))}
+                  onChange={(e) => setNovoRelatorio(prev => ({ ...prev, tipo: e.target.value as never }))}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700"
                 >
                   <option value="incidente">Incidente</option>
@@ -2308,7 +2308,7 @@ export default function DashboardTransportador() {
                 </label>
                 <select
                   value={novoRelatorio.prioridade}
-                  onChange={(e) => setNovoRelatorio(prev => ({ ...prev, prioridade: e.target.value as any }))}
+                  onChange={(e) => setNovoRelatorio(prev => ({ ...prev, prioridade: e.target.value as never }))}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700"
                 >
                   <option value="baixa">Baixa</option>
@@ -2450,7 +2450,7 @@ export default function DashboardTransportador() {
                 </label>
                 <select
                   value={novoProblema.tipo}
-                  onChange={(e) => setNovoProblema(prev => ({ ...prev, tipo: e.target.value as any }))}
+                  onChange={(e) => setNovoProblema(prev => ({ ...prev, tipo: e.target.value as never }))}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700"
                 >
                   <option value="veiculo">Veículo</option>
@@ -2480,7 +2480,7 @@ export default function DashboardTransportador() {
                 </label>
                 <select
                   value={novoProblema.severidade}
-                  onChange={(e) => setNovoProblema(prev => ({ ...prev, severidade: e.target.value as any }))}
+                  onChange={(e) => setNovoProblema(prev => ({ ...prev, severidade: e.target.value as never }))}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700"
                 >
                   <option value="baixa">Baixa</option>
