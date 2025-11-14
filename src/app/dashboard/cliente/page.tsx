@@ -4,6 +4,7 @@
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import {
   FiPackage,
   FiTruck,
@@ -72,7 +73,13 @@ type CargoCliente = {
   tipo: string;
   origem: string;
   destino: string;
-  status: "pendente" | "coletado" | "transito" | "entregue" | "atrasado" | "cancelado";
+  status:
+    | "pendente"
+    | "coletado"
+    | "transito"
+    | "entregue"
+    | "atrasado"
+    | "cancelado";
   dataColeta: string;
   dataEntrega: string;
   dataEntregaPrevista: string;
@@ -194,58 +201,62 @@ export default function DashboardCliente() {
   const [alertas, setAlertas] = useState<AlertaCliente[]>([]);
   const [faturas, setFaturas] = useState<FaturaCliente[]>([]);
   const [localizacoes, setLocalizacoes] = useState<LocalizacaoCarga[]>([]);
-  const [eventosRastreamento, setEventosRastreamento] = useState<EventoRastreamento[]>([]);
+  const [eventosRastreamento, setEventosRastreamento] = useState<
+    EventoRastreamento[]
+  >([]);
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
   const [tipoFilter, setTipoFilter] = useState("todos");
   const [showSenhaAtual, setShowSenhaAtual] = useState(false);
   const [selectedCargo, setSelectedCargo] = useState<CargoCliente | null>(null);
-  const [cargoParaRastrear, setCargoParaRastrear] = useState<CargoCliente | null>(null);
+  const [cargoParaRastrear, setCargoParaRastrear] =
+    useState<CargoCliente | null>(null);
   const [showCargoModal, setShowCargoModal] = useState(false);
   const [showRastreamentoModal, setShowRastreamentoModal] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [showNovaCargaModal, setShowNovaCargaModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
-  const [cargoParaReport, setCargoParaReport] = useState<CargoCliente | null>(null);
+  const [cargoParaReport, setCargoParaReport] = useState<CargoCliente | null>(
+    null
+  );
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [notifications, setNotifications] = useState(3);
   const [rastreamentoSearch, setRastreamentoSearch] = useState("");
   const [showNovaSenha, setShowNovaSenha] = useState(false);
-   const [showConfirmarSenha, setShowConfirmarSenha] = useState(false);
-   const [formSenha, setFormSenha] = useState({
+  const [showConfirmarSenha, setShowConfirmarSenha] = useState(false);
+  const [formSenha, setFormSenha] = useState({
     senhaAtual: "",
     novaSenha: "",
     confirmarSenha: "",
   });
   // Estado para configurações
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const [configuracoes, setConfiguracoes] = useState<UsuarioConfig>({
-      nome: "",
-      email: "",
-      telefone: "",
-      empresa: "",
-      pais: "Moçambique",
-      cidade: "",
-      endereco: "",
-      idioma: "pt",
-      fusoHorario: "Africa/Maputo",
-      notificacoes: {
-        email: true,
-        sms: false,
-        push: true,
-        alertasCarga: true,
-        atualizacoesStatus: true,
-        notificacoesFinanceiras: true,
-      },
-      preferencias: {
-        tema: "auto",
-        itensPorPagina: 25,
-        relatoriosAutomaticos: false,
-        exportarDados: true,
-      },
-    });
-  
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [configuracoes, setConfiguracoes] = useState<UsuarioConfig>({
+    nome: "",
+    email: "",
+    telefone: "",
+    empresa: "",
+    pais: "Moçambique",
+    cidade: "",
+    endereco: "",
+    idioma: "pt",
+    fusoHorario: "Africa/Maputo",
+    notificacoes: {
+      email: true,
+      sms: false,
+      push: true,
+      alertasCarga: true,
+      atualizacoesStatus: true,
+      notificacoesFinanceiras: true,
+    },
+    preferencias: {
+      tema: "auto",
+      itensPorPagina: 25,
+      relatoriosAutomaticos: false,
+      exportarDados: true,
+    },
+  });
 
   // Estado para o formulário de report
   const [formReport, setFormReport] = useState({
@@ -286,7 +297,6 @@ export default function DashboardCliente() {
   const loadData = async () => {
     setIsDataLoading(true);
     await new Promise((resolve) => setTimeout(resolve, 1500));
-    
 
     // Dados mock para cliente
     const mockCargos: CargoCliente[] = [
@@ -501,7 +511,7 @@ export default function DashboardCliente() {
         localizacao: "Porto da Beira",
         status: "Coletado",
         observacao: "Carga coletada com sucesso",
-        tipo: "coleta"
+        tipo: "coleta",
       },
       {
         id: 2,
@@ -510,7 +520,7 @@ export default function DashboardCliente() {
         localizacao: "EN6 - Dondo",
         status: "Em trânsito",
         observacao: "Em direção à fronteira",
-        tipo: "transito"
+        tipo: "transito",
       },
       {
         id: 3,
@@ -519,7 +529,7 @@ export default function DashboardCliente() {
         localizacao: "EN6 - Muxúnguè",
         status: "Em trânsito",
         observacao: "Parada para abastecimento",
-        tipo: "parada"
+        tipo: "parada",
       },
       {
         id: 4,
@@ -528,8 +538,8 @@ export default function DashboardCliente() {
         localizacao: "Fronteira de Machipanda",
         status: "Em trânsito",
         observacao: "Aguardando liberação aduaneira",
-        tipo: "inspecao"
-      }
+        tipo: "inspecao",
+      },
     ]);
 
     setIsDataLoading(false);
@@ -546,7 +556,9 @@ export default function DashboardCliente() {
     valorPendente: faturas
       .filter((f) => f.status === "pendente")
       .reduce((sum, fatura) => sum + fatura.valor, 0),
-    cargasParaReportar: cargos.filter((c) => c.status === "entregue" && !c.estadoRecebimento).length,
+    cargasParaReportar: cargos.filter(
+      (c) => c.status === "entregue" && !c.estadoRecebimento
+    ).length,
     faturasAtrasadas: faturas.filter((f) => f.status === "atrasada").length,
   };
 
@@ -569,10 +581,18 @@ export default function DashboardCliente() {
       cargo.prioridade === filtrosAvancados.prioridade;
 
     const matchesValor =
-      (!filtrosAvancados.valorMin || cargo.valor >= Number(filtrosAvancados.valorMin)) &&
-      (!filtrosAvancados.valorMax || cargo.valor <= Number(filtrosAvancados.valorMax));
+      (!filtrosAvancados.valorMin ||
+        cargo.valor >= Number(filtrosAvancados.valorMin)) &&
+      (!filtrosAvancados.valorMax ||
+        cargo.valor <= Number(filtrosAvancados.valorMax));
 
-    return matchesSearch && matchesStatus && matchesTipo && matchesPrioridade && matchesValor;
+    return (
+      matchesSearch &&
+      matchesStatus &&
+      matchesTipo &&
+      matchesPrioridade &&
+      matchesValor
+    );
   });
 
   // Funções para rastreamento
@@ -587,12 +607,13 @@ export default function DashboardCliente() {
   };
 
   const getEventosCargo = (cargoId: number) => {
-    return eventosRastreamento.filter(evento => evento.cargoId === cargoId)
+    return eventosRastreamento
+      .filter((evento) => evento.cargoId === cargoId)
       .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
   };
 
   const getLocalizacaoCargo = (cargoId: number) => {
-    return localizacoes.find(loc => loc.cargoId === cargoId);
+    return localizacoes.find((loc) => loc.cargoId === cargoId);
   };
 
   // Funções para o report de estado da carga
@@ -620,9 +641,9 @@ export default function DashboardCliente() {
     if (!files) return;
 
     const newFiles = Array.from(files);
-    const newPreviews = newFiles.map(file => URL.createObjectURL(file));
+    const newPreviews = newFiles.map((file) => URL.createObjectURL(file));
 
-    setFormReport(prev => ({
+    setFormReport((prev) => ({
       ...prev,
       fotos: [...prev.fotos, ...newFiles],
       fotosPreview: [...prev.fotosPreview, ...newPreviews],
@@ -630,7 +651,7 @@ export default function DashboardCliente() {
   };
 
   const removerFoto = (index: number) => {
-    setFormReport(prev => ({
+    setFormReport((prev) => ({
       ...prev,
       fotos: prev.fotos.filter((_, i) => i !== index),
       fotosPreview: prev.fotosPreview.filter((_, i) => i !== index),
@@ -639,32 +660,32 @@ export default function DashboardCliente() {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [integracaoAPI, setIntegracaoAPI] = useState<IntegracaoAPI[]>([
-      {
-        id: 1,
-        nome: "API de Rastreamento",
-        descricao:
-          "Integração para receber atualizações de rastreamento em tempo real",
-        ativa: true,
-        chave: "sk_live_xxxxxxxxxxxxxxxx",
-        dataCriacao: "2024-01-15",
-        ultimoUso: "2024-01-16",
-      },
-      {
-        id: 2,
-        nome: "API de Faturas",
-        descricao: "Integração para acesso programático às faturas",
-        ativa: false,
-        chave: "sk_test_yyyyyyyyyyyyyyyy",
-        dataCriacao: "2024-01-10",
-      },
-    ]);
+    {
+      id: 1,
+      nome: "API de Rastreamento",
+      descricao:
+        "Integração para receber atualizações de rastreamento em tempo real",
+      ativa: true,
+      chave: "sk_live_xxxxxxxxxxxxxxxx",
+      dataCriacao: "2024-01-15",
+      ultimoUso: "2024-01-16",
+    },
+    {
+      id: 2,
+      nome: "API de Faturas",
+      descricao: "Integração para acesso programático às faturas",
+      ativa: false,
+      chave: "sk_test_yyyyyyyyyyyyyyyy",
+      dataCriacao: "2024-01-10",
+    },
+  ]);
 
   const submitReport = async () => {
     if (!cargoParaReport) return;
 
     // Simular upload das fotos e criação do report
     setIsDataLoading(true);
-    
+
     // Criar objeto de estado de recebimento
     const novoEstadoRecebimento: EstadoRecebimento = {
       id: Date.now(),
@@ -672,7 +693,7 @@ export default function DashboardCliente() {
       dataReport: new Date().toISOString(),
       estado: formReport.estado,
       observacoes: formReport.observacoes,
-      fotos: formReport.fotos.map(f => f.name), // Em produção, seriam URLs dos arquivos upload
+      fotos: formReport.fotos.map((f) => f.name), // Em produção, seriam URLs dos arquivos upload
       danosIdentificados: formReport.danosIdentificados,
       descricaoDanos: formReport.descricaoDanos,
       conformidade: formReport.conformidade,
@@ -680,22 +701,27 @@ export default function DashboardCliente() {
     };
 
     // Atualizar o cargo com o estado de recebimento
-    setCargos(prev => prev.map(cargo => 
-      cargo.id === cargoParaReport.id 
-        ? { ...cargo, estadoRecebimento: novoEstadoRecebimento }
-        : cargo
-    ));
+    setCargos((prev) =>
+      prev.map((cargo) =>
+        cargo.id === cargoParaReport.id
+          ? { ...cargo, estadoRecebimento: novoEstadoRecebimento }
+          : cargo
+      )
+    );
 
     // Adicionar alerta de sucesso
-    setAlertas(prev => [...prev, {
-      id: Date.now(),
-      tipo: "sucesso",
-      titulo: "Report de Recebimento Enviado",
-      mensagem: `Report da carga ${cargoParaReport.numero} enviado com sucesso`,
-      data: new Date().toISOString(),
-      lido: false,
-      cargoId: cargoParaReport.id,
-    }]);
+    setAlertas((prev) => [
+      ...prev,
+      {
+        id: Date.now(),
+        tipo: "sucesso",
+        titulo: "Report de Recebimento Enviado",
+        mensagem: `Report da carga ${cargoParaReport.numero} enviado com sucesso`,
+        data: new Date().toISOString(),
+        lido: false,
+        cargoId: cargoParaReport.id,
+      },
+    ]);
 
     setIsDataLoading(false);
     fecharReportModal();
@@ -705,21 +731,23 @@ export default function DashboardCliente() {
 
   // Funções para faturas
   const pagarFatura = (faturaId: number) => {
-    setFaturas(prev => prev.map(fatura => 
-      fatura.id === faturaId 
-        ? { 
-            ...fatura, 
-            status: "paga" as const,
-            dataPagamento: new Date().toISOString().split('T')[0],
-            metodoPagamento: "Transferência Bancária"
-          }
-        : fatura
-    ));
+    setFaturas((prev) =>
+      prev.map((fatura) =>
+        fatura.id === faturaId
+          ? {
+              ...fatura,
+              status: "paga" as const,
+              dataPagamento: new Date().toISOString().split("T")[0],
+              metodoPagamento: "Transferência Bancária",
+            }
+          : fatura
+      )
+    );
     alert("Fatura marcada como paga!");
   };
 
   const downloadFatura = (faturaId: number) => {
-    const fatura = faturas.find(f => f.id === faturaId);
+    const fatura = faturas.find((f) => f.id === faturaId);
     if (fatura) {
       alert(`Iniciando download da fatura ${fatura.numero}...`);
       // Em produção, aqui seria o download real do arquivo
@@ -950,28 +978,28 @@ export default function DashboardCliente() {
   };
 
   const formatarMoeda = (valor: number) => {
-    return new Intl.NumberFormat('pt-MZ', {
-      style: 'currency',
-      currency: 'MZN',
-      minimumFractionDigits: 2
+    return new Intl.NumberFormat("pt-MZ", {
+      style: "currency",
+      currency: "MZN",
+      minimumFractionDigits: 2,
     }).format(valor);
   };
 
   const formatarData = (data: string) => {
-    return new Date(data).toLocaleDateString('pt-MZ', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
+    return new Date(data).toLocaleDateString("pt-MZ", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
     });
   };
 
   const formatarDataHora = (data: string) => {
-    return new Date(data).toLocaleString('pt-MZ', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(data).toLocaleString("pt-MZ", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -1016,12 +1044,11 @@ export default function DashboardCliente() {
     }));
   };
 
-   const toggleIntegracaoAPI = (id: number) => {
+  const toggleIntegracaoAPI = (id: number) => {
     setIntegracaoAPI((prev) =>
       prev.map((api) => (api.id === id ? { ...api, ativa: !api.ativa } : api))
     );
   };
-
 
   const alterarSenha = async () => {
     if (formSenha.novaSenha !== formSenha.confirmarSenha) {
@@ -1063,8 +1090,7 @@ export default function DashboardCliente() {
     alert("Nova chave API gerada com sucesso!");
   };
 
-
-  const exportarDados = (tipo: 'cargos' | 'relatorios' | 'faturas') => {
+  const exportarDados = (tipo: "cargos" | "relatorios" | "faturas") => {
     // Simulação de exportação
     alert(`Exportando ${tipo}...`);
   };
@@ -1111,7 +1137,7 @@ export default function DashboardCliente() {
                   </span>
                 )}
               </button>
-              
+
               <div className="text-right">
                 <p className="text-sm font-medium text-gray-900 dark:text-white">
                   {user.name}
@@ -1120,7 +1146,7 @@ export default function DashboardCliente() {
                   Cliente • Porto da Beira
                 </p>
               </div>
-              
+
               <div className="flex space-x-2">
                 <button
                   onClick={() => setActiveTab("configuracoes")}
@@ -1171,10 +1197,12 @@ export default function DashboardCliente() {
                   <div className="flex items-center space-x-2">
                     <span className="text-xs text-gray-500">{alerta.data}</span>
                     {alerta.cargoId && (
-                      <button 
+                      <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          const cargo = cargos.find(c => c.id === alerta.cargoId);
+                          const cargo = cargos.find(
+                            (c) => c.id === alerta.cargoId
+                          );
                           if (cargo) visualizarCargo(cargo);
                         }}
                         className="text-blue-600 hover:text-blue-800 text-sm"
@@ -1288,7 +1316,7 @@ export default function DashboardCliente() {
                       className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     />
                   </div>
-                  
+
                   <div className="flex flex-wrap gap-2">
                     <select
                       value={statusFilter}
@@ -1315,8 +1343,15 @@ export default function DashboardCliente() {
                       <option value="farinha de trigo">Farinha</option>
                     </select>
 
-                    <button 
-                      onClick={() => setFiltrosAvancados(prev => ({ ...prev, prioridade: "todos", valorMin: "", valorMax: "" }))}
+                    <button
+                      onClick={() =>
+                        setFiltrosAvancados((prev) => ({
+                          ...prev,
+                          prioridade: "todos",
+                          valorMin: "",
+                          valorMax: "",
+                        }))
+                      }
                       className="flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                     >
                       <FiFilter className="w-4 h-4" />
@@ -1324,18 +1359,18 @@ export default function DashboardCliente() {
                     </button>
                   </div>
                 </div>
-                
+
                 <div className="flex gap-2 w-full lg:w-auto">
-                  <button 
+                  <button
                     onClick={() => setShowNovaCargaModal(true)}
                     className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex-1 lg:flex-none justify-center"
                   >
                     <FiPlus className="w-4 h-4" />
                     <span>Nova Carga</span>
                   </button>
-                  
-                  <button 
-                    onClick={() => exportarDados('cargos')}
+
+                  <button
+                    onClick={() => exportarDados("cargos")}
                     className="flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                   >
                     <FiDownload className="w-4 h-4" />
@@ -1347,7 +1382,9 @@ export default function DashboardCliente() {
               {/* Filtros Avançados */}
               <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-medium text-gray-900 dark:text-white">Filtros Avançados</h4>
+                  <h4 className="font-medium text-gray-900 dark:text-white">
+                    Filtros Avançados
+                  </h4>
                   <FiFilter className="text-gray-400" />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1357,7 +1394,12 @@ export default function DashboardCliente() {
                     </label>
                     <select
                       value={filtrosAvancados.prioridade}
-                      onChange={(e) => setFiltrosAvancados(prev => ({ ...prev, prioridade: e.target.value }))}
+                      onChange={(e) =>
+                        setFiltrosAvancados((prev) => ({
+                          ...prev,
+                          prioridade: e.target.value,
+                        }))
+                      }
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     >
                       <option value="todos">Todas</option>
@@ -1366,7 +1408,7 @@ export default function DashboardCliente() {
                       <option value="baixa">Baixa</option>
                     </select>
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Valor Mínimo (MZN)
@@ -1375,11 +1417,16 @@ export default function DashboardCliente() {
                       type="number"
                       placeholder="0"
                       value={filtrosAvancados.valorMin}
-                      onChange={(e) => setFiltrosAvancados(prev => ({ ...prev, valorMin: e.target.value }))}
+                      onChange={(e) =>
+                        setFiltrosAvancados((prev) => ({
+                          ...prev,
+                          valorMin: e.target.value,
+                        }))
+                      }
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Valor Máximo (MZN)
@@ -1388,7 +1435,12 @@ export default function DashboardCliente() {
                       type="number"
                       placeholder="1000000"
                       value={filtrosAvancados.valorMax}
-                      onChange={(e) => setFiltrosAvancados(prev => ({ ...prev, valorMax: e.target.value }))}
+                      onChange={(e) =>
+                        setFiltrosAvancados((prev) => ({
+                          ...prev,
+                          valorMax: e.target.value,
+                        }))
+                      }
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     />
                   </div>
@@ -1415,7 +1467,7 @@ export default function DashboardCliente() {
                   </div>
                 </div>
               </div>
-              
+
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gray-50 dark:bg-gray-700">
@@ -1465,7 +1517,7 @@ export default function DashboardCliente() {
                           <p className="mt-2 text-sm text-gray-500">
                             Nenhuma carga encontrada
                           </p>
-                          <button 
+                          <button
                             onClick={() => setShowNovaCargaModal(true)}
                             className="mt-2 text-blue-600 hover:text-blue-800 text-sm font-medium"
                           >
@@ -1491,8 +1543,12 @@ export default function DashboardCliente() {
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            <div className="text-sm text-gray-900 dark:text-white">{cargo.tipo}</div>
-                            <div className="text-xs text-gray-500">{cargo.peso} kg</div>
+                            <div className="text-sm text-gray-900 dark:text-white">
+                              {cargo.tipo}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {cargo.peso} kg
+                            </div>
                           </td>
                           <td className="px-6 py-4">
                             <div className="text-sm text-gray-900 dark:text-white">
@@ -1517,7 +1573,10 @@ export default function DashboardCliente() {
                               {cargo.dataEntregaPrevista && (
                                 <div className="text-xs text-gray-500 flex items-center space-x-1">
                                   <FiClock className="w-3 h-3" />
-                                  <span>Prev: {formatarData(cargo.dataEntregaPrevista)}</span>
+                                  <span>
+                                    Prev:{" "}
+                                    {formatarData(cargo.dataEntregaPrevista)}
+                                  </span>
                                 </div>
                               )}
                             </div>
@@ -1530,10 +1589,14 @@ export default function DashboardCliente() {
                                     cargo.estadoRecebimento.estado
                                   )}`}
                                 >
-                                  {getEstadoRecebimentoText(cargo.estadoRecebimento.estado)}
+                                  {getEstadoRecebimentoText(
+                                    cargo.estadoRecebimento.estado
+                                  )}
                                 </span>
                                 <div className="text-xs text-gray-500">
-                                  {formatarData(cargo.estadoRecebimento.dataReport)}
+                                  {formatarData(
+                                    cargo.estadoRecebimento.dataReport
+                                  )}
                                 </div>
                               </div>
                             ) : cargo.status === "entregue" ? (
@@ -1545,7 +1608,9 @@ export default function DashboardCliente() {
                                 Reportar Estado
                               </button>
                             ) : (
-                              <span className="text-xs text-gray-400">Aguardando entrega</span>
+                              <span className="text-xs text-gray-400">
+                                Aguardando entrega
+                              </span>
                             )}
                           </td>
                           <td className="px-6 py-4">
@@ -1554,7 +1619,8 @@ export default function DashboardCliente() {
                                 cargo.prioridade
                               )}`}
                             >
-                              {cargo.prioridade.charAt(0).toUpperCase() + cargo.prioridade.slice(1)}
+                              {cargo.prioridade.charAt(0).toUpperCase() +
+                                cargo.prioridade.slice(1)}
                             </span>
                           </td>
                           <td className="px-6 py-4">
@@ -1564,23 +1630,24 @@ export default function DashboardCliente() {
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex space-x-2">
-                              <button 
+                              <button
                                 onClick={() => visualizarCargo(cargo)}
                                 className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center"
                               >
                                 <FiEye className="w-4 h-4 mr-1" />
                                 Ver
                               </button>
-                              {cargo.status === "entregue" && !cargo.estadoRecebimento && (
-                                <button 
-                                  onClick={() => abrirReportModal(cargo)}
-                                  className="text-purple-600 hover:text-purple-800 text-sm font-medium flex items-center"
-                                >
-                                  <FiCamera className="w-4 h-4 mr-1" />
-                                  Reportar
-                                </button>
-                              )}
-                              <button 
+                              {cargo.status === "entregue" &&
+                                !cargo.estadoRecebimento && (
+                                  <button
+                                    onClick={() => abrirReportModal(cargo)}
+                                    className="text-purple-600 hover:text-purple-800 text-sm font-medium flex items-center"
+                                  >
+                                    <FiCamera className="w-4 h-4 mr-1" />
+                                    Reportar
+                                  </button>
+                                )}
+                              <button
                                 onClick={() => abrirRastreamentoModal(cargo)}
                                 className="text-green-600 hover:text-green-800 text-sm font-medium flex items-center"
                               >
@@ -1617,13 +1684,17 @@ export default function DashboardCliente() {
                     />
                   </div>
                 </div>
-                <button 
+                <button
                   onClick={() => {
-                    const cargo = cargos.find(c => c.numero === rastreamentoSearch);
+                    const cargo = cargos.find(
+                      (c) => c.numero === rastreamentoSearch
+                    );
                     if (cargo) {
                       abrirRastreamentoModal(cargo);
                     } else {
-                      alert("Carga não encontrada. Verifique o número da carga.");
+                      alert(
+                        "Carga não encontrada. Verifique o número da carga."
+                      );
                     }
                   }}
                   className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
@@ -1638,77 +1709,119 @@ export default function DashboardCliente() {
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
               <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Cargas em Trânsito ({cargos.filter(c => c.status === 'transito' || c.status === 'coletado').length})
+                  Cargas em Trânsito (
+                  {
+                    cargos.filter(
+                      (c) => c.status === "transito" || c.status === "coletado"
+                    ).length
+                  }
+                  )
                 </h2>
               </div>
-              
+
               <div className="p-6">
                 {isDataLoading ? (
                   <div className="text-center py-8">
                     <Spinner size="md" />
                     <p className="mt-2 text-sm text-gray-500">Carregando...</p>
                   </div>
-                ) : cargos.filter(c => c.status === 'transito' || c.status === 'coletado').length === 0 ? (
+                ) : cargos.filter(
+                    (c) => c.status === "transito" || c.status === "coletado"
+                  ).length === 0 ? (
                   <div className="text-center py-8">
                     <FiTruck className="mx-auto h-12 w-12 text-gray-400" />
-                    <p className="mt-2 text-sm text-gray-500">Nenhuma carga em trânsito</p>
+                    <p className="mt-2 text-sm text-gray-500">
+                      Nenhuma carga em trânsito
+                    </p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {cargos
-                      .filter(c => c.status === 'transito' || c.status === 'coletado')
+                      .filter(
+                        (c) =>
+                          c.status === "transito" || c.status === "coletado"
+                      )
                       .map((cargo) => {
                         const localizacao = getLocalizacaoCargo(cargo.id);
                         return (
-                          <div key={cargo.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow">
+                          <div
+                            key={cargo.id}
+                            className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow"
+                          >
                             <div className="flex justify-between items-start mb-3">
                               <div>
-                                <h3 className="font-semibold text-gray-900 dark:text-white">{cargo.numero}</h3>
-                                <p className="text-sm text-gray-500">{cargo.tipo}</p>
+                                <h3 className="font-semibold text-gray-900 dark:text-white">
+                                  {cargo.numero}
+                                </h3>
+                                <p className="text-sm text-gray-500">
+                                  {cargo.tipo}
+                                </p>
                               </div>
-                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(cargo.status)}`}>
+                              <span
+                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
+                                  cargo.status
+                                )}`}
+                              >
                                 {getStatusText(cargo.status)}
                               </span>
                             </div>
-                            
+
                             <div className="space-y-2 mb-4">
                               <div className="flex justify-between text-sm">
                                 <span className="text-gray-500">Origem:</span>
-                                <span className="font-medium">{cargo.origem}</span>
+                                <span className="font-medium">
+                                  {cargo.origem}
+                                </span>
                               </div>
                               <div className="flex justify-between text-sm">
                                 <span className="text-gray-500">Destino:</span>
-                                <span className="font-medium">{cargo.destino}</span>
+                                <span className="font-medium">
+                                  {cargo.destino}
+                                </span>
                               </div>
                               {localizacao && (
                                 <>
                                   <div className="flex justify-between text-sm">
-                                    <span className="text-gray-500">Última localização:</span>
-                                    <span className="font-medium">{localizacao.localizacao}</span>
+                                    <span className="text-gray-500">
+                                      Última localização:
+                                    </span>
+                                    <span className="font-medium">
+                                      {localizacao.localizacao}
+                                    </span>
                                   </div>
                                   <div className="flex justify-between text-sm">
-                                    <span className="text-gray-500">Atualizado em:</span>
-                                    <span className="font-medium">{formatarDataHora(localizacao.ultimaAtualizacao)}</span>
+                                    <span className="text-gray-500">
+                                      Atualizado em:
+                                    </span>
+                                    <span className="font-medium">
+                                      {formatarDataHora(
+                                        localizacao.ultimaAtualizacao
+                                      )}
+                                    </span>
                                   </div>
                                   {localizacao.velocidade && (
                                     <div className="flex justify-between text-sm">
-                                      <span className="text-gray-500">Velocidade:</span>
-                                      <span className="font-medium">{localizacao.velocidade} km/h</span>
+                                      <span className="text-gray-500">
+                                        Velocidade:
+                                      </span>
+                                      <span className="font-medium">
+                                        {localizacao.velocidade} km/h
+                                      </span>
                                     </div>
                                   )}
                                 </>
                               )}
                             </div>
-                            
+
                             <div className="flex space-x-2">
-                              <button 
+                              <button
                                 onClick={() => abrirRastreamentoModal(cargo)}
                                 className="flex-1 bg-blue-600 text-white py-2 px-3 rounded text-sm hover:bg-blue-700 transition-colors flex items-center justify-center space-x-1"
                               >
                                 <FiMap className="w-4 h-4" />
                                 <span>Ver Rota</span>
                               </button>
-                              <button 
+                              <button
                                 onClick={() => visualizarCargo(cargo)}
                                 className="flex-1 border border-gray-300 dark:border-gray-600 py-2 px-3 rounded text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                               >
@@ -1734,8 +1847,12 @@ export default function DashboardCliente() {
                 <div className="bg-gray-100 dark:bg-gray-700 rounded-lg h-64 flex items-center justify-center">
                   <div className="text-center">
                     <FiMap className="w-12 h-12 text-gray-400 mx-auto" />
-                    <p className="mt-2 text-gray-500">Mapa de rastreamento em tempo real</p>
-                    <p className="text-sm text-gray-400">Integração com Google Maps</p>
+                    <p className="mt-2 text-gray-500">
+                      Mapa de rastreamento em tempo real
+                    </p>
+                    <p className="text-sm text-gray-400">
+                      Integração com Google Maps
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1749,18 +1866,20 @@ export default function DashboardCliente() {
             {/* Métricas de Faturas */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-                <div className="text-2xl font-bold text-blue-600">{faturas.length}</div>
+                <div className="text-2xl font-bold text-blue-600">
+                  {faturas.length}
+                </div>
                 <div className="text-sm text-gray-500">Total de Faturas</div>
               </div>
               <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
                 <div className="text-2xl font-bold text-green-600">
-                  {faturas.filter(f => f.status === 'paga').length}
+                  {faturas.filter((f) => f.status === "paga").length}
                 </div>
                 <div className="text-sm text-gray-500">Faturas Pagas</div>
               </div>
               <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
                 <div className="text-2xl font-bold text-yellow-600">
-                  {faturas.filter(f => f.status === 'pendente').length}
+                  {faturas.filter((f) => f.status === "pendente").length}
                 </div>
                 <div className="text-sm text-gray-500">Faturas Pendentes</div>
               </div>
@@ -1778,8 +1897,8 @@ export default function DashboardCliente() {
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                   Evolução de Faturas
                 </h3>
-                <button 
-                  onClick={() => exportarDados('faturas')}
+                <button
+                  onClick={() => exportarDados("faturas")}
                   className="flex items-center space-x-1 text-sm text-blue-600 hover:text-blue-800"
                 >
                   <FiDownload className="w-4 h-4" />
@@ -1794,19 +1913,19 @@ export default function DashboardCliente() {
                     maintainAspectRatio: false,
                     plugins: {
                       legend: {
-                        position: 'top',
+                        position: "top",
                       },
                     },
                     scales: {
                       y: {
                         beginAtZero: true,
                         ticks: {
-                          callback: function(value) {
-                            return 'MZN ' + value.toLocaleString();
-                          }
-                        }
-                      }
-                    }
+                          callback: function (value) {
+                            return "MZN " + value.toLocaleString();
+                          },
+                        },
+                      },
+                    },
                   }}
                 />
               </div>
@@ -1824,8 +1943,8 @@ export default function DashboardCliente() {
                       <FiPrinter className="w-4 h-4" />
                       <span>Imprimir</span>
                     </button>
-                    <button 
-                      onClick={() => exportarDados('faturas')}
+                    <button
+                      onClick={() => exportarDados("faturas")}
                       className="flex items-center space-x-2 px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                     >
                       <FiDownload className="w-4 h-4" />
@@ -1834,7 +1953,7 @@ export default function DashboardCliente() {
                   </div>
                 </div>
               </div>
-              
+
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gray-50 dark:bg-gray-700">
@@ -1915,8 +2034,11 @@ export default function DashboardCliente() {
                                 fatura.status
                               )}`}
                             >
-                              {fatura.status === 'paga' ? 'Paga' : 
-                               fatura.status === 'pendente' ? 'Pendente' : 'Atrasada'}
+                              {fatura.status === "paga"
+                                ? "Paga"
+                                : fatura.status === "pendente"
+                                ? "Pendente"
+                                : "Atrasada"}
                             </span>
                             {fatura.dataPagamento && (
                               <div className="text-xs text-gray-500 mt-1">
@@ -1929,23 +2051,25 @@ export default function DashboardCliente() {
                               {fatura.cargos.length} carga(s)
                             </div>
                             <div className="text-xs text-gray-500">
-                              {fatura.cargos.map(id => {
-                                const cargo = cargos.find(c => c.id === id);
-                                return cargo?.numero;
-                              }).join(', ')}
+                              {fatura.cargos
+                                .map((id) => {
+                                  const cargo = cargos.find((c) => c.id === id);
+                                  return cargo?.numero;
+                                })
+                                .join(", ")}
                             </div>
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex space-x-2">
-                              <button 
+                              <button
                                 onClick={() => downloadFatura(fatura.id)}
                                 className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center"
                               >
                                 <FiDownload className="w-4 h-4 mr-1" />
                                 Baixar
                               </button>
-                              {fatura.status !== 'paga' && (
-                                <button 
+                              {fatura.status !== "paga" && (
+                                <button
                                   onClick={() => pagarFatura(fatura.id)}
                                   className="text-green-600 hover:text-green-800 text-sm font-medium flex items-center"
                                 >
@@ -1970,20 +2094,30 @@ export default function DashboardCliente() {
             {/* Métricas de Relatórios */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-                <div className="text-2xl font-bold text-blue-600">{metrics.totalCargas}</div>
+                <div className="text-2xl font-bold text-blue-600">
+                  {metrics.totalCargas}
+                </div>
                 <div className="text-sm text-gray-500">Total de Cargas</div>
               </div>
               <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-                <div className="text-2xl font-bold text-green-600">{metrics.entregues}</div>
+                <div className="text-2xl font-bold text-green-600">
+                  {metrics.entregues}
+                </div>
                 <div className="text-sm text-gray-500">Entregues no Prazo</div>
               </div>
               <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-                <div className="text-2xl font-bold text-red-600">{metrics.atrasadas}</div>
+                <div className="text-2xl font-bold text-red-600">
+                  {metrics.atrasadas}
+                </div>
                 <div className="text-sm text-gray-500">Cargas Atrasadas</div>
               </div>
               <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-                <div className="text-2xl font-bold text-purple-600">{formatarMoeda(metrics.valorTotal)}</div>
-                <div className="text-sm text-gray-500">Valor Total Transportado</div>
+                <div className="text-2xl font-bold text-purple-600">
+                  {formatarMoeda(metrics.valorTotal)}
+                </div>
+                <div className="text-sm text-gray-500">
+                  Valor Total Transportado
+                </div>
               </div>
             </div>
 
@@ -1993,8 +2127,8 @@ export default function DashboardCliente() {
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                     Status das Cargas
                   </h3>
-                  <button 
-                    onClick={() => exportarDados('relatorios')}
+                  <button
+                    onClick={() => exportarDados("relatorios")}
                     className="flex items-center space-x-1 text-sm text-blue-600 hover:text-blue-800"
                   >
                     <FiDownload className="w-4 h-4" />
@@ -2022,8 +2156,8 @@ export default function DashboardCliente() {
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                     Distribuição por Tipo de Carga
                   </h3>
-                  <button 
-                    onClick={() => exportarDados('relatorios')}
+                  <button
+                    onClick={() => exportarDados("relatorios")}
                     className="flex items-center space-x-1 text-sm text-blue-600 hover:text-blue-800"
                   >
                     <FiDownload className="w-4 h-4" />
@@ -2059,637 +2193,637 @@ export default function DashboardCliente() {
           </div>
         )}
 
-         {/* Tab de Configurações */}
-                {activeTab === "configuracoes" && (
-                  <div className="space-y-6">
-                    {/* Perfil do Usuário */}
-                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-                      <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-                          <FiUser className="w-5 h-5 mr-2" />
-                          Perfil do Usuário
-                        </h2>
-                      </div>
-                      <div className="p-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Tab de Configurações */}
+        {activeTab === "configuracoes" && (
+          <div className="space-y-6">
+            {/* Perfil do Usuário */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                  <FiUser className="w-5 h-5 mr-2" />
+                  Perfil do Usuário
+                </h2>
+              </div>
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Nome Completo
+                    </label>
+                    <input
+                      type="text"
+                      value={configuracoes.nome}
+                      onChange={(e) =>
+                        handleConfigChange("nome", e.target.value)
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      value={configuracoes.email}
+                      onChange={(e) =>
+                        handleConfigChange("email", e.target.value)
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Telefone
+                    </label>
+                    <input
+                      type="tel"
+                      value={configuracoes.telefone}
+                      onChange={(e) =>
+                        handleConfigChange("telefone", e.target.value)
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Empresa
+                    </label>
+                    <input
+                      type="text"
+                      value={configuracoes.empresa}
+                      onChange={(e) =>
+                        handleConfigChange("empresa", e.target.value)
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      País
+                    </label>
+                    <select
+                      value={configuracoes.pais}
+                      onChange={(e) =>
+                        handleConfigChange("pais", e.target.value)
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    >
+                      <option value="Moçambique">Moçambique</option>
+                      <option value="Angola">Angola</option>
+                      <option value="Brasil">Brasil</option>
+                      <option value="Portugal">Portugal</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Cidade
+                    </label>
+                    <input
+                      type="text"
+                      value={configuracoes.cidade}
+                      onChange={(e) =>
+                        handleConfigChange("cidade", e.target.value)
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Endereço
+                    </label>
+                    <input
+                      type="text"
+                      value={configuracoes.endereco}
+                      onChange={(e) =>
+                        handleConfigChange("endereco", e.target.value)
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Preferências de Notificação */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                  <FiBell className="w-5 h-5 mr-2" />
+                  Preferências de Notificação
+                </h2>
+              </div>
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <h3 className="font-medium text-gray-900">
+                      Canais de Notificação
+                    </h3>
+                    <div className="space-y-3">
+                      {[
+                        {
+                          key: "email",
+                          label: "Email",
+                          description: "Receber notificações por email",
+                        },
+                        {
+                          key: "sms",
+                          label: "SMS",
+                          description: "Receber notificações por SMS",
+                        },
+                        {
+                          key: "push",
+                          label: "Notificações Push",
+                          description: "Receber notificações no navegador",
+                        },
+                      ].map((item) => (
+                        <div
+                          key={item.key}
+                          className="flex items-center justify-between"
+                        >
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                              Nome Completo
-                            </label>
-                            <input
-                              type="text"
-                              value={configuracoes.nome}
-                              onChange={(e) =>
-                                handleConfigChange("nome", e.target.value)
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                              Email
-                            </label>
-                            <input
-                              type="email"
-                              value={configuracoes.email}
-                              onChange={(e) =>
-                                handleConfigChange("email", e.target.value)
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                              Telefone
-                            </label>
-                            <input
-                              type="tel"
-                              value={configuracoes.telefone}
-                              onChange={(e) =>
-                                handleConfigChange("telefone", e.target.value)
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                              Empresa
-                            </label>
-                            <input
-                              type="text"
-                              value={configuracoes.empresa}
-                              onChange={(e) =>
-                                handleConfigChange("empresa", e.target.value)
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                              País
-                            </label>
-                            <select
-                              value={configuracoes.pais}
-                              onChange={(e) =>
-                                handleConfigChange("pais", e.target.value)
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                            >
-                              <option value="Moçambique">Moçambique</option>
-                              <option value="Angola">Angola</option>
-                              <option value="Brasil">Brasil</option>
-                              <option value="Portugal">Portugal</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                              Cidade
-                            </label>
-                            <input
-                              type="text"
-                              value={configuracoes.cidade}
-                              onChange={(e) =>
-                                handleConfigChange("cidade", e.target.value)
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                            />
-                          </div>
-                          <div className="md:col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                              Endereço
-                            </label>
-                            <input
-                              type="text"
-                              value={configuracoes.endereco}
-                              onChange={(e) =>
-                                handleConfigChange("endereco", e.target.value)
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-        
-                    {/* Preferências de Notificação */}
-                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-                      <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-                          <FiBell className="w-5 h-5 mr-2" />
-                          Preferências de Notificação
-                        </h2>
-                      </div>
-                      <div className="p-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="space-y-4">
-                            <h3 className="font-medium text-gray-900">
-                              Canais de Notificação
-                            </h3>
-                            <div className="space-y-3">
-                              {[
-                                {
-                                  key: "email",
-                                  label: "Email",
-                                  description: "Receber notificações por email",
-                                },
-                                {
-                                  key: "sms",
-                                  label: "SMS",
-                                  description: "Receber notificações por SMS",
-                                },
-                                {
-                                  key: "push",
-                                  label: "Notificações Push",
-                                  description: "Receber notificações no navegador",
-                                },
-                              ].map((item) => (
-                                <div
-                                  key={item.key}
-                                  className="flex items-center justify-between"
-                                >
-                                  <div>
-                                    <p className="font-medium text-gray-900 ">
-                                      {item.label}
-                                    </p>
-                                    <p className="text-sm text-gray-500">
-                                      {item.description}
-                                    </p>
-                                  </div>
-                                  <button
-                                    onClick={() =>
-                                      handleNotificacaoChange(
-                                        item.key,
-                                        !configuracoes.notificacoes[
-                                          item.key as keyof typeof configuracoes.notificacoes
-                                        ]
-                                      )
-                                    }
-                                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                                      configuracoes.notificacoes[
-                                        item.key as keyof typeof configuracoes.notificacoes
-                                      ]
-                                        ? "bg-blue-600"
-                                        : "bg-gray-200"
-                                    }`}
-                                  >
-                                    <span
-                                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                                        configuracoes.notificacoes[
-                                          item.key as keyof typeof configuracoes.notificacoes
-                                        ]
-                                          ? "translate-x-5"
-                                          : "translate-x-0"
-                                      }`}
-                                    />
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                          <div className="space-y-4">
-                            <h3 className="font-medium text-gray-900 dark:text-white">
-                              Tipos de Notificação
-                            </h3>
-                            <div className="space-y-3">
-                              {[
-                                {
-                                  key: "alertasCarga",
-                                  label: "Alertas de Carga",
-                                  description: "Notificações sobre status de cargas",
-                                },
-                                {
-                                  key: "atualizacoesStatus",
-                                  label: "Atualizações de Status",
-                                  description: "Mudanças no status das cargas",
-                                },
-                                {
-                                  key: "notificacoesFinanceiras",
-                                  label: "Notificações Financeiras",
-                                  description: "Faturas e pagamentos",
-                                },
-                              ].map((item) => (
-                                <div
-                                  key={item.key}
-                                  className="flex items-center justify-between"
-                                >
-                                  <div>
-                                    <p className="font-medium text-gray-900 dark:text-white">
-                                      {item.label}
-                                    </p>
-                                    <p className="text-sm text-gray-500">
-                                      {item.description}
-                                    </p>
-                                  </div>
-                                  <button
-                                    onClick={() =>
-                                      handleNotificacaoChange(
-                                        item.key,
-                                        !configuracoes.notificacoes[
-                                          item.key as keyof typeof configuracoes.notificacoes
-                                        ]
-                                      )
-                                    }
-                                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                                      configuracoes.notificacoes[
-                                        item.key as keyof typeof configuracoes.notificacoes
-                                      ]
-                                        ? "bg-blue-600"
-                                        : "bg-gray-200"
-                                    }`}
-                                  >
-                                    <span
-                                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                                        configuracoes.notificacoes[
-                                          item.key as keyof typeof configuracoes.notificacoes
-                                        ]
-                                          ? "translate-x-5"
-                                          : "translate-x-0"
-                                      }`}
-                                    />
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-        
-                    {/* Preferências do Sistema */}
-                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-                      <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-                          <FiSettings className="w-5 h-5 mr-2" />
-                          Preferências do Sistema
-                        </h2>
-                      </div>
-                      <div className="p-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                              Tema
-                            </label>
-                            <select
-                              value={configuracoes.preferencias.tema}
-                              onChange={(e) =>
-                                handlePreferenciaChange("tema", e.target.value)
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                            >
-                              <option value="claro">Claro</option>
-                              <option value="escuro">Escuro</option>
-                              <option value="auto">Automático</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                              Itens por Página
-                            </label>
-                            <select
-                              value={configuracoes.preferencias.itensPorPagina}
-                              onChange={(e) =>
-                                handlePreferenciaChange(
-                                  "itensPorPagina",
-                                  parseInt(e.target.value).toString()
-                                )
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                            >
-                              <option value={10}>10 itens</option>
-                              <option value={25}>25 itens</option>
-                              <option value={50}>50 itens</option>
-                              <option value={100}>100 itens</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                              Idioma
-                            </label>
-                            <select
-                              value={configuracoes.idioma}
-                              onChange={(e) =>
-                                handleConfigChange("idioma", e.target.value)
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                            >
-                              <option value="pt">Português</option>
-                              <option value="en">English</option>
-                              <option value="es">Español</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                              Fuso Horário
-                            </label>
-                            <select
-                              value={configuracoes.fusoHorario}
-                              onChange={(e) =>
-                                handleConfigChange("fusoHorario", e.target.value)
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                            >
-                              <option value="Africa/Maputo">Maputo (UTC+2)</option>
-                              <option value="Africa/Johannesburg">
-                                Johannesburg (UTC+2)
-                              </option>
-                              <option value="Europe/Lisbon">Lisboa (UTC+0)</option>
-                            </select>
-                          </div>
-                          <div className="md:col-span-2">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="font-medium text-gray-900 dark:text-white">
-                                  Relatórios Automáticos
-                                </p>
-                                <p className="text-sm text-gray-500">
-                                  Receber relatórios semanais automaticamente
-                                </p>
-                              </div>
-                              <button
-                                onClick={() =>
-                                  handlePreferenciaChange(
-                                    "relatoriosAutomaticos",
-                                    !configuracoes.preferencias.relatoriosAutomaticos
-                                  )
-                                }
-                                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                                  configuracoes.preferencias.relatoriosAutomaticos
-                                    ? "bg-blue-600"
-                                    : "bg-gray-200"
-                                }`}
-                              >
-                                <span
-                                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                                    configuracoes.preferencias.relatoriosAutomaticos
-                                      ? "translate-x-5"
-                                      : "translate-x-0"
-                                  }`}
-                                />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-        
-                    {/* Segurança */}
-                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-                      <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-                          <FiShield className="w-5 h-5 mr-2" />
-                          Segurança
-                        </h2>
-                      </div>
-                      <div className="p-6">
-                        <div className="max-w-md space-y-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                              Senha Atual
-                            </label>
-                            <div className="relative">
-                              <input
-                                type={showSenhaAtual ? "text" : "password"}
-                                value={formSenha.senhaAtual}
-                                onChange={(e) =>
-                                  setFormSenha((prev) => ({
-                                    ...prev,
-                                    senhaAtual: e.target.value,
-                                  }))
-                                }
-                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white pr-10"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => setShowSenhaAtual(!showSenhaAtual)}
-                                className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                              >
-                                {showSenhaAtual ? (
-                                  <FiEyeOff className="text-gray-400" />
-                                ) : (
-                                  <FiEyeOn className="text-gray-400" />
-                                )}
-                              </button>
-                            </div>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                              Nova Senha
-                            </label>
-                            <div className="relative">
-                              <input
-                                type={showNovaSenha ? "text" : "password"}
-                                value={formSenha.novaSenha}
-                                onChange={(e) =>
-                                  setFormSenha((prev) => ({
-                                    ...prev,
-                                    novaSenha: e.target.value,
-                                  }))
-                                }
-                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white pr-10"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => setShowNovaSenha(!showNovaSenha)}
-                                className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                              >
-                                {showNovaSenha ? (
-                                  <FiEyeOff className="text-gray-400" />
-                                ) : (
-                                  <FiEyeOn className="text-gray-400" />
-                                )}
-                              </button>
-                            </div>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                              Confirmar Nova Senha
-                            </label>
-                            <div className="relative">
-                              <input
-                                type={showConfirmarSenha ? "text" : "password"}
-                                value={formSenha.confirmarSenha}
-                                onChange={(e) =>
-                                  setFormSenha((prev) => ({
-                                    ...prev,
-                                    confirmarSenha: e.target.value,
-                                  }))
-                                }
-                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white pr-10"
-                              />
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setShowConfirmarSenha(!showConfirmarSenha)
-                                }
-                                className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                              >
-                                {showConfirmarSenha ? (
-                                  <FiEyeOff className="text-gray-400" />
-                                ) : (
-                                  <FiEyeOn className="text-gray-400" />
-                                )}
-                              </button>
-                            </div>
+                            <p className="font-medium text-gray-900 ">
+                              {item.label}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              {item.description}
+                            </p>
                           </div>
                           <button
-                            onClick={alterarSenha}
-                            disabled={isDataLoading}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
+                            onClick={() =>
+                              handleNotificacaoChange(
+                                item.key,
+                                !configuracoes.notificacoes[
+                                  item.key as keyof typeof configuracoes.notificacoes
+                                ]
+                              )
+                            }
+                            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                              configuracoes.notificacoes[
+                                item.key as keyof typeof configuracoes.notificacoes
+                              ]
+                                ? "bg-blue-600"
+                                : "bg-gray-200"
+                            }`}
                           >
-                            {isDataLoading ? (
-                              <Spinner size="sm" />
-                            ) : (
-                              <FiKey className="w-4 h-4" />
-                            )}
-                            <span>
-                              {isDataLoading ? "Alterando..." : "Alterar Senha"}
-                            </span>
+                            <span
+                              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                configuracoes.notificacoes[
+                                  item.key as keyof typeof configuracoes.notificacoes
+                                ]
+                                  ? "translate-x-5"
+                                  : "translate-x-0"
+                              }`}
+                            />
                           </button>
                         </div>
-                      </div>
-                    </div>
-        
-                    {/* Integrações API */}
-                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-                      <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-                          <FiGlobe className="w-5 h-5 mr-2" />
-                          Integrações API
-                        </h2>
-                      </div>
-                      <div className="p-6">
-                        <div className="space-y-4">
-                          {integracaoAPI.map((api) => (
-                            <div
-                              key={api.id}
-                              className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
-                            >
-                              <div className="flex justify-between items-start mb-3">
-                                <div>
-                                  <h3 className="font-medium text-gray-900 dark:text-white">
-                                    {api.nome}
-                                  </h3>
-                                  <p className="text-sm text-gray-500">
-                                    {api.descricao}
-                                  </p>
-                                </div>
-                                <button
-                                  onClick={() => toggleIntegracaoAPI(api.id)}
-                                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                                    api.ativa ? "bg-green-600" : "bg-gray-200"
-                                  }`}
-                                >
-                                  <span
-                                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                                      api.ativa ? "translate-x-5" : "translate-x-0"
-                                    }`}
-                                  />
-                                </button>
-                              </div>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                <div>
-                                  <span className="text-gray-500">Chave API:</span>
-                                  <div className="flex items-center space-x-2 mt-1">
-                                    <code className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-xs font-mono">
-                                      {api.chave}
-                                    </code>
-                                    <button
-                                      onClick={() =>
-                                        navigator.clipboard.writeText(api.chave)
-                                      }
-                                      className="text-blue-600 hover:text-blue-800 text-xs"
-                                    >
-                                      Copiar
-                                    </button>
-                                  </div>
-                                </div>
-                                <div className="space-y-1">
-                                  <div className="flex justify-between">
-                                    <span className="text-gray-500">Criada em:</span>
-                                    <span>{formatarData(api.dataCriacao)}</span>
-                                  </div>
-                                  {api.ultimoUso && (
-                                    <div className="flex justify-between">
-                                      <span className="text-gray-500">Último uso:</span>
-                                      <span>{formatarData(api.ultimoUso)}</span>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="mt-3 flex space-x-2">
-                                <button
-                                  onClick={() => gerarNovaChaveAPI(api.id)}
-                                  className="px-3 py-1 text-sm bg-yellow-600 text-white rounded hover:bg-yellow-700 transition-colors flex items-center space-x-1"
-                                >
-                                  <FiKey className="w-3 h-3" />
-                                  <span>Gerar Nova Chave</span>
-                                </button>
-                                <button className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center space-x-1">
-                                  <FiFileText className="w-3 h-3" />
-                                  <span>Documentação</span>
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-        
-                    {/* Ações */}
-                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-                      <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                          Ações
-                        </h2>
-                      </div>
-                      <div className="p-6">
-                        <div className="flex flex-wrap gap-4">
-                          <button
-                            onClick={salvarConfiguracoes}
-                            disabled={isDataLoading}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
-                          >
-                            {isDataLoading ? (
-                              <Spinner size="sm" />
-                            ) : (
-                              <FiSave className="w-4 h-4" />
-                            )}
-                            <span>
-                              {isDataLoading ? "Salvando..." : "Salvar Configurações"}
-                            </span>
-                          </button>
-                          <button className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center space-x-2">
-                            <FiDownload className="w-4 h-4" />
-                            <span>Exportar Dados</span>
-                          </button>
-                          <button className="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors flex items-center space-x-2">
-                            <FiTrash2 className="w-4 h-4" />
-                            <span>Excluir Conta</span>
-                          </button>
-                        </div>
-                      </div>
+                      ))}
                     </div>
                   </div>
-                )}
+                  <div className="space-y-4">
+                    <h3 className="font-medium text-gray-900 dark:text-white">
+                      Tipos de Notificação
+                    </h3>
+                    <div className="space-y-3">
+                      {[
+                        {
+                          key: "alertasCarga",
+                          label: "Alertas de Carga",
+                          description: "Notificações sobre status de cargas",
+                        },
+                        {
+                          key: "atualizacoesStatus",
+                          label: "Atualizações de Status",
+                          description: "Mudanças no status das cargas",
+                        },
+                        {
+                          key: "notificacoesFinanceiras",
+                          label: "Notificações Financeiras",
+                          description: "Faturas e pagamentos",
+                        },
+                      ].map((item) => (
+                        <div
+                          key={item.key}
+                          className="flex items-center justify-between"
+                        >
+                          <div>
+                            <p className="font-medium text-gray-900 dark:text-white">
+                              {item.label}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              {item.description}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() =>
+                              handleNotificacaoChange(
+                                item.key,
+                                !configuracoes.notificacoes[
+                                  item.key as keyof typeof configuracoes.notificacoes
+                                ]
+                              )
+                            }
+                            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                              configuracoes.notificacoes[
+                                item.key as keyof typeof configuracoes.notificacoes
+                              ]
+                                ? "bg-blue-600"
+                                : "bg-gray-200"
+                            }`}
+                          >
+                            <span
+                              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                configuracoes.notificacoes[
+                                  item.key as keyof typeof configuracoes.notificacoes
+                                ]
+                                  ? "translate-x-5"
+                                  : "translate-x-0"
+                              }`}
+                            />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Preferências do Sistema */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                  <FiSettings className="w-5 h-5 mr-2" />
+                  Preferências do Sistema
+                </h2>
+              </div>
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Tema
+                    </label>
+                    <select
+                      value={configuracoes.preferencias.tema}
+                      onChange={(e) =>
+                        handlePreferenciaChange("tema", e.target.value)
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    >
+                      <option value="claro">Claro</option>
+                      <option value="escuro">Escuro</option>
+                      <option value="auto">Automático</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Itens por Página
+                    </label>
+                    <select
+                      value={configuracoes.preferencias.itensPorPagina}
+                      onChange={(e) =>
+                        handlePreferenciaChange(
+                          "itensPorPagina",
+                          parseInt(e.target.value).toString()
+                        )
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    >
+                      <option value={10}>10 itens</option>
+                      <option value={25}>25 itens</option>
+                      <option value={50}>50 itens</option>
+                      <option value={100}>100 itens</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Idioma
+                    </label>
+                    <select
+                      value={configuracoes.idioma}
+                      onChange={(e) =>
+                        handleConfigChange("idioma", e.target.value)
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    >
+                      <option value="pt">Português</option>
+                      <option value="en">English</option>
+                      <option value="es">Español</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Fuso Horário
+                    </label>
+                    <select
+                      value={configuracoes.fusoHorario}
+                      onChange={(e) =>
+                        handleConfigChange("fusoHorario", e.target.value)
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    >
+                      <option value="Africa/Maputo">Maputo (UTC+2)</option>
+                      <option value="Africa/Johannesburg">
+                        Johannesburg (UTC+2)
+                      </option>
+                      <option value="Europe/Lisbon">Lisboa (UTC+0)</option>
+                    </select>
+                  </div>
+                  <div className="md:col-span-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          Relatórios Automáticos
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          Receber relatórios semanais automaticamente
+                        </p>
+                      </div>
+                      <button
+                        onClick={() =>
+                          handlePreferenciaChange(
+                            "relatoriosAutomaticos",
+                            !configuracoes.preferencias.relatoriosAutomaticos
+                          )
+                        }
+                        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                          configuracoes.preferencias.relatoriosAutomaticos
+                            ? "bg-blue-600"
+                            : "bg-gray-200"
+                        }`}
+                      >
+                        <span
+                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                            configuracoes.preferencias.relatoriosAutomaticos
+                              ? "translate-x-5"
+                              : "translate-x-0"
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Segurança */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                  <FiShield className="w-5 h-5 mr-2" />
+                  Segurança
+                </h2>
+              </div>
+              <div className="p-6">
+                <div className="max-w-md space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Senha Atual
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showSenhaAtual ? "text" : "password"}
+                        value={formSenha.senhaAtual}
+                        onChange={(e) =>
+                          setFormSenha((prev) => ({
+                            ...prev,
+                            senhaAtual: e.target.value,
+                          }))
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowSenhaAtual(!showSenhaAtual)}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      >
+                        {showSenhaAtual ? (
+                          <FiEyeOff className="text-gray-400" />
+                        ) : (
+                          <FiEyeOn className="text-gray-400" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Nova Senha
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showNovaSenha ? "text" : "password"}
+                        value={formSenha.novaSenha}
+                        onChange={(e) =>
+                          setFormSenha((prev) => ({
+                            ...prev,
+                            novaSenha: e.target.value,
+                          }))
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNovaSenha(!showNovaSenha)}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      >
+                        {showNovaSenha ? (
+                          <FiEyeOff className="text-gray-400" />
+                        ) : (
+                          <FiEyeOn className="text-gray-400" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Confirmar Nova Senha
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showConfirmarSenha ? "text" : "password"}
+                        value={formSenha.confirmarSenha}
+                        onChange={(e) =>
+                          setFormSenha((prev) => ({
+                            ...prev,
+                            confirmarSenha: e.target.value,
+                          }))
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setShowConfirmarSenha(!showConfirmarSenha)
+                        }
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      >
+                        {showConfirmarSenha ? (
+                          <FiEyeOff className="text-gray-400" />
+                        ) : (
+                          <FiEyeOn className="text-gray-400" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  <button
+                    onClick={alterarSenha}
+                    disabled={isDataLoading}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
+                  >
+                    {isDataLoading ? (
+                      <Spinner size="sm" />
+                    ) : (
+                      <FiKey className="w-4 h-4" />
+                    )}
+                    <span>
+                      {isDataLoading ? "Alterando..." : "Alterar Senha"}
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Integrações API */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                  <FiGlobe className="w-5 h-5 mr-2" />
+                  Integrações API
+                </h2>
+              </div>
+              <div className="p-6">
+                <div className="space-y-4">
+                  {integracaoAPI.map((api) => (
+                    <div
+                      key={api.id}
+                      className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+                    >
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <h3 className="font-medium text-gray-900 dark:text-white">
+                            {api.nome}
+                          </h3>
+                          <p className="text-sm text-gray-500">
+                            {api.descricao}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => toggleIntegracaoAPI(api.id)}
+                          className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                            api.ativa ? "bg-green-600" : "bg-gray-200"
+                          }`}
+                        >
+                          <span
+                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                              api.ativa ? "translate-x-5" : "translate-x-0"
+                            }`}
+                          />
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-gray-500">Chave API:</span>
+                          <div className="flex items-center space-x-2 mt-1">
+                            <code className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-xs font-mono">
+                              {api.chave}
+                            </code>
+                            <button
+                              onClick={() =>
+                                navigator.clipboard.writeText(api.chave)
+                              }
+                              className="text-blue-600 hover:text-blue-800 text-xs"
+                            >
+                              Copiar
+                            </button>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex justify-between">
+                            <span className="text-gray-500">Criada em:</span>
+                            <span>{formatarData(api.dataCriacao)}</span>
+                          </div>
+                          {api.ultimoUso && (
+                            <div className="flex justify-between">
+                              <span className="text-gray-500">Último uso:</span>
+                              <span>{formatarData(api.ultimoUso)}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="mt-3 flex space-x-2">
+                        <button
+                          onClick={() => gerarNovaChaveAPI(api.id)}
+                          className="px-3 py-1 text-sm bg-yellow-600 text-white rounded hover:bg-yellow-700 transition-colors flex items-center space-x-1"
+                        >
+                          <FiKey className="w-3 h-3" />
+                          <span>Gerar Nova Chave</span>
+                        </button>
+                        <button className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center space-x-1">
+                          <FiFileText className="w-3 h-3" />
+                          <span>Documentação</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Ações */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Ações
+                </h2>
+              </div>
+              <div className="p-6">
+                <div className="flex flex-wrap gap-4">
+                  <button
+                    onClick={salvarConfiguracoes}
+                    disabled={isDataLoading}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
+                  >
+                    {isDataLoading ? (
+                      <Spinner size="sm" />
+                    ) : (
+                      <FiSave className="w-4 h-4" />
+                    )}
+                    <span>
+                      {isDataLoading ? "Salvando..." : "Salvar Configurações"}
+                    </span>
+                  </button>
+                  <button className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center space-x-2">
+                    <FiDownload className="w-4 h-4" />
+                    <span>Exportar Dados</span>
+                  </button>
+                  <button className="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors flex items-center space-x-2">
+                    <FiTrash2 className="w-4 h-4" />
+                    <span>Excluir Conta</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Ações Rápidas */}
         <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button 
+          <button
             onClick={() => setShowNovaCargaModal(true)}
             className="bg-blue-600 text-white p-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
           >
             <FiPlus className="w-5 h-5" />
             <span>Nova Carga</span>
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab("rastreamento")}
             className="bg-green-600 text-white p-4 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center space-x-2"
           >
             <FiMapPin className="w-5 h-5" />
             <span>Rastrear Carga</span>
           </button>
-          <button 
-            onClick={() => exportarDados('relatorios')}
+          <button
+            onClick={() => exportarDados("relatorios")}
             className="bg-purple-600 text-white p-4 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center space-x-2"
           >
             <FiFileText className="w-5 h-5" />
@@ -2707,7 +2841,7 @@ export default function DashboardCliente() {
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                   Rastreamento - {cargoParaRastrear.numero}
                 </h3>
-                <button 
+                <button
                   onClick={fecharRastreamentoModal}
                   className="text-gray-400 hover:text-gray-600"
                 >
@@ -2715,72 +2849,110 @@ export default function DashboardCliente() {
                 </button>
               </div>
             </div>
-            
+
             <div className="p-6">
               {/* Informações da Carga */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                  <h4 className="font-medium text-gray-900 dark:text-white mb-3">Informações da Carga</h4>
+                  <h4 className="font-medium text-gray-900 dark:text-white mb-3">
+                    Informações da Carga
+                  </h4>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-500">Tipo:</span>
-                      <span className="font-medium">{cargoParaRastrear.tipo}</span>
+                      <span className="font-medium">
+                        {cargoParaRastrear.tipo}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Origem:</span>
-                      <span className="font-medium">{cargoParaRastrear.origem}</span>
+                      <span className="font-medium">
+                        {cargoParaRastrear.origem}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Destino:</span>
-                      <span className="font-medium">{cargoParaRastrear.destino}</span>
+                      <span className="font-medium">
+                        {cargoParaRastrear.destino}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Motorista:</span>
-                      <span className="font-medium">{cargoParaRastrear.motorista || "Não informado"}</span>
+                      <span className="font-medium">
+                        {cargoParaRastrear.motorista || "Não informado"}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Veículo:</span>
-                      <span className="font-medium">{cargoParaRastrear.veiculo || "Não informado"}</span>
+                      <span className="font-medium">
+                        {cargoParaRastrear.veiculo || "Não informado"}
+                      </span>
                     </div>
                   </div>
                 </div>
 
                 {/* Status Atual */}
                 <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                  <h4 className="font-medium text-gray-900 dark:text-white mb-3">Status Atual</h4>
+                  <h4 className="font-medium text-gray-900 dark:text-white mb-3">
+                    Status Atual
+                  </h4>
                   <div className="space-y-3">
                     <div>
                       <div className="flex justify-between items-center mb-1">
                         <span className="text-sm text-gray-500">Status:</span>
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(cargoParaRastrear.status)}`}>
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
+                            cargoParaRastrear.status
+                          )}`}
+                        >
                           {getStatusText(cargoParaRastrear.status)}
                         </span>
                       </div>
                     </div>
-                    
+
                     {(() => {
-                      const localizacao = getLocalizacaoCargo(cargoParaRastrear.id);
+                      const localizacao = getLocalizacaoCargo(
+                        cargoParaRastrear.id
+                      );
                       if (localizacao) {
                         return (
                           <>
                             <div className="flex justify-between text-sm">
-                              <span className="text-gray-500">Localização:</span>
-                              <span className="font-medium">{localizacao.localizacao}</span>
+                              <span className="text-gray-500">
+                                Localização:
+                              </span>
+                              <span className="font-medium">
+                                {localizacao.localizacao}
+                              </span>
                             </div>
                             <div className="flex justify-between text-sm">
-                              <span className="text-gray-500">Última atualização:</span>
-                              <span className="font-medium">{formatarDataHora(localizacao.ultimaAtualizacao)}</span>
+                              <span className="text-gray-500">
+                                Última atualização:
+                              </span>
+                              <span className="font-medium">
+                                {formatarDataHora(
+                                  localizacao.ultimaAtualizacao
+                                )}
+                              </span>
                             </div>
                             {localizacao.velocidade !== undefined && (
                               <div className="flex justify-between text-sm">
-                                <span className="text-gray-500">Velocidade:</span>
-                                <span className="font-medium">{localizacao.velocidade} km/h</span>
+                                <span className="text-gray-500">
+                                  Velocidade:
+                                </span>
+                                <span className="font-medium">
+                                  {localizacao.velocidade} km/h
+                                </span>
                               </div>
                             )}
                             {localizacao.temperatura !== undefined && (
                               <div className="flex justify-between text-sm">
-                                <span className="text-gray-500">Temperatura:</span>
-                                <span className="font-medium">{localizacao.temperatura}°C</span>
+                                <span className="text-gray-500">
+                                  Temperatura:
+                                </span>
+                                <span className="font-medium">
+                                  {localizacao.temperatura}°C
+                                </span>
                               </div>
                             )}
                           </>
@@ -2789,7 +2961,9 @@ export default function DashboardCliente() {
                       return (
                         <div className="text-center py-4">
                           <FiClock className="w-8 h-8 text-gray-400 mx-auto" />
-                          <p className="text-sm text-gray-500 mt-2">Aguardando atualização de localização</p>
+                          <p className="text-sm text-gray-500 mt-2">
+                            Aguardando atualização de localização
+                          </p>
                         </div>
                       );
                     })()}
@@ -2799,62 +2973,85 @@ export default function DashboardCliente() {
 
               {/* Mapa */}
               <div className="mb-6">
-                <h4 className="font-medium text-gray-900 dark:text-white mb-3">Localização em Tempo Real</h4>
+                <h4 className="font-medium text-gray-900 dark:text-white mb-3">
+                  Localização em Tempo Real
+                </h4>
                 <div className="bg-gray-100 dark:bg-gray-700 rounded-lg h-64 flex items-center justify-center">
                   <div className="text-center">
                     <FiMap className="w-12 h-12 text-gray-400 mx-auto" />
                     <p className="mt-2 text-gray-500">Mapa de rastreamento</p>
-                    <p className="text-sm text-gray-400">Mostrando rota de {cargoParaRastrear.origem} para {cargoParaRastrear.destino}</p>
+                    <p className="text-sm text-gray-400">
+                      Mostrando rota de {cargoParaRastrear.origem} para{" "}
+                      {cargoParaRastrear.destino}
+                    </p>
                   </div>
                 </div>
               </div>
 
               {/* Timeline de Eventos */}
               <div>
-                <h4 className="font-medium text-gray-900 dark:text-white mb-3">Histórico de Rastreamento</h4>
+                <h4 className="font-medium text-gray-900 dark:text-white mb-3">
+                  Histórico de Rastreamento
+                </h4>
                 <div className="space-y-4">
-                  {getEventosCargo(cargoParaRastrear.id).map((evento, index) => (
-                    <div key={evento.id} className="flex">
-                      <div className="flex flex-col items-center mr-4">
-                        <div className={`w-3 h-3 rounded-full ${
-                          index === 0 ? 'bg-green-500' : 'bg-blue-500'
-                        }`}></div>
-                        {index < getEventosCargo(cargoParaRastrear.id).length - 1 && (
-                          <div className="w-0.5 h-full bg-gray-300 dark:bg-gray-600 mt-1"></div>
-                        )}
-                      </div>
-                      <div className="flex-1 pb-4">
-                        <div className="flex justify-between items-start">
-                          <div className="flex items-center space-x-2">
-                            {getEventoIcon(evento.tipo)}
-                            <span className="font-medium text-gray-900 dark:text-white">{evento.status}</span>
-                          </div>
-                          <span className="text-sm text-gray-500">{formatarDataHora(evento.data)}</span>
+                  {getEventosCargo(cargoParaRastrear.id).map(
+                    (evento, index) => (
+                      <div key={evento.id} className="flex">
+                        <div className="flex flex-col items-center mr-4">
+                          <div
+                            className={`w-3 h-3 rounded-full ${
+                              index === 0 ? "bg-green-500" : "bg-blue-500"
+                            }`}
+                          ></div>
+                          {index <
+                            getEventosCargo(cargoParaRastrear.id).length -
+                              1 && (
+                            <div className="w-0.5 h-full bg-gray-300 dark:bg-gray-600 mt-1"></div>
+                          )}
                         </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{evento.localizacao}</p>
-                        <p className="text-sm text-gray-500 mt-1">{evento.observacao}</p>
+                        <div className="flex-1 pb-4">
+                          <div className="flex justify-between items-start">
+                            <div className="flex items-center space-x-2">
+                              {getEventoIcon(evento.tipo)}
+                              <span className="font-medium text-gray-900 dark:text-white">
+                                {evento.status}
+                              </span>
+                            </div>
+                            <span className="text-sm text-gray-500">
+                              {formatarDataHora(evento.data)}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                            {evento.localizacao}
+                          </p>
+                          <p className="text-sm text-gray-500 mt-1">
+                            {evento.observacao}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                  
+                    )
+                  )}
+
                   {getEventosCargo(cargoParaRastrear.id).length === 0 && (
                     <div className="text-center py-8">
                       <FiClock className="w-8 h-8 text-gray-400 mx-auto" />
-                      <p className="text-sm text-gray-500 mt-2">Nenhum evento de rastreamento registrado</p>
+                      <p className="text-sm text-gray-500 mt-2">
+                        Nenhum evento de rastreamento registrado
+                      </p>
                     </div>
                   )}
                 </div>
               </div>
             </div>
-            
+
             <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
-              <button 
+              <button
                 onClick={fecharRastreamentoModal}
                 className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
                 Fechar
               </button>
-              <button 
+              <button
                 onClick={() => {
                   // Simular notificação de atualização
                   alert("Notificações ativadas para esta carga!");
@@ -2878,7 +3075,7 @@ export default function DashboardCliente() {
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                   Reportar Estado da Carga - {cargoParaReport.numero}
                 </h3>
-                <button 
+                <button
                   onClick={fecharReportModal}
                   className="text-gray-400 hover:text-gray-600"
                 >
@@ -2886,45 +3083,70 @@ export default function DashboardCliente() {
                 </button>
               </div>
             </div>
-            
+
             <div className="p-6 space-y-6">
               {/* Informações da Carga */}
               <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                <h4 className="font-medium text-gray-900 dark:text-white mb-2">Informações da Carga</h4>
+                <h4 className="font-medium text-gray-900 dark:text-white mb-2">
+                  Informações da Carga
+                </h4>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
                     <span className="text-gray-500">Tipo:</span>
-                    <span className="ml-2 font-medium">{cargoParaReport.tipo}</span>
+                    <span className="ml-2 font-medium">
+                      {cargoParaReport.tipo}
+                    </span>
                   </div>
                   <div>
                     <span className="text-gray-500">Destino:</span>
-                    <span className="ml-2 font-medium">{cargoParaReport.destino}</span>
+                    <span className="ml-2 font-medium">
+                      {cargoParaReport.destino}
+                    </span>
                   </div>
                   <div>
                     <span className="text-gray-500">Data de Entrega:</span>
-                    <span className="ml-2 font-medium">{formatarData(cargoParaReport.dataEntrega)}</span>
+                    <span className="ml-2 font-medium">
+                      {formatarData(cargoParaReport.dataEntrega)}
+                    </span>
                   </div>
                   <div>
                     <span className="text-gray-500">Motorista:</span>
-                    <span className="ml-2 font-medium">{cargoParaReport.motorista || "Não informado"}</span>
+                    <span className="ml-2 font-medium">
+                      {cargoParaReport.motorista || "Não informado"}
+                    </span>
                   </div>
                 </div>
               </div>
 
               {/* Estado da Carga */}
               <div>
-                <h4 className="font-medium text-gray-900 dark:text-white mb-3">Estado da Carga ao Receber</h4>
+                <h4 className="font-medium text-gray-900 dark:text-white mb-3">
+                  Estado da Carga ao Receber
+                </h4>
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
                   {[
-                    { value: "excelente", label: "Excelente", color: "bg-green-500" },
+                    {
+                      value: "excelente",
+                      label: "Excelente",
+                      color: "bg-green-500",
+                    },
                     { value: "bom", label: "Bom", color: "bg-blue-500" },
-                    { value: "regular", label: "Regular", color: "bg-yellow-500" },
+                    {
+                      value: "regular",
+                      label: "Regular",
+                      color: "bg-yellow-500",
+                    },
                     { value: "ruim", label: "Ruim", color: "bg-orange-500" },
                     { value: "pessimo", label: "Péssimo", color: "bg-red-500" },
                   ].map((opcao) => (
                     <button
                       key={opcao.value}
-                      onClick={() => setFormReport(prev => ({ ...prev, estado: opcao.value as never }))}
+                      onClick={() =>
+                        setFormReport((prev) => ({
+                          ...prev,
+                          estado: opcao.value as never,
+                        }))
+                      }
                       className={`p-3 rounded-lg border-2 text-center transition-all ${
                         formReport.estado === opcao.value
                           ? `border-gray-900 dark:border-white ${opcao.color} text-white`
@@ -2939,7 +3161,9 @@ export default function DashboardCliente() {
 
               {/* Upload de Fotos */}
               <div>
-                <h4 className="font-medium text-gray-900 dark:text-white mb-3">Fotos da Carga Recebida</h4>
+                <h4 className="font-medium text-gray-900 dark:text-white mb-3">
+                  Fotos da Carga Recebida
+                </h4>
                 <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center">
                   <input
                     type="file"
@@ -2958,7 +3182,10 @@ export default function DashboardCliente() {
                       <span className="text-blue-600 hover:text-blue-800 font-medium">
                         Clique para fazer upload
                       </span>
-                      <span className="text-gray-500"> ou arraste as fotos</span>
+                      <span className="text-gray-500">
+                        {" "}
+                        ou arraste as fotos
+                      </span>
                     </div>
                     <p className="text-xs text-gray-400">
                       PNG, JPG, JPEG até 10MB cada
@@ -2975,11 +3202,14 @@ export default function DashboardCliente() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       {formReport.fotosPreview.map((preview, index) => (
                         <div key={index} className="relative group">
-                          <img
-                            src={preview}
-                            alt={`Preview ${index + 1}`}
-                            className="w-full h-24 object-cover rounded-lg"
-                          />
+                          <div className="relative w-full h-24">
+                            <Image
+                              src={preview}
+                              alt={`Preview ${index + 1}`}
+                              fill
+                              className="object-cover rounded-lg"
+                            />
+                          </div>
                           <button
                             onClick={() => removerFoto(index)}
                             className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -2995,12 +3225,19 @@ export default function DashboardCliente() {
 
               {/* Observações */}
               <div>
-                <h4 className="font-medium text-gray-900 dark:text-white mb-3">Observações</h4>
+                <h4 className="font-medium text-gray-900 dark:text-white mb-3">
+                  Observações
+                </h4>
                 <textarea
                   rows={4}
                   placeholder="Descreva o estado da carga, condições de entrega, observações importantes..."
                   value={formReport.observacoes}
-                  onChange={(e) => setFormReport(prev => ({ ...prev, observacoes: e.target.value }))}
+                  onChange={(e) =>
+                    setFormReport((prev) => ({
+                      ...prev,
+                      observacoes: e.target.value,
+                    }))
+                  }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 />
               </div>
@@ -3012,14 +3249,21 @@ export default function DashboardCliente() {
                     type="checkbox"
                     id="danos-identificados"
                     checked={formReport.danosIdentificados}
-                    onChange={(e) => setFormReport(prev => ({ 
-                      ...prev, 
-                      danosIdentificados: e.target.checked,
-                      descricaoDanos: e.target.checked ? prev.descricaoDanos : ""
-                    }))}
+                    onChange={(e) =>
+                      setFormReport((prev) => ({
+                        ...prev,
+                        danosIdentificados: e.target.checked,
+                        descricaoDanos: e.target.checked
+                          ? prev.descricaoDanos
+                          : "",
+                      }))
+                    }
                     className="rounded"
                   />
-                  <label htmlFor="danos-identificados" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label
+                    htmlFor="danos-identificados"
+                    className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
                     Foram identificados danos na carga?
                   </label>
                 </div>
@@ -3033,7 +3277,12 @@ export default function DashboardCliente() {
                       rows={3}
                       placeholder="Descreva os danos identificados, localização, gravidade..."
                       value={formReport.descricaoDanos}
-                      onChange={(e) => setFormReport(prev => ({ ...prev, descricaoDanos: e.target.value }))}
+                      onChange={(e) =>
+                        setFormReport((prev) => ({
+                          ...prev,
+                          descricaoDanos: e.target.value,
+                        }))
+                      }
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     />
                   </div>
@@ -3046,23 +3295,31 @@ export default function DashboardCliente() {
                   type="checkbox"
                   id="conformidade"
                   checked={formReport.conformidade}
-                  onChange={(e) => setFormReport(prev => ({ ...prev, conformidade: e.target.checked }))}
+                  onChange={(e) =>
+                    setFormReport((prev) => ({
+                      ...prev,
+                      conformidade: e.target.checked,
+                    }))
+                  }
                   className="rounded"
                 />
-                <label htmlFor="conformidade" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label
+                  htmlFor="conformidade"
+                  className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
                   Declaro que a carga foi recebida e está conforme o esperado
                 </label>
               </div>
             </div>
-            
+
             <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
-              <button 
+              <button
                 onClick={fecharReportModal}
                 className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
                 Cancelar
               </button>
-              <button 
+              <button
                 onClick={submitReport}
                 disabled={isDataLoading || !formReport.conformidade}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
@@ -3093,7 +3350,7 @@ export default function DashboardCliente() {
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                   Detalhes da Carga - {selectedCargo.numero}
                 </h3>
-                <button 
+                <button
                   onClick={() => setShowCargoModal(false)}
                   className="text-gray-400 hover:text-gray-600"
                 >
@@ -3101,93 +3358,142 @@ export default function DashboardCliente() {
                 </button>
               </div>
             </div>
-            
+
             <div className="p-6 space-y-6">
               {/* Informações Básicas */}
               <div>
-                <h4 className="font-medium text-gray-900 dark:text-white mb-3">Informações Básicas</h4>
+                <h4 className="font-medium text-gray-900 dark:text-white mb-3">
+                  Informações Básicas
+                </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm text-gray-500">Tipo de Carga</label>
+                    <label className="text-sm text-gray-500">
+                      Tipo de Carga
+                    </label>
                     <p className="text-sm font-medium">{selectedCargo.tipo}</p>
                   </div>
                   <div>
                     <label className="text-sm text-gray-500">Prioridade</label>
-                    <p className="text-sm font-medium capitalize">{selectedCargo.prioridade}</p>
+                    <p className="text-sm font-medium capitalize">
+                      {selectedCargo.prioridade}
+                    </p>
                   </div>
                   <div>
                     <label className="text-sm text-gray-500">Peso</label>
-                    <p className="text-sm font-medium">{selectedCargo.peso} kg</p>
+                    <p className="text-sm font-medium">
+                      {selectedCargo.peso} kg
+                    </p>
                   </div>
                   <div>
                     <label className="text-sm text-gray-500">Volume</label>
-                    <p className="text-sm font-medium">{selectedCargo.volume} m³</p>
+                    <p className="text-sm font-medium">
+                      {selectedCargo.volume} m³
+                    </p>
                   </div>
                 </div>
               </div>
-              
+
               {/* Rota */}
               <div>
-                <h4 className="font-medium text-gray-900 dark:text-white mb-3">Rota</h4>
+                <h4 className="font-medium text-gray-900 dark:text-white mb-3">
+                  Rota
+                </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm text-gray-500">Origem</label>
-                    <p className="text-sm font-medium">{selectedCargo.origem}</p>
+                    <p className="text-sm font-medium">
+                      {selectedCargo.origem}
+                    </p>
                   </div>
                   <div>
                     <label className="text-sm text-gray-500">Destino</label>
-                    <p className="text-sm font-medium">{selectedCargo.destino}</p>
+                    <p className="text-sm font-medium">
+                      {selectedCargo.destino}
+                    </p>
                   </div>
                 </div>
               </div>
-              
+
               {/* Datas */}
               <div>
-                <h4 className="font-medium text-gray-900 dark:text-white mb-3">Datas</h4>
+                <h4 className="font-medium text-gray-900 dark:text-white mb-3">
+                  Datas
+                </h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="text-sm text-gray-500">Data de Coleta</label>
-                    <p className="text-sm font-medium">{formatarData(selectedCargo.dataColeta)}</p>
+                    <label className="text-sm text-gray-500">
+                      Data de Coleta
+                    </label>
+                    <p className="text-sm font-medium">
+                      {formatarData(selectedCargo.dataColeta)}
+                    </p>
                   </div>
                   <div>
-                    <label className="text-sm text-gray-500">Previsão de Entrega</label>
-                    <p className="text-sm font-medium">{formatarData(selectedCargo.dataEntregaPrevista)}</p>
+                    <label className="text-sm text-gray-500">
+                      Previsão de Entrega
+                    </label>
+                    <p className="text-sm font-medium">
+                      {formatarData(selectedCargo.dataEntregaPrevista)}
+                    </p>
                   </div>
                   {selectedCargo.dataEntrega && (
                     <div>
-                      <label className="text-sm text-gray-500">Data de Entrega</label>
-                      <p className="text-sm font-medium">{formatarData(selectedCargo.dataEntrega)}</p>
+                      <label className="text-sm text-gray-500">
+                        Data de Entrega
+                      </label>
+                      <p className="text-sm font-medium">
+                        {formatarData(selectedCargo.dataEntrega)}
+                      </p>
                     </div>
                   )}
                 </div>
               </div>
-              
+
               {/* Valor */}
               <div>
-                <h4 className="font-medium text-gray-900 dark:text-white mb-3">Valor</h4>
-                <p className="text-2xl font-bold text-blue-600">{formatarMoeda(selectedCargo.valor)}</p>
+                <h4 className="font-medium text-gray-900 dark:text-white mb-3">
+                  Valor
+                </h4>
+                <p className="text-2xl font-bold text-blue-600">
+                  {formatarMoeda(selectedCargo.valor)}
+                </p>
               </div>
-              
+
               {/* Descrição e Notas */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <h4 className="font-medium text-gray-900 dark:text-white mb-2">Descrição</h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">{selectedCargo.descricao}</p>
+                  <h4 className="font-medium text-gray-900 dark:text-white mb-2">
+                    Descrição
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                    {selectedCargo.descricao}
+                  </p>
                 </div>
                 <div>
-                  <h4 className="font-medium text-gray-900 dark:text-white mb-2">Notas</h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">{selectedCargo.notas}</p>
+                  <h4 className="font-medium text-gray-900 dark:text-white mb-2">
+                    Notas
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                    {selectedCargo.notas}
+                  </p>
                 </div>
               </div>
-              
+
               {/* Documentos */}
               {selectedCargo.documentos.length > 0 && (
                 <div>
-                  <h4 className="font-medium text-gray-900 dark:text-white mb-3">Documentos</h4>
+                  <h4 className="font-medium text-gray-900 dark:text-white mb-3">
+                    Documentos
+                  </h4>
                   <div className="space-y-2">
                     {selectedCargo.documentos.map((doc, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                        <span className="text-sm text-gray-600 dark:text-gray-300">{doc}</span>
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                      >
+                        <span className="text-sm text-gray-600 dark:text-gray-300">
+                          {doc}
+                        </span>
                         <button className="text-blue-600 hover:text-blue-800 text-sm">
                           Download
                         </button>
@@ -3200,7 +3506,9 @@ export default function DashboardCliente() {
               {/* Estado de Recebimento */}
               {selectedCargo.estadoRecebimento && (
                 <div className="border-t pt-6 mt-6">
-                  <h4 className="font-medium text-gray-900 dark:text-white mb-3">Estado de Recebimento</h4>
+                  <h4 className="font-medium text-gray-900 dark:text-white mb-3">
+                    Estado de Recebimento
+                  </h4>
                   <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 space-y-3">
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-500">Estado:</span>
@@ -3209,39 +3517,60 @@ export default function DashboardCliente() {
                           selectedCargo.estadoRecebimento.estado
                         )}`}
                       >
-                        {getEstadoRecebimentoText(selectedCargo.estadoRecebimento.estado)}
+                        {getEstadoRecebimentoText(
+                          selectedCargo.estadoRecebimento.estado
+                        )}
                       </span>
                     </div>
-                    
+
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-500">Data do Report:</span>
-                      <span className="text-sm font-medium">{formatarData(selectedCargo.estadoRecebimento.dataReport)}</span>
+                      <span className="text-sm text-gray-500">
+                        Data do Report:
+                      </span>
+                      <span className="text-sm font-medium">
+                        {formatarData(
+                          selectedCargo.estadoRecebimento.dataReport
+                        )}
+                      </span>
                     </div>
-                    
+
                     {selectedCargo.estadoRecebimento.observacoes && (
                       <div>
-                        <span className="text-sm text-gray-500">Observações:</span>
-                        <p className="text-sm mt-1">{selectedCargo.estadoRecebimento.observacoes}</p>
+                        <span className="text-sm text-gray-500">
+                          Observações:
+                        </span>
+                        <p className="text-sm mt-1">
+                          {selectedCargo.estadoRecebimento.observacoes}
+                        </p>
                       </div>
                     )}
-                    
+
                     {selectedCargo.estadoRecebimento.danosIdentificados && (
                       <div>
-                        <span className="text-sm text-gray-500">Danos Identificados:</span>
-                        <p className="text-sm mt-1 text-red-600">{selectedCargo.estadoRecebimento.descricaoDanos}</p>
+                        <span className="text-sm text-gray-500">
+                          Danos Identificados:
+                        </span>
+                        <p className="text-sm mt-1 text-red-600">
+                          {selectedCargo.estadoRecebimento.descricaoDanos}
+                        </p>
                       </div>
                     )}
-                    
+
                     {selectedCargo.estadoRecebimento.fotos.length > 0 && (
                       <div>
                         <span className="text-sm text-gray-500">Fotos:</span>
                         <div className="grid grid-cols-2 gap-2 mt-2">
-                          {selectedCargo.estadoRecebimento.fotos.map((foto, index) => (
-                            <div key={index} className="bg-white dark:bg-gray-600 rounded p-2 text-center">
-                              <FiCamera className="w-6 h-6 mx-auto text-gray-400" />
-                              <p className="text-xs mt-1 truncate">{foto}</p>
-                            </div>
-                          ))}
+                          {selectedCargo.estadoRecebimento.fotos.map(
+                            (foto, index) => (
+                              <div
+                                key={index}
+                                className="bg-white dark:bg-gray-600 rounded p-2 text-center"
+                              >
+                                <FiCamera className="w-6 h-6 mx-auto text-gray-400" />
+                                <p className="text-xs mt-1 truncate">{foto}</p>
+                              </div>
+                            )
+                          )}
                         </div>
                       </div>
                     )}
@@ -3249,21 +3578,22 @@ export default function DashboardCliente() {
                 </div>
               )}
             </div>
-            
+
             <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
-              {selectedCargo.status === "entregue" && !selectedCargo.estadoRecebimento && (
-                <button 
-                  onClick={() => {
-                    setShowCargoModal(false);
-                    abrirReportModal(selectedCargo);
-                  }}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center space-x-2"
-                >
-                  <FiCamera className="w-4 h-4" />
-                  <span>Reportar Estado</span>
-                </button>
-              )}
-              <button 
+              {selectedCargo.status === "entregue" &&
+                !selectedCargo.estadoRecebimento && (
+                  <button
+                    onClick={() => {
+                      setShowCargoModal(false);
+                      abrirReportModal(selectedCargo);
+                    }}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center space-x-2"
+                  >
+                    <FiCamera className="w-4 h-4" />
+                    <span>Reportar Estado</span>
+                  </button>
+                )}
+              <button
                 onClick={() => setShowCargoModal(false)}
                 className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
