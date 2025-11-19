@@ -27,21 +27,20 @@ import { toast } from "react-toastify";
 
 // URL base da API - mesma do registro
 
-interface LoginTransportadoraFormInputs {
+interface LoginGestoraFormInputs {
   email: string;
   password: string;
 }
 
-export default function LoginTransportadoraPage() {
+export default function LoginGestoraPage() {
   const {
     register,
     handleSubmit,
     formState: { errors },
     setFocus,
     setValue,
-  } = useForm<LoginTransportadoraFormInputs>();
+  } = useForm<LoginGestoraFormInputs>();
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const {
     user,
     loginTransportadora,
@@ -60,12 +59,22 @@ export default function LoginTransportadoraPage() {
     setFocus("email");
   }, [setFocus]);
 
-  // Redirecionar se já estiver logado
+  // Redirecionar se já estiver logado - ATUALIZADO
   useEffect(() => {
     if (!authLoading && user && !isRedirecting) {
       setIsRedirecting(true);
-      console.log("Transportadora autenticada, redirecionando...");
-      router.push("/dashboard/transportador");
+      console.log("Usuário autenticado, redirecionando...", user.email);
+      
+      // VERIFICAÇÃO DO USUÁRIO ESPECÍFICO
+      const specificEmail = "gestor@megacentrodelogistica.co.mz";
+      
+      if (user.email === specificEmail) {
+        console.log("Usuário específico detectado, redirecionando para /dashboard");
+        router.push("/dashboard");
+      } else {
+        console.log("Usuário normal, redirecionando para dashboard de gestora");
+        router.push("/dashboard/gestora");
+      }
     }
   }, [user, authLoading, router, isRedirecting]);
 
@@ -77,47 +86,62 @@ export default function LoginTransportadoraPage() {
     }
   }, [error]);
 
-  const onSubmit: SubmitHandler<LoginTransportadoraFormInputs> = async (data) => {
-  setIsSubmitting(true);
+  const onSubmit: SubmitHandler<LoginGestoraFormInputs> = async (data) => {
+    setIsSubmitting(true);
 
-  try {
-    console.log("Iniciando login da transportadora:", data.email);
+    try {
+      console.log("Iniciando login da gestora:", data.email);
 
-    // Use apenas a função do contexto - ela já faz a chamada API corretamente
-    const success = await loginTransportadora(data.email, data.password);
-    
-    if (success) {
-      console.log("Login bem-sucedido via contexto");
-      // O redirecionamento será feito pelo useEffect automaticamente
-    } else {
-      console.log("Login falhou no contexto");
-      // O erro já foi mostrado pelo contexto, não precisa mostrar aqui
+      // VERIFICAÇÃO MANUAL DO USUÁRIO ESPECÍFICO
+      const specificEmail = "gestor@megacentrodelogistica.co.mz";
+      const specificPassword = "mega12@3";
+      
+      if (data.email === specificEmail && data.password === specificPassword) {
+        console.log("Usuário específico detectado no formulário");
+        // A função loginTransportadora já vai lidar com o redirecionamento
+      }
+
+      // Use apenas a função do contexto - ela já faz a chamada API corretamente
+      const success = await loginTransportadora(data.email, data.password);
+      
+      if (success) {
+        console.log("Login bem-sucedido via contexto");
+        // O redirecionamento será feito pelo useEffect automaticamente
+      } else {
+        console.log("Login falhou no contexto");
+        // O erro já foi mostrado pelo contexto, não precisa mostrar aqui
+      }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      console.error("Erro inesperado no login:", error);
+      // Esta parte não deve ser alcançada normalmente
+    } finally {
+      setIsSubmitting(false);
     }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    console.error("Erro inesperado no login:", error);
-    // Esta parte não deve ser alcançada normalmente
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+  };
 
   const toggleVisibility = () => setIsVisible(!isVisible);
 
-  // Credenciais de demonstração para transportadoras
+  // Credenciais de demonstração para gestoras - ATUALIZADO
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const demoCredentials = [
     {
-      email: "transportadora@exemplo.co.mz",
+      email: "gestor@megacentrodelogistica.co.mz",
+      password: "mega12@3",
+      role: "Gestor Mega Centro",
+      description: "Acesso ao Dashboard Principal",
+    },
+    {
+      email: "gestora@exemplo.co.mz",
       password: "123456",
-      role: "Transportadora",
-      description: "Acesso à plataforma de transportadoras",
+      role: "Gestora",
+      description: "Acesso à plataforma de gestoras",
     },
     {
       email: "logistica@empresa.co.mz",
       password: "123456",
-      role: "Transportadora Premium",
+      role: "Gestora Premium",
       description: "Gestão completa de frota",
     },
   ];
@@ -126,10 +150,19 @@ export default function LoginTransportadoraPage() {
   const fillDemoCredentials = (email: string, password: string) => {
     setValue("email", email);
     setValue("password", password);
-    toast.info(`Credenciais preenchidas: ${email}`, {
-      position: "top-right",
-      autoClose: 3000,
-    });
+    
+    // Mensagem personalizada para o usuário específico
+    if (email === "gestor@megacentrodelogistica.co.mz") {
+      toast.info(`Credenciais do Gestor Mega Centro preenchidas!`, {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    } else {
+      toast.info(`Credenciais preenchidas: ${email}`, {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    }
   };
 
   // Mostrar loading enquanto verifica autenticação
@@ -150,11 +183,22 @@ export default function LoginTransportadoraPage() {
   if (user && !isRedirecting) {
     const getUserDisplayName = () => {
       if ("nomeEmpresa" in user) {
-        return user.nomeEmpresa || "Transportadora";
+        return user.nomeEmpresa || "Gestora";
       } else if ("nome" in user) {
         return user.nome || "Usuário";
       }
       return "Usuário";
+    };
+
+    // Mensagem personalizada para redirecionamento
+    const getRedirectMessage = () => {
+      const specificEmail = "gestor@megacentrodelogistica.co.mz";
+      
+      if (user.email === specificEmail) {
+        return "Redirecionando para o Dashboard Principal...";
+      } else {
+        return "Redirecionando para o dashboard...";
+      }
     };
 
     return (
@@ -162,11 +206,16 @@ export default function LoginTransportadoraPage() {
         <div className="text-center">
           <Spinner size="lg" className="mb-4" />
           <p className="text-gray-600 dark:text-gray-400">
-            Redirecionando para o dashboard...
+            {getRedirectMessage()}
           </p>
           <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
             Bem-vindo, {getUserDisplayName()}!
           </p>
+          {user.email === "gestor@megacentrodelogistica.co.mz" && (
+            <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+              Acesso de Gestor
+            </p>
+          )}
         </div>
       </div>
     );
@@ -187,7 +236,7 @@ export default function LoginTransportadoraPage() {
             </div>
             <div className="text-left">
               <h1 className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
-                Transportadoras
+                Gestoras
               </h1>
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 Portal de Acesso
@@ -195,7 +244,7 @@ export default function LoginTransportadoraPage() {
             </div>
           </div>
           <h2 className="text-xl font-semibold text-gray-800 dark:text-white text-center">
-            Login da Transportadora
+            Login da Gestora
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 text-center">
             Acesse sua conta para gerenciar seus serviços
@@ -228,7 +277,7 @@ export default function LoginTransportadoraPage() {
                 },
               })}
               type="email"
-              placeholder="sua@transportadora.com"
+              placeholder="sua@gestora.com"
               labelPlacement="outside"
               isInvalid={!!errors.email}
               errorMessage={errors.email?.message}
@@ -285,10 +334,10 @@ export default function LoginTransportadoraPage() {
 
             <div className="flex justify-between items-center pt-2">
               <Link
-                href="/esqueci-senha-transportadora"
+                href="/login-transportadora"
                 className="text-sm text-orange-600 dark:text-orange-400 hover:underline transition-colors"
               >
-                Esqueceu a senha?
+                Sou Transportadora
               </Link>
               <Link
                 href="/login"
@@ -322,7 +371,7 @@ export default function LoginTransportadoraPage() {
 
           <Divider className="my-8" />
 
-          {/* Credenciais de demonstração - DESCOMENTE PARA TESTAR */}
+          {/* Credenciais de demonstração - ATUALIZADO */}
           {/* <div className="space-y-3">
             <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
               Credenciais de Teste
@@ -334,40 +383,63 @@ export default function LoginTransportadoraPage() {
                   variant="flat"
                   size="sm"
                   onPress={() => fillDemoCredentials(cred.email, cred.password)}
-                  className="justify-start h-12 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                  startContent={<FiUser className="text-default-500" />}
+                  className={`justify-start h-12 transition-colors ${
+                    cred.email === "gestor@megacentrodelogistica.co.mz" 
+                      ? "bg-gradient-to-r from-orange-100 to-amber-100 dark:from-orange-900/30 dark:to-amber-900/30 border border-orange-200 dark:border-orange-700" 
+                      : "bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
+                  }`}
+                  startContent={
+                    <div className={`p-1 rounded ${
+                      cred.email === "gestor@megacentrodelogistica.co.mz" 
+                        ? "bg-orange-500 text-white" 
+                        : "bg-default-500 text-white"
+                    }`}>
+                      <FiUser className="text-xs" />
+                    </div>
+                  }
                 >
                   <div className="text-left flex-1">
-                    <div className="font-medium text-sm">{cred.role}</div>
+                    <div className={`font-medium text-sm ${
+                      cred.email === "gestor@megacentrodelogistica.co.mz" 
+                        ? "text-orange-700 dark:text-orange-300" 
+                        : ""
+                    }`}>
+                      {cred.role}
+                    </div>
                     <div className="text-gray-500 text-xs truncate">
                       {cred.email}
                     </div>
                   </div>
+                  {cred.email === "gestor@megacentrodelogistica.co.mz" && (
+                    <span className="text-xs bg-orange-500 text-white px-2 py-1 rounded-full">
+                      Gestor
+                    </span>
+                  )}
                 </Button>
               ))}
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
-              Use para testes (senha: 123456)
+              Use para testes (senhas: mega12@3 ou 123456)
             </p>
           </div> */}
         </CardBody>
 
         <CardFooter className="flex justify-center pb-10 pt-6 bg-gradient-to-r from-gray-50 to-orange-50 dark:from-gray-800 dark:to-orange-900/20 rounded-b-lg">
           <div className="text-center space-y-2">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Não tem conta de transportadora?
+            {/* <p className="text-sm text-gray-600 dark:text-gray-400">
+              Não tem conta de gestora?
             </p>
             <Button
               as={Link}
-              href="/register-transportadora"
+              href="/register-gestora"
               variant="flat"
               className="text-orange-600 dark:text-orange-400 border-2 border-orange-200 dark:border-gray-600 hover:bg-orange-50 dark:hover:bg-gray-700/50 font-medium"
               size="sm"
             >
-              Cadastrar Transportadora
-            </Button>
+              Cadastrar Gestora
+            </Button> */}
             <p className="text-xs text-gray-500 dark:text-gray-500 mt-3">
-              © {new Date().getFullYear()} Portal de Transportadoras
+              © {new Date().getFullYear()} Portal de Gestoras
             </p>
           </div>
         </CardFooter>
