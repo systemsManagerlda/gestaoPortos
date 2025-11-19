@@ -285,7 +285,8 @@ export default function DashboardCliente() {
         return;
       }
 
-      if (user.role !== "client") {
+      // CORREÇÃO: Verificar categoria em vez de role
+      if (user.categoria !== "Cliente") {
         router.push("/dashboard");
         return;
       }
@@ -293,7 +294,6 @@ export default function DashboardCliente() {
       loadData();
     }
   }, [user, isLoading, router]);
-
   const loadData = async () => {
     setIsDataLoading(true);
     await new Promise((resolve) => setTimeout(resolve, 1500));
@@ -1095,7 +1095,7 @@ export default function DashboardCliente() {
     alert(`Exportando ${tipo}...`);
   };
 
-  if (isLoading || !user || user.role !== "client") {
+  if (isLoading || !user || user.categoria !== "Cliente") {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -1105,7 +1105,6 @@ export default function DashboardCliente() {
       </div>
     );
   }
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
@@ -1122,7 +1121,7 @@ export default function DashboardCliente() {
                     Área do Cliente
                   </h1>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {user.company} • Mega Logística
+                    {user.nome} • Mega Logística
                   </p>
                 </div>
               </div>
@@ -1140,7 +1139,7 @@ export default function DashboardCliente() {
 
               <div className="text-right">
                 <p className="text-sm font-medium text-gray-900 dark:text-white">
-                  {user.name}
+                  {user.nome}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   Cliente • Porto da Beira

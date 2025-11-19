@@ -147,218 +147,242 @@ export default function DashboardAdmin() {
 
   // Módulos organizados por categoria
   const modules: DashboardModule[] = [
-    // Módulos Superiores
-    {
-      title: "Cadastro",
-      description: "Clientes, Despachante, Transportadora, Motorista",
-      icon: "📋",
-      href: "/cadastros",
-      color: "bg-green-500 hover:bg-green-600",
-      category: "superior",
-    },
-    {
-      title: "Lançamentos",
-      description: "Registro de operações e movimentações",
-      icon: "📥",
-      href: "/lancamentos",
-      color: "bg-blue-500 hover:bg-blue-600",
-      category: "superior",
-    },
-    {
-      title: "Combustível e Expediente",
-      description: "Controle de combustível e expedientes",
-      icon: "⛽",
-      href: "/combustivel-expediente",
-      color: "bg-yellow-500 hover:bg-yellow-600",
-      category: "superior",
-    },
-    {
-      title: "Seguro de Cargas",
-      description: "Gestão de seguros e apólices",
-      icon: "🛡️",
-      href: "/seguros",
-      color: "bg-purple-500 hover:bg-purple-600",
-      category: "superior",
-    },
-    {
-      title: "Vistoria",
-      description: "Vistorias de veículos e cargas",
-      icon: "🔍",
-      href: "/vistorias",
-      color: "bg-pink-500 hover:bg-pink-600",
-      category: "superior",
-    },
-    {
-      title: "GPS Camiões",
-      description: "Monitoramento de caminhões",
-      icon: "🚛",
-      href: "/gps/camioes",
-      color: "bg-red-500 hover:bg-red-600",
-      category: "superior",
-    },
-    {
-      title: "GPS Contentor",
-      description: "Rastreamento de contentores",
-      icon: "📦",
-      href: "/gps/contentor",
-      color: "bg-indigo-500 hover:bg-indigo-600",
-      category: "superior",
-    },
-    {
-      title: "GPS Geral",
-      description: "Monitoramento geral da frota",
-      icon: "🗺️",
-      href: "/gps/geral",
-      color: "bg-teal-500 hover:bg-teal-600",
-      category: "superior",
-    },
-    {
-      title: "Carga Disponível NLT",
-      description: "Cargas disponíveis para transporte",
-      icon: "📋",
-      href: "/cargas/disponiveis",
-      color: "bg-cyan-500 hover:bg-cyan-600",
-      category: "superior",
-    },
-    {
-      title: "Carga Carregada",
-      description: "Controle de cargas carregadas",
-      icon: "🚚",
-      href: "/cargas/carregadas",
-      color: "bg-lime-500 hover:bg-lime-600",
-      category: "superior",
-    },
-    {
-      title: "Carga em Curso",
-      description: "Monitoramento de cargas em andamento",
-      icon: "🚛",
-      href: "/cargas/em-curso",
-      color: "bg-violet-500 hover:bg-violet-600",
-      category: "superior",
-    },
-    {
-      title: "Carga Descarregada",
-      description: "Registro de cargas descarregadas",
-      icon: "🏁",
-      href: "/cargas/descarregadas",
-      color: "bg-fuchsia-500 hover:bg-fuchsia-600",
-      category: "superior",
-    },
+  // Módulos Superiores
+  {
+    title: "Cadastro",
+    description: "Clientes, Despachante, Transportadora, Motorista",
+    icon: "📋",
+    href: "/cadastros",
+    color: "bg-green-500 hover:bg-green-600",
+    category: "superior",
+  },
+  {
+    title: "Lançamentos",
+    description: "Registro de operações e movimentações",
+    icon: "📥",
+    href: "/lancamentos",
+    color: "bg-blue-500 hover:bg-blue-600",
+    category: "superior",
+  },
+  {
+    title: "Combustível e Expediente",
+    description: "Controle de combustível e expedientes",
+    icon: "⛽",
+    href: "/combustivel-expediente",
+    color: "bg-yellow-500 hover:bg-yellow-600",
+    category: "superior",
+  },
+  {
+    title: "Seguro de Cargas",
+    description: "Gestão de seguros e apólices",
+    icon: "🛡️",
+    href: "/seguros",
+    color: "bg-purple-500 hover:bg-purple-600",
+    category: "superior",
+  },
+  {
+    title: "Vistoria",
+    description: "Vistorias de veículos e cargas",
+    icon: "🔍",
+    href: "/vistorias",
+    color: "bg-pink-500 hover:bg-pink-600",
+    category: "superior",
+  },
+  {
+    title: "GPS Camiões",
+    description: "Monitoramento de caminhões",
+    icon: "🚛",
+    href: "/gps/camioes",
+    color: "bg-red-500 hover:bg-red-600",
+    category: "superior",
+  },
+  {
+    title: "GPS Contentor",
+    description: "Rastreamento de contentores",
+    icon: "📦",
+    href: "/gps/contentor",
+    color: "bg-indigo-500 hover:bg-indigo-600",
+    category: "superior",
+  },
+  {
+    title: "GPS Geral",
+    description: "Monitoramento geral da frota",
+    icon: "🗺️",
+    href: "/gps/geral",
+    color: "bg-teal-500 hover:bg-teal-600",
+    category: "superior",
+  },
+  {
+    title: "Carga Disponível NLT",
+    description: "Cargas disponíveis para transporte",
+    icon: "📋",
+    href: "/cargas/disponiveis",
+    color: "bg-cyan-500 hover:bg-cyan-600",
+    category: "superior",
+  },
+  {
+    title: "Carga Carregada",
+    description: "Controle de cargas carregadas",
+    icon: "🚚",
+    href: "/cargas/carregadas",
+    color: "bg-lime-500 hover:bg-lime-600",
+    category: "superior",
+  },
+  {
+    title: "Carga em Curso",
+    description: "Monitoramento de cargas em andamento",
+    icon: "🚛",
+    href: "/cargas/em-curso",
+    color: "bg-violet-500 hover:bg-violet-600",
+    category: "superior",
+  },
+  {
+    title: "Carga Descarregada",
+    description: "Registro de cargas descarregadas",
+    icon: "🏁",
+    href: "/cargas/descarregadas",
+    color: "bg-fuchsia-500 hover:bg-fuchsia-600",
+    category: "superior",
+  },
 
-    // Menu Lateral
-    {
-      title: "Contas a Receber",
-      description: "Gestão de recebíveis",
-      icon: "💰",
-      href: "/financeiro/receber",
-      color: "bg-emerald-500 hover:bg-emerald-600",
-      category: "lateral",
-    },
-    {
-      title: "Contas a Pagar",
-      description: "Gestão de pagamentos",
-      icon: "💸",
-      href: "/financeiro/pagar",
-      color: "bg-rose-500 hover:bg-rose-600",
-      category: "lateral",
-    },
-    {
-      title: "Contabilidade",
-      description: "Gestão contábil completa",
-      icon: "📊",
-      href: "/contabilidade",
-      color: "bg-slate-500 hover:bg-slate-600",
-      category: "lateral",
-    },
-    {
-      title: "Tabela de Preços",
-      description: "Tabelas e tarifas",
-      icon: "📋",
-      href: "/precos",
-      color: "bg-violet-500 hover:bg-violet-600",
-      category: "lateral",
-    },
-    {
-      title: "Emissão de Guias",
-      description: "Emissão de documentos fiscais",
-      icon: "📄",
-      href: "/guias",
-      color: "bg-amber-500 hover:bg-amber-600",
-      category: "lateral",
-    },
-    {
-      title: "Fluxo Financeiro",
-      description: "Fluxo de caixa e financeiro",
-      icon: "💹",
-      href: "/fluxo-financeiro",
-      color: "bg-lime-500 hover:bg-lime-600",
-      category: "lateral",
-    },
-    {
-      title: "Fluxo de Caixa",
-      description: "Controle diário de caixa",
-      icon: "🏦",
-      href: "/fluxo-caixa",
-      color: "bg-cyan-500 hover:bg-cyan-600",
-      category: "lateral",
-    },
-    {
-      title: "Despacho",
-      description: "Serviço de Despacho",
-      icon: "📋",
-      href: "/despacho",
-      color: "bg-teal-500 hover:bg-teal-600",
-      category: "lateral",
-    },
-    {
-      title: "Organização de Arquivos",
-      description: "Gestão documental",
-      icon: "📁",
-      href: "/arquivos",
-      color: "bg-stone-500 hover:bg-stone-600",
-      category: "lateral",
-    },
-    {
-      title: "Serviços Terceirizados",
-      description: "Controle de serviços externos",
-      icon: "🤝",
-      href: "/terceirizados",
-      color: "bg-fuchsia-500 hover:bg-fuchsia-600",
-      category: "lateral",
-    },
-    {
-      title: "Controle Interno",
-      description: "Controles internos e auditoria",
-      icon: "🔒",
-      href: "/controle-interno",
-      color: "bg-neutral-500 hover:bg-neutral-600",
-      category: "lateral",
-    },
-    {
-      title: "Central de Riscos",
-      description: "Gestão e monitoramento de riscos",
-      icon: "⚠️",
-      href: "/central-riscos",
-      color: "bg-red-700 hover:bg-red-800",
-      category: "lateral",
-    },
-    {
-      title: "Referência de Contas",
-      description: "Referência contábil",
-      icon: "🏷️",
-      href: "/referencia-contas",
-      color: "bg-sky-500 hover:bg-sky-600",
-      category: "lateral",
-    },
-    {
-      title: "Memória Descritiva",
-      description: "Descrição da Plataforma Mega Centro de Logística",
-      icon: "🏷️",
-      href: "/referencia-contas",
-      color: "bg-sky-500 hover:bg-sky-600",
-      category: "lateral",
-    },
-  ];
+  // Menu Lateral
+  {
+    title: "Contas a Receber",
+    description: "Gestão de recebíveis",
+    icon: "💰",
+    href: "/financeiro/receber",
+    color: "bg-emerald-500 hover:bg-emerald-600",
+    category: "lateral",
+  },
+  {
+    title: "Contas a Pagar",
+    description: "Gestão de pagamentos",
+    icon: "💸",
+    href: "/financeiro/pagar",
+    color: "bg-rose-500 hover:bg-rose-600",
+    category: "lateral",
+  },
+  {
+    title: "Contabilidade",
+    description: "Gestão contábil completa",
+    icon: "📊",
+    href: "/contabilidade",
+    color: "bg-slate-500 hover:bg-slate-600",
+    category: "lateral",
+  },
+  {
+    title: "Tabela de Preços",
+    description: "Tabelas e tarifas",
+    icon: "📋",
+    href: "/precos",
+    color: "bg-violet-500 hover:bg-violet-600",
+    category: "lateral",
+  },
+  {
+    title: "Emissão de Guias",
+    description: "Emissão de documentos fiscais",
+    icon: "📄",
+    href: "/guias",
+    color: "bg-amber-500 hover:bg-amber-600",
+    category: "lateral",
+  },
+  {
+    title: "Fluxo Financeiro",
+    description: "Fluxo de caixa e financeiro",
+    icon: "💹",
+    href: "/fluxo-financeiro",
+    color: "bg-lime-500 hover:bg-lime-600",
+    category: "lateral",
+  },
+  {
+    title: "Fluxo de Caixa",
+    description: "Controle diário de caixa",
+    icon: "🏦",
+    href: "/fluxo-caixa",
+    color: "bg-cyan-500 hover:bg-cyan-600",
+    category: "lateral",
+  },
+  {
+    title: "Despacho",
+    description: "Serviço de Despacho",
+    icon: "📋",
+    href: "/despacho",
+    color: "bg-teal-500 hover:bg-teal-600",
+    category: "lateral",
+  },
+  {
+    title: "Organização de Arquivos",
+    description: "Gestão documental",
+    icon: "📁",
+    href: "/arquivos",
+    color: "bg-stone-500 hover:bg-stone-600",
+    category: "lateral",
+  },
+  {
+    title: "Serviços Terceirizados",
+    description: "Controle de serviços externos",
+    icon: "🤝",
+    href: "/terceirizados",
+    color: "bg-fuchsia-500 hover:bg-fuchsia-600",
+    category: "lateral",
+  },
+  {
+    title: "Controle Interno",
+    description: "Controles internos e auditoria",
+    icon: "🔒",
+    href: "/controle-interno",
+    color: "bg-neutral-500 hover:bg-neutral-600",
+    category: "lateral",
+  },
+  {
+    title: "Central de Riscos",
+    description: "Gestão e monitoramento de riscos",
+    icon: "⚠️",
+    href: "/central-riscos",
+    color: "bg-red-700 hover:bg-red-800",
+    category: "lateral",
+  },
+  {
+    title: "Referência de Contas",
+    description: "Referência contábil",
+    icon: "🏷️",
+    href: "/referencia-contas",
+    color: "bg-sky-500 hover:bg-sky-600",
+    category: "lateral",
+  },
+  {
+    title: "Memória Descritiva",
+    description: "Descrição da Plataforma Mega Centro de Logística",
+    icon: "🏷️",
+    href: "/memoria-descritiva",
+    color: "bg-sky-500 hover:bg-sky-600",
+    category: "lateral",
+  },
+  {
+    title: "Transporte",
+    description: "Gestão de operações de transporte",
+    icon: "🚚",
+    href: "/transporte",
+    color: "bg-blue-500 hover:bg-blue-600",
+    category: "lateral",
+  },
+  {
+    title: "Logística",
+    description: "Gestão logística completa",
+    icon: "📦",
+    href: "/logistica",
+    color: "bg-green-500 hover:bg-green-600",
+    category: "lateral",
+  },
+  {
+    title: "Estiva",
+    description: "Operações de estiva e movimentação",
+    icon: "⚓",
+    href: "/estiva",
+    color: "bg-indigo-500 hover:bg-indigo-600",
+    category: "lateral",
+  },
+];
 
   const superiorModules = modules.filter(
     (module) => module.category === "superior"
@@ -373,11 +397,6 @@ export default function DashboardAdmin() {
         router.push("/login");
         return;
       }
-      
-      if (user.role !== "admin") {
-        router.push("/dashboard");
-        return;
-      }
     }
   }, [user, isLoading, router]);
 
@@ -385,7 +404,7 @@ export default function DashboardAdmin() {
     setActiveModule(moduleTitle);
   };
 
-  if (isLoading || !user || user.role !== "admin") {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Spinner size="lg" />
@@ -427,12 +446,12 @@ export default function DashboardAdmin() {
             <div className="flex items-center space-x-4">
               <div className="text-right">
                 <p className="text-sm font-semibold text-gray-900">
-                  {user.name}
+                  {user?.email}
                 </p>
-                <p className="text-xs text-gray-500">{user.email}</p>
+                <p className="text-xs text-gray-500">{user?.email}</p>
               </div>
               <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                {user.name.charAt(0)}
+                {user?.email.charAt(0)}
               </div>
               <button
                 onClick={logout}
