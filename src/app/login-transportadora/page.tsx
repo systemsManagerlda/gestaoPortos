@@ -22,8 +22,6 @@ import {
   FiEyeOff,
   FiTruck,
   FiUser,
-  FiMail,
-  FiLock,
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 
@@ -229,11 +227,7 @@ export default function LoginTransportadoraPage() {
               })}
               type="email"
               placeholder="sua@transportadora.com"
-              label="Email"
               labelPlacement="outside"
-              startContent={
-                <FiMail className="text-xl text-default-400 pointer-events-none flex-shrink-0" />
-              }
               isInvalid={!!errors.email}
               errorMessage={errors.email?.message}
               variant="bordered"
@@ -256,13 +250,9 @@ export default function LoginTransportadoraPage() {
                   message: "A senha deve ter pelo menos 6 caracteres",
                 },
               })}
-              type={isVisible ? "text" : "password"}
+              type={isVisible ? "text" : "password"} 
               placeholder="••••••••"
-              label="Senha"
               labelPlacement="outside"
-              startContent={
-                <FiLock className="text-xl text-default-400 pointer-events-none flex-shrink-0" />
-              }
               endContent={
                 <button
                   className="focus:outline-none transition-colors hover:text-default-600"
