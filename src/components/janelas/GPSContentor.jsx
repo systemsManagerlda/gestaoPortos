@@ -1,21 +1,140 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from "react";
 
 const GPSContentor = () => {
-  const [activeContentorForm, setActiveContentorForm] = useState("rastreamento");
+  const [activeContentorForm, setActiveContentorForm] =
+    useState("rastreamento");
+  const [deviceCode, setDeviceCode] = useState("755078869333");
+  const [dynamicPassword, setDynamicPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const API_BASE_URL = "https://desktop-api-4f850b3f9733.herokuapp.com";
 
+  // Função para obter a senha dinâmica
+  const getDynamicPassword = async () => {
+    if (!deviceCode) {
+      setError("Device Code é obrigatório");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/getDynamicPassword?deviceCode=${deviceCode}`
+      );
+      const data = await response.json();
+
+      if (data.returnCode === "200") {
+        setDynamicPassword(data.data);
+        setError("");
+      } else {
+        setError(data.returnMsg || "Erro ao obter senha dinâmica");
+      }
+    } catch (err) {
+      setError("Erro de conexão com a API");
+      console.error("Erro:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Obter senha automaticamente ao carregar o componente
+  useEffect(() => {
+    getDynamicPassword();
+  }, []);
   return (
     <div className="h-full flex flex-col">
       <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-cyan-50 to-white">
         <h2 className="text-2xl font-bold text-gray-900 flex items-center">
-          <span className="bg-cyan-500 text-white p-2 rounded-lg mr-3">
-            📦
-          </span>
+          <span className="bg-cyan-500 text-white p-2 rounded-lg mr-3">📦</span>
           GPS Contentor - Rastreamento de Contentores
         </h2>
         <p className="text-sm text-gray-600 mt-2">
           Monitoramento em tempo real, localização e gestão de contentores
         </p>
-      </div>
+         {/* Seção da Chave do Cadeado */}
+        <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <span className="bg-green-500 text-white p-2 rounded-lg">
+                🔑
+              </span>
+              <div>
+                <h3 className="font-semibold text-gray-900">
+                  Chave do Cadeado - Contentor {deviceCode}
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Senha dinâmica para abertura do contentor
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              {/* Display da Senha */}
+              <div className="text-center">
+                <div className="text-2xl font-bold text-gray-900 bg-gray-100 px-4 py-2 rounded-lg border-2 border-dashed border-gray-300 min-w-[120px]">
+                  {loading ? (
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-cyan-500"></div>
+                    </div>
+                  ) : dynamicPassword ? (
+                    dynamicPassword
+                  ) : (
+                    "----"
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Senha Dinâmica</p>
+              </div>
+
+              {/* Botão para atualizar */}
+              <button
+                onClick={getDynamicPassword}
+                disabled={loading}
+                className="px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Carregando...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>🔄</span>
+                    <span>Atualizar</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Mensagem de Erro */}
+          {error && (
+            <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <span className="text-red-500">❌</span>
+                <span className="text-sm text-red-700">{error}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Informações Adicionais */}
+          <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+            <div className="flex items-center space-x-2 text-gray-600">
+              <span>📱</span>
+              <span>Device: {deviceCode}</span>
+            </div>
+            <div className="flex items-center space-x-2 text-gray-600">
+              <span>🕐</span>
+              <span>Atualização: Manual</span>
+            </div>
+            <div className="flex items-center space-x-2 text-gray-600">
+              <span>🔒</span>
+              <span>Segurança: Dinâmica</span>
+            </div>
+          </div>
+        </div>
+      </div>     
 
       <div className="flex-1 p-6">
         {/* Menu de Navegação entre Formulários */}
@@ -209,9 +328,7 @@ const GPSContentor = () => {
                       <p className="text-sm font-medium text-gray-950">
                         Temperatura Crítica
                       </p>
-                      <p className="text-xs text-gray-600">
-                        CONT-028 • -5°C
-                      </p>
+                      <p className="text-xs text-gray-600">CONT-028 • -5°C</p>
                     </div>
                   </div>
                   <div className="flex items-start space-x-2 p-2 bg-yellow-50 rounded-lg">
@@ -430,9 +547,7 @@ const GPSContentor = () => {
                     <p className="text-sm font-medium text-gray-950">
                       CONT-001
                     </p>
-                    <p className="text-xs text-gray-600">
-                      40ft • Em trânsito
-                    </p>
+                    <p className="text-xs text-gray-600">40ft • Em trânsito</p>
                     <p className="text-xs text-blue-600 font-medium">
                       Maputo → Beira
                     </p>
@@ -441,9 +556,7 @@ const GPSContentor = () => {
                     <p className="text-sm font-medium text-gray-950">
                       CONT-015
                     </p>
-                    <p className="text-xs text-gray-600">
-                      Reefer • No porto
-                    </p>
+                    <p className="text-xs text-gray-600">Reefer • No porto</p>
                     <p className="text-xs text-blue-600 font-medium">
                       Porto Maputo
                     </p>
@@ -452,12 +565,8 @@ const GPSContentor = () => {
                     <p className="text-sm font-medium text-gray-950">
                       CONT-028
                     </p>
-                    <p className="text-xs text-gray-600">
-                      20ft • No cliente
-                    </p>
-                    <p className="text-xs text-blue-600 font-medium">
-                      Matola
-                    </p>
+                    <p className="text-xs text-gray-600">20ft • No cliente</p>
+                    <p className="text-xs text-blue-600 font-medium">Matola</p>
                   </div>
                 </div>
               </div>
@@ -468,9 +577,7 @@ const GPSContentor = () => {
                 </h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">
-                      Total Contentores:
-                    </span>
+                    <span className="text-gray-600">Total Contentores:</span>
                     <span className="font-semibold text-gray-950">45</span>
                   </div>
                   <div className="flex justify-between">
@@ -653,6 +760,127 @@ const GPSContentor = () => {
           </div>
         )}
 
+        {/* Gestão de Contentores */}
+        {activeContentorForm === "contentores" && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+                <div className="p-4 border-b border-gray-200 bg-blue-50">
+                  <h3 className="font-semibold text-gray-900 flex items-center">
+                    <span className="bg-blue-500 text-white p-2 rounded-lg mr-2">
+                      📋
+                    </span>
+                    Cadastro e Gestão de Contentores
+                  </h3>
+                </div>
+                <div className="p-6">
+                  <form className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Número do Contentor *
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-950"
+                          placeholder="CONT-001"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Tipo *
+                        </label>
+                        <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-950">
+                          <option value="">Selecione</option>
+                          <option value="20ft">20ft Standard</option>
+                          <option value="40ft">40ft Standard</option>
+                          <option value="40hc">40ft High Cube</option>
+                          <option value="reefer">Reefer</option>
+                          <option value="tanque">Tanque</option>
+                          <option value="open_top">Open Top</option>
+                          <option value="flat_rack">Flat Rack</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* ... resto do formulário de contentores ... */}
+                  </form>
+                </div>
+              </div>
+            </div>
+
+            {/* Painel de Contentores */}
+            <div className="space-y-6">
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                <h4 className="font-semibold text-gray-900 mb-4">
+                  Contentores Recentes
+                </h4>
+                <div className="space-y-3">
+                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-sm font-medium text-gray-950">
+                      CONT-001
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      40ft • Em trânsito
+                    </p>
+                    <p className="text-xs text-blue-600 font-medium">
+                      Maputo → Beira
+                    </p>
+                  </div>
+                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-sm font-medium text-gray-950">
+                      CONT-015
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      Reefer • No porto
+                    </p>
+                    <p className="text-xs text-blue-600 font-medium">
+                      Porto Maputo
+                    </p>
+                  </div>
+                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-sm font-medium text-gray-950">
+                      CONT-028
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      20ft • No cliente
+                    </p>
+                    <p className="text-xs text-blue-600 font-medium">
+                      Matola
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                <h4 className="font-semibold text-gray-900 mb-4">
+                  Estatísticas
+                </h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">
+                      Total Contentores:
+                    </span>
+                    <span className="font-semibold text-gray-950">45</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Disponíveis:</span>
+                    <span className="font-semibold text-gray-950">12</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Em Uso:</span>
+                    <span className="font-semibold text-gray-950">28</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Manutenção:</span>
+                    <span className="font-semibold text-gray-950">5</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Gráficos */}
         {activeContentorForm === "graficos" && (
           <div className="space-y-6 text-gray-950">
@@ -745,9 +973,7 @@ const GPSContentor = () => {
                               <div
                                 className="bg-cyan-500 w-full transition-all hover:opacity-80"
                                 style={{
-                                  height: `${
-                                    (item.descargas / total) * 100
-                                  }%`,
+                                  height: `${(item.descargas / total) * 100}%`,
                                 }}
                                 title={`Descargas: ${item.descargas}`}
                               ></div>
@@ -1097,23 +1323,17 @@ const GPSContentor = () => {
                 <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
                   <div className="text-blue-600 text-lg mb-2">📦</div>
                   <p className="font-medium text-gray-900">Inventário</p>
-                  <p className="text-sm text-gray-600">
-                    Contentores activos
-                  </p>
+                  <p className="text-sm text-gray-600">Contentores activos</p>
                 </div>
                 <div className="p-4 bg-green-50 rounded-lg border border-green-200">
                   <div className="text-green-600 text-lg mb-2">🚢</div>
                   <p className="font-medium text-gray-900">Movimentação</p>
-                  <p className="text-sm text-gray-600">
-                    Histórico de viagens
-                  </p>
+                  <p className="text-sm text-gray-600">Histórico de viagens</p>
                 </div>
                 <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
                   <div className="text-yellow-600 text-lg mb-2">⏱️</div>
                   <p className="font-medium text-gray-900">Tempos</p>
-                  <p className="text-sm text-gray-600">
-                    Estatísticas de uso
-                  </p>
+                  <p className="text-sm text-gray-600">Estatísticas de uso</p>
                 </div>
                 <div className="p-4 bg-red-50 rounded-lg border border-red-200">
                   <div className="text-red-600 text-lg mb-2">⚠️</div>
