@@ -33,6 +33,7 @@ import ControleInterno from "../../../components/janelas/ControleInterno";
 import CentralRiscos from "../../../components/janelas/CentralRiscos";
 import ReferenciaContas from "../../../components/janelas/ReferenciaContas";
 import MemoriaDescritiva from "../../../components/janelas/MemoriaDescritiva";
+import AreaLogisticaMunhava from "../../../components/janelas/Logistica";
 
 // Tipos
 interface DashboardModule {
@@ -117,6 +118,7 @@ const PanelContent: React.FC<PanelContentProps> = ({ activeModule }) => {
       "Central de Riscos": <CentralRiscos />,
       "Referência de Contas": <ReferenciaContas />,
       "Memória Descritiva": <MemoriaDescritiva />,
+      "Logística": <AreaLogisticaMunhava />,
     };
 
     return (

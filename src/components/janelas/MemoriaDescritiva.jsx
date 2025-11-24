@@ -912,6 +912,333 @@ const MemoriaDescritiva = () => {
               </div>
             </div>
           </section>
+           {/* Tabelas de Fretes */}
+          <section>
+            <h3 className="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">
+              TABELAS DE FRETES E COMISSÕES
+            </h3>
+
+            {/* Tabela 1: Percurso Beira - Interland */}
+            <div className="mb-8">
+              <h4 className="text-md font-semibold text-gray-800 mb-3 bg-gray-100 p-3 rounded-lg">
+                Percurso: Beira – Interland (Ida ou Retorno) - (Frete de Ida + Frete de Volta) × % da Logística
+              </h4>
+              <h5 className="text-sm font-semibold text-gray-700 mb-2 ml-2">
+                a) Pagamento a pronto (cash)
+              </h5>
+              <div className="overflow-x-auto text-gray-700">
+                <table className="min-w-full bg-white border border-gray-300 text-sm">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="border border-gray-300 px-3 py-2 text-left">Declino</th>
+                      <th className="border border-gray-300 px-3 py-2 text-left">Distância (Km)</th>
+                      <th className="border border-gray-300 px-3 py-2 text-left">Tipo de pagamento</th>
+                      <th className="border border-gray-300 px-3 py-2 text-left">Frete de Ida</th>
+                      <th className="border border-gray-300 px-3 py-2 text-left">Frete de Volta</th>
+                      <th className="border border-gray-300 px-3 py-2 text-left">% da logística</th>
+                      <th className="border border-gray-300 px-3 py-2 text-left">Cálculo da comissão</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="border border-gray-300 px-3 py-2">Malawi - Lidongwe</td>
+                      <td className="border border-gray-300 px-3 py-2">1033 Km</td>
+                      <td className="border border-gray-300 px-3 py-2">Cash</td>
+                      <td className="border border-gray-300 px-3 py-2">2 600 USD</td>
+                      <td className="border border-gray-300 px-3 py-2">300 USD</td>
+                      <td className="border border-gray-300 px-3 py-2">5%</td>
+                      <td className="border border-gray-300 px-3 py-2">145 USD</td>
+                    </tr>
+                    <tr className="bg-gray-50">
+                      <td className="border border-gray-300 px-3 py-2">Malawi - Zalewa</td>
+                      <td className="border border-gray-300 px-3 py-2">778 Km</td>
+                      <td className="border border-gray-300 px-3 py-2">Cash</td>
+                      <td className="border border-gray-300 px-3 py-2">2 400 USD</td>
+                      <td className="border border-gray-300 px-3 py-2">300 USD</td>
+                      <td className="border border-gray-300 px-3 py-2">5%</td>
+                      <td className="border border-gray-300 px-3 py-2">135 USD</td>
+                    </tr>
+                    <tr>
+                      <td className="border border-gray-300 px-3 py-2">Malawi - Biontyre</td>
+                      <td className="border border-gray-300 px-3 py-2">830 Km</td>
+                      <td className="border border-gray-300 px-3 py-2">Cash</td>
+                      <td className="border border-gray-300 px-3 py-2">2 400 USD</td>
+                      <td className="border border-gray-300 px-3 py-2">300 USD</td>
+                      <td className="border border-gray-300 px-3 py-2">5%</td>
+                      <td className="border border-gray-300 px-3 py-2">135 USD</td>
+                    </tr>
+                    <tr className="bg-gray-50">
+                      <td className="border border-gray-300 px-3 py-2">Zimbabwe - Haare</td>
+                      <td className="border border-gray-300 px-3 py-2">556 Km</td>
+                      <td className="border border-gray-300 px-3 py-2">Cash</td>
+                      <td className="border border-gray-300 px-3 py-2">1 900 USD</td>
+                      <td className="border border-gray-300 px-3 py-2">300 USD</td>
+                      <td className="border border-gray-300 px-3 py-2">5%</td>
+                      <td className="border border-gray-300 px-3 py-2">110 USD</td>
+                    </tr>
+                    <tr>
+                      <td className="border border-gray-300 px-3 py-2">Zimbabwe - Mutare</td>
+                      <td className="border border-gray-300 px-3 py-2">293 Km</td>
+                      <td className="border border-gray-300 px-3 py-2">Cash</td>
+                      <td className="border border-gray-300 px-3 py-2">1 300 USD</td>
+                      <td className="border border-gray-300 px-3 py-2">300 USD</td>
+                      <td className="border border-gray-300 px-3 py-2">5%</td>
+                      <td className="border border-gray-300 px-3 py-2">80 USD</td>
+                    </tr>
+                    <tr className="bg-gray-50">
+                      <td className="border border-gray-300 px-3 py-2">Zambia - Lusaka</td>
+                      <td className="border border-gray-300 px-3 py-2">1417 Km</td>
+                      <td className="border border-gray-300 px-3 py-2">Cash</td>
+                      <td className="border border-gray-300 px-3 py-2">3 900 USD</td>
+                      <td className="border border-gray-300 px-3 py-2">300 USD</td>
+                      <td className="border border-gray-300 px-3 py-2">5%</td>
+                      <td className="border border-gray-300 px-3 py-2">210 USD</td>
+                    </tr>
+                    <tr>
+                      <td className="border border-gray-300 px-3 py-2">Zambia - Kitwe</td>
+                      <td className="border border-gray-300 px-3 py-2">1771 Km</td>
+                      <td className="border border-gray-300 px-3 py-2">Cash</td>
+                      <td className="border border-gray-300 px-3 py-2">4 700 USD</td>
+                      <td className="border border-gray-300 px-3 py-2">400 USD</td>
+                      <td className="border border-gray-300 px-3 py-2">5%</td>
+                      <td className="border border-gray-300 px-3 py-2">255 USD</td>
+                    </tr>
+                    <tr className="bg-gray-50">
+                      <td className="border border-gray-300 px-3 py-2">Zambia - Chipoto</td>
+                      <td className="border border-gray-300 px-3 py-2">980 Km</td>
+                      <td className="border border-gray-300 px-3 py-2">Cash</td>
+                      <td className="border border-gray-300 px-3 py-2">2 700 USD</td>
+                      <td className="border border-gray-300 px-3 py-2">300 USD</td>
+                      <td className="border border-gray-300 px-3 py-2">5%</td>
+                      <td className="border border-gray-300 px-3 py-2">150 USD</td>
+                    </tr>
+                    <tr>
+                      <td className="border border-gray-300 px-3 py-2">Zambia - Ndala</td>
+                      <td className="border border-gray-300 px-3 py-2">1562 Km</td>
+                      <td className="border border-gray-300 px-3 py-2">Cash</td>
+                      <td className="border border-gray-300 px-3 py-2">4 300 USD</td>
+                      <td className="border border-gray-300 px-3 py-2">4 000 USD</td>
+                      <td className="border border-gray-300 px-3 py-2">5%</td>
+                      <td className="border border-gray-300 px-3 py-2">235 USD</td>
+                    </tr>
+                    <tr className="bg-gray-50">
+                      <td className="border border-gray-300 px-3 py-2">RDC - Linbuboche</td>
+                      <td className="border border-gray-300 px-3 py-2">1938 Km</td>
+                      <td className="border border-gray-300 px-3 py-2">Cash</td>
+                      <td className="border border-gray-300 px-3 py-2">12 000 USD</td>
+                      <td className="border border-gray-300 px-3 py-2">1 000 USD</td>
+                      <td className="border border-gray-300 px-3 py-2">5%</td>
+                      <td className="border border-gray-300 px-3 py-2">550 USD</td>
+                    </tr>
+                    <tr>
+                      <td className="border border-gray-300 px-3 py-2">RDC - Likosi</td>
+                      <td className="border border-gray-300 px-3 py-2">2138 Km</td>
+                      <td className="border border-gray-300 px-3 py-2">Cash</td>
+                      <td className="border border-gray-300 px-3 py-2">13 000 USD</td>
+                      <td className="border border-gray-300 px-3 py-2">1 000 USD</td>
+                      <td className="border border-gray-300 px-3 py-2">5%</td>
+                      <td className="border border-gray-300 px-3 py-2">700 USD</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Tabela 2: Cargas Locais */}
+            <div className="mb-8">
+              <h4 className="text-md font-semibold text-gray-800 mb-3 bg-gray-100 p-3 rounded-lg">
+                Tabela de Fretes Locais (Moeda: MZN) - Fórmula: (Frete de Ida + Frete de Volta) × % da Logística
+              </h4>
+              <div className="overflow-x-auto text-gray-700">
+                <table className="min-w-full bg-white border border-gray-300 text-sm">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="border border-gray-300 px-3 py-2 text-left">Destino</th>
+                      <th className="border border-gray-300 px-3 py-2 text-left">Distância (Km)</th>
+                      <th className="border border-gray-300 px-3 py-2 text-left">Frete de Ida</th>
+                      <th className="border border-gray-300 px-3 py-2 text-left">Frete de Volta</th>
+                      <th className="border border-gray-300 px-3 py-2 text-left">Contentor Vazio</th>
+                      <th className="border border-gray-300 px-3 py-2 text-left">% da Logística</th>
+                      <th className="border border-gray-300 px-3 py-2 text-left">Cálculo da Comissão</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="border border-gray-300 px-3 py-2">Manhava</td>
+                      <td className="border border-gray-300 px-3 py-2">5 km</td>
+                      <td className="border border-gray-300 px-3 py-2">12 000 MZN</td>
+                      <td className="border border-gray-300 px-3 py-2">2 000 MZN</td>
+                      <td className="border border-gray-300 px-3 py-2">7 500 MZN</td>
+                      <td className="border border-gray-300 px-3 py-2">10%</td>
+                      <td className="border border-gray-300 px-3 py-2">1 400 MZN</td>
+                    </tr>
+                    <tr className="bg-gray-50">
+                      <td className="border border-gray-300 px-3 py-2">Baixa</td>
+                      <td className="border border-gray-300 px-3 py-2">10 km</td>
+                      <td className="border border-gray-300 px-3 py-2">15 000 MZN</td>
+                      <td className="border border-gray-300 px-3 py-2">2 000 MZN</td>
+                      <td className="border border-gray-300 px-3 py-2">9 000 MZN</td>
+                      <td className="border border-gray-300 px-3 py-2">10%</td>
+                      <td className="border border-gray-300 px-3 py-2">1 700 MZN</td>
+                    </tr>
+                    <tr>
+                      <td className="border border-gray-300 px-3 py-2">Manga</td>
+                      <td className="border border-gray-300 px-3 py-2">10 km</td>
+                      <td className="border border-gray-300 px-3 py-2">15 000 MZN</td>
+                      <td className="border border-gray-300 px-3 py-2">2 000 MZN</td>
+                      <td className="border border-gray-300 px-3 py-2">9 000 MZN</td>
+                      <td className="border border-gray-300 px-3 py-2">10%</td>
+                      <td className="border border-gray-300 px-3 py-2">1 700 MZN</td>
+                    </tr>
+                    <tr className="bg-gray-50">
+                      <td className="border border-gray-300 px-3 py-2">Dondo</td>
+                      <td className="border border-gray-300 px-3 py-2">40 km</td>
+                      <td className="border border-gray-300 px-3 py-2">20 000 MZN</td>
+                      <td className="border border-gray-300 px-3 py-2">3 000 MZN</td>
+                      <td className="border border-gray-300 px-3 py-2">12 000 MZN</td>
+                      <td className="border border-gray-300 px-3 py-2">10%</td>
+                      <td className="border border-gray-300 px-3 py-2">2 300 MZN</td>
+                    </tr>
+                    <tr>
+                      <td className="border border-gray-300 px-3 py-2">Niarmatanda</td>
+                      <td className="border border-gray-300 px-3 py-2">80 km</td>
+                      <td className="border border-gray-300 px-3 py-2">25 000 MZN</td>
+                      <td className="border border-gray-300 px-3 py-2">5 000 MZN</td>
+                      <td className="border border-gray-300 px-3 py-2">18 000 MZN</td>
+                      <td className="border border-gray-300 px-3 py-2">10%</td>
+                      <td className="border border-gray-300 px-3 py-2">3 000 MZN</td>
+                    </tr>
+                    <tr className="bg-gray-50">
+                      <td className="border border-gray-300 px-3 py-2">Inchope</td>
+                      <td className="border border-gray-300 px-3 py-2">120 km</td>
+                      <td className="border border-gray-300 px-3 py-2">30 000 MZN</td>
+                      <td className="border border-gray-300 px-3 py-2">5 000 MZN</td>
+                      <td className="border border-gray-300 px-3 py-2">25 000 MZN</td>
+                      <td className="border border-gray-300 px-3 py-2">10%</td>
+                      <td className="border border-gray-300 px-3 py-2">3 500 MZN</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Tabela 3: Nacional */}
+            <div className="mb-8">
+              <h4 className="text-md font-semibold text-gray-800 mb-3 bg-gray-100 p-3 rounded-lg">
+                Percurso: Nacional - Fórmula: (Frete de Ida + Frete de Volta) × % da Logística = Comissão
+              </h4>
+              <h5 className="text-sm font-semibold text-gray-700 mb-2 ml-2">
+                a) Pagamento a pronto (cash)
+              </h5>
+              <div className="overflow-x-auto text-gray-700">
+                <table className="min-w-full bg-white border border-gray-300 text-sm">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="border border-gray-300 px-3 py-2 text-left">Destino</th>
+                      <th className="border border-gray-300 px-3 py-2 text-left">Distância (Km)</th>
+                      <th className="border border-gray-300 px-3 py-2 text-left">Tipo de Pagamento</th>
+                      <th className="border border-gray-300 px-3 py-2 text-left">Frete de Ida</th>
+                      <th className="border border-gray-300 px-3 py-2 text-left">Frete de Volta</th>
+                      <th className="border border-gray-300 px-3 py-2 text-left">% da Logística</th>
+                      <th className="border border-gray-300 px-3 py-2 text-left">Cálculo da Comissão</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="border border-gray-300 px-3 py-2">Maputo</td>
+                      <td className="border border-gray-300 px-3 py-2">1,200 Km</td>
+                      <td className="border border-gray-300 px-3 py-2">Cash</td>
+                      <td className="border border-gray-300 px-3 py-2">45,000 MZN</td>
+                      <td className="border border-gray-300 px-3 py-2">15,000 MZN</td>
+                      <td className="border border-gray-300 px-3 py-2">10%</td>
+                      <td className="border border-gray-300 px-3 py-2">6,000 MZN</td>
+                    </tr>
+                    <tr className="bg-gray-50">
+                      <td className="border border-gray-300 px-3 py-2">Beira</td>
+                      <td className="border border-gray-300 px-3 py-2">600 Km</td>
+                      <td className="border border-gray-300 px-3 py-2">Cash</td>
+                      <td className="border border-gray-300 px-3 py-2">120,000 MZN</td>
+                      <td className="border border-gray-300 px-3 py-2">30.000 MZN</td>
+                      <td className="border border-gray-300 px-3 py-2">10%</td>
+                      <td className="border border-gray-300 px-3 py-2">15.000 MZN</td>
+                    </tr>
+                    <tr>
+                      <td className="border border-gray-300 px-3 py-2">Nampula</td>
+                      <td className="border border-gray-300 px-3 py-2">1,800 Km</td>
+                      <td className="border border-gray-300 px-3 py-2">Cash</td>
+                      <td className="border border-gray-300 px-3 py-2">60,000 MZN</td>
+                      <td className="border border-gray-300 px-3 py-2">20,000 MZN</td>
+                      <td className="border border-gray-300 px-3 py-2">10%</td>
+                      <td className="border border-gray-300 px-3 py-2">8,000 MZN</td>
+                    </tr>
+                    <tr className="bg-gray-50">
+                      <td className="border border-gray-300 px-3 py-2">Tete</td>
+                      <td className="border border-gray-300 px-3 py-2">600 Km</td>
+                      <td className="border border-gray-300 px-3 py-2">Cash</td>
+                      <td className="border border-gray-300 px-3 py-2">120,000 MZN</td>
+                      <td className="border border-gray-300 px-3 py-2">30.000 MZN</td>
+                      <td className="border border-gray-300 px-3 py-2">10%</td>
+                      <td className="border border-gray-300 px-3 py-2">15.000 MZN</td>
+                    </tr>
+                    <tr>
+                      <td className="border border-gray-300 px-3 py-2">Quelimane</td>
+                      <td className="border border-gray-300 px-3 py-2">1,000 Km</td>
+                      <td className="border border-gray-300 px-3 py-2">Cash</td>
+                      <td className="border border-gray-300 px-3 py-2">35,000 MZN</td>
+                      <td className="border border-gray-300 px-3 py-2">12,000 MZN</td>
+                      <td className="border border-gray-300 px-3 py-2">10%</td>
+                      <td className="border border-gray-300 px-3 py-2">4,700 MZN</td>
+                    </tr>
+                    <tr className="bg-gray-50">
+                      <td className="border border-gray-300 px-3 py-2">Lichinga</td>
+                      <td className="border border-gray-300 px-3 py-2">2,100 Km</td>
+                      <td className="border border-gray-300 px-3 py-2">Cash</td>
+                      <td className="border border-gray-300 px-3 py-2">75,000 MZN</td>
+                      <td className="border border-gray-300 px-3 py-2">25,000 MZN</td>
+                      <td className="border border-gray-300 px-3 py-2">10%</td>
+                      <td className="border border-gray-300 px-3 py-2">10,000 MZN</td>
+                    </tr>
+                    <tr>
+                      <td className="border border-gray-300 px-3 py-2">Pemba</td>
+                      <td className="border border-gray-300 px-3 py-2">2,300 Km</td>
+                      <td className="border border-gray-300 px-3 py-2">Cash</td>
+                      <td className="border border-gray-300 px-3 py-2">80,000 MZN</td>
+                      <td className="border border-gray-300 px-3 py-2">28,000 MZN</td>
+                      <td className="border border-gray-300 px-3 py-2">10%</td>
+                      <td className="border border-gray-300 px-3 py-2">10,800 MZN</td>
+                    </tr>
+                    <tr className="bg-gray-50">
+                      <td className="border border-gray-300 px-3 py-2">Chimoio</td>
+                      <td className="border border-gray-300 px-3 py-2">200 Km</td>
+                      <td className="border border-gray-300 px-3 py-2">Cash</td>
+                      <td className="border border-gray-300 px-3 py-2">15,000 MZN</td>
+                      <td className="border border-gray-300 px-3 py-2">5,000 MZN</td>
+                      <td className="border border-gray-300 px-3 py-2">10%</td>
+                      <td className="border border-gray-300 px-3 py-2">2,000 MZN</td>
+                    </tr>
+                    <tr>
+                      <td className="border border-gray-300 px-3 py-2">Inhambane</td>
+                      <td className="border border-gray-300 px-3 py-2">500 Km</td>
+                      <td className="border border-gray-300 px-3 py-2">Cash</td>
+                      <td className="border border-gray-300 px-3 py-2">22,000 MZN</td>
+                      <td className="border border-gray-300 px-3 py-2">7,000 MZN</td>
+                      <td className="border border-gray-300 px-3 py-2">10%</td>
+                      <td className="border border-gray-300 px-3 py-2">2,900 MZN</td>
+                    </tr>
+                    <tr className="bg-gray-50">
+                      <td className="border border-gray-300 px-3 py-2">Xai-Xai</td>
+                      <td className="border border-gray-300 px-3 py-2">800 Km</td>
+                      <td className="border border-gray-300 px-3 py-2">Cash</td>
+                      <td className="border border-gray-300 px-3 py-2">30,000 MZN</td>
+                      <td className="border border-gray-300 px-3 py-2">10,000 MZN</td>
+                      <td className="border border-gray-300 px-3 py-2">10%</td>
+                      <td className="border border-gray-300 px-3 py-2">4,000 MZN</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
 
           {/* Continuação do conteúdo... */}
           {/* (O restante do conteúdo foi mantido igual ao código fornecido) */}
