@@ -14,17 +14,13 @@ import {
   FiDollarSign,
   FiBarChart2,
   FiFileText,
-  FiEye,
   FiSearch,
   FiPlus,
   FiDownload,
   FiUser,
-  FiCalendar,
   FiClock,
   FiInfo,
-  FiFilter,
   FiPrinter,
-  FiShare2,
   FiSettings,
   FiBell,
   FiCamera,
@@ -39,6 +35,9 @@ import {
   FiGlobe,
   FiSave,
   FiTrash2,
+  FiLogOut,
+  FiChevronDown,
+  FiMenu,
 } from "react-icons/fi";
 import { Bar, Doughnut, Line } from "react-chartjs-2";
 import {
@@ -54,6 +53,7 @@ import {
   Legend,
 } from "chart.js";
 import { Spinner } from "@nextui-org/react";
+import CargasComponent from "./minhasCargas";
 
 ChartJS.register(
   CategoryScale,
@@ -205,9 +205,6 @@ export default function DashboardCliente() {
     EventoRastreamento[]
   >([]);
   const [isDataLoading, setIsDataLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("todos");
-  const [tipoFilter, setTipoFilter] = useState("todos");
   const [showSenhaAtual, setShowSenhaAtual] = useState(false);
   const [selectedCargo, setSelectedCargo] = useState<CargoCliente | null>(null);
   const [cargoParaRastrear, setCargoParaRastrear] =
@@ -225,6 +222,9 @@ export default function DashboardCliente() {
   const [rastreamentoSearch, setRastreamentoSearch] = useState("");
   const [showNovaSenha, setShowNovaSenha] = useState(false);
   const [showConfirmarSenha, setShowConfirmarSenha] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [formSenha, setFormSenha] = useState({
     senhaAtual: "",
     novaSenha: "",
@@ -270,13 +270,6 @@ export default function DashboardCliente() {
   });
 
   // Filtros avançados
-  const [filtrosAvancados, setFiltrosAvancados] = useState({
-    prioridade: "todos",
-    valorMin: "",
-    valorMax: "",
-    dataInicio: "",
-    dataFim: "",
-  });
 
   useEffect(() => {
     if (!isLoading) {
@@ -297,119 +290,6 @@ export default function DashboardCliente() {
   const loadData = async () => {
     setIsDataLoading(true);
     await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    // Dados mock para cliente
-    const mockCargos: CargoCliente[] = [
-      {
-        id: 1,
-        numero: "CAR-2024-001",
-        tipo: "Adubo",
-        origem: "Porto da Beira",
-        destino: "Harare, Zimbabwe",
-        status: "transito",
-        dataColeta: "2024-01-15",
-        dataEntrega: "",
-        dataEntregaPrevista: "2024-01-18",
-        valor: 250000,
-        motorista: "João Silva",
-        veiculo: "CAM-1234",
-        prioridade: "alta",
-        peso: 15000,
-        volume: 45,
-        descricao: "Adubo NPK para agricultura",
-        notas: "Carga sensível à umidade",
-        documentos: ["fatura_001.pdf", "seguro_001.pdf"],
-      },
-      {
-        id: 2,
-        numero: "CAR-2024-002",
-        tipo: "Cereais",
-        origem: "Armazém ETG",
-        destino: "Lilongwe, Malawi",
-        status: "pendente",
-        dataColeta: "2024-01-16",
-        dataEntrega: "",
-        dataEntregaPrevista: "2024-01-19",
-        valor: 180000,
-        prioridade: "media",
-        peso: 20000,
-        volume: 60,
-        descricao: "Milho amarelo para consumo",
-        notas: "Agendar inspeção sanitária",
-        documentos: ["contrato_002.pdf"],
-      },
-      {
-        id: 3,
-        numero: "CAR-2024-003",
-        tipo: "Adubo",
-        origem: "Porto da Beira",
-        destino: "Lusaka, Zâmbia",
-        status: "entregue",
-        dataColeta: "2024-01-10",
-        dataEntrega: "2024-01-13",
-        dataEntregaPrevista: "2024-01-13",
-        valor: 320000,
-        motorista: "Carlos Santos",
-        veiculo: "CAM-5678",
-        prioridade: "alta",
-        peso: 18000,
-        volume: 55,
-        descricao: "Adubo ureia premium",
-        notas: "Entrega realizada com sucesso",
-        documentos: ["fatura_003.pdf", "recibo_003.pdf"],
-        estadoRecebimento: {
-          id: 1,
-          cargoId: 3,
-          dataReport: "2024-01-13 14:30",
-          estado: "excelente",
-          observacoes: "Carga entregue em perfeito estado, dentro do prazo.",
-          fotos: ["foto1.jpg", "foto2.jpg"],
-          danosIdentificados: false,
-          conformidade: true,
-          assinaturaCliente: "assinatura_123.pdf",
-        },
-      },
-      {
-        id: 4,
-        numero: "CAR-2024-004",
-        tipo: "Equipamento Agrícola",
-        origem: "Fábrica Pembe",
-        destino: "Beira, Moçambique",
-        status: "atrasado",
-        dataColeta: "2024-01-14",
-        dataEntrega: "",
-        dataEntregaPrevista: "2024-01-15",
-        valor: 450000,
-        motorista: "Miguel Costa",
-        veiculo: "CAM-9012",
-        prioridade: "alta",
-        peso: 5000,
-        volume: 25,
-        descricao: "Trator agrícola modelo TX-45",
-        notas: "Aguardando liberação alfandegária",
-        documentos: ["fatura_004.pdf", "seguro_004.pdf"],
-      },
-      {
-        id: 5,
-        numero: "CAR-2024-005",
-        tipo: "Farinha de Trigo",
-        origem: "Mereque",
-        destino: "Chimoio",
-        status: "entregue",
-        dataColeta: "2024-01-08",
-        dataEntrega: "2024-01-09",
-        dataEntregaPrevista: "2024-01-09",
-        valor: 120000,
-        prioridade: "baixa",
-        peso: 10000,
-        volume: 30,
-        descricao: "Farinha de trigo branca",
-        notas: "Cliente satisfeito com entrega",
-        documentos: ["fatura_005.pdf"],
-      },
-    ];
-
-    setCargos(mockCargos);
 
     setAlertas([
       {
@@ -563,37 +443,6 @@ export default function DashboardCliente() {
   };
 
   // Filtrar cargas
-  const filteredCargos = cargos.filter((cargo) => {
-    const matchesSearch =
-      cargo.numero.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cargo.destino.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cargo.tipo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cargo.motorista?.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesStatus =
-      statusFilter === "todos" || cargo.status === statusFilter;
-
-    const matchesTipo =
-      tipoFilter === "todos" || cargo.tipo.toLowerCase() === tipoFilter;
-
-    const matchesPrioridade =
-      filtrosAvancados.prioridade === "todos" ||
-      cargo.prioridade === filtrosAvancados.prioridade;
-
-    const matchesValor =
-      (!filtrosAvancados.valorMin ||
-        cargo.valor >= Number(filtrosAvancados.valorMin)) &&
-      (!filtrosAvancados.valorMax ||
-        cargo.valor <= Number(filtrosAvancados.valorMax));
-
-    return (
-      matchesSearch &&
-      matchesStatus &&
-      matchesTipo &&
-      matchesPrioridade &&
-      matchesValor
-    );
-  });
 
   // Funções para rastreamento
   const abrirRastreamentoModal = (cargo: CargoCliente) => {
@@ -894,19 +743,6 @@ export default function DashboardCliente() {
     }
   };
 
-  const getPrioridadeColor = (prioridade: string) => {
-    switch (prioridade) {
-      case "alta":
-        return "text-red-600 bg-red-50 border border-red-200";
-      case "media":
-        return "text-yellow-600 bg-yellow-50 border border-yellow-200";
-      case "baixa":
-        return "text-green-600 bg-green-50 border border-green-200";
-      default:
-        return "text-gray-600 bg-gray-50 border border-gray-200";
-    }
-  };
-
   const getAlertaColor = (tipo: string) => {
     switch (tipo) {
       case "erro":
@@ -1108,61 +944,236 @@ export default function DashboardCliente() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+      <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-blue-600 rounded-lg">
+            {/* Logo e Identificação */}
+            <div className="flex items-center space-x-4 flex-1">
+              <div className="flex items-center space-x-3 min-w-0">
+                <div className="p-2 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg shadow-sm">
                   <FiPackage className="text-white text-xl" />
                 </div>
-                <div>
-                  <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+                <div className="min-w-0">
+                  <h1 className="text-xl font-bold text-gray-900 dark:text-white truncate">
                     Área do Cliente
                   </h1>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {user.nome} • Mega Logística
+                  <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                    {user.codigo} • Mega Logística
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center space-x-4">
-              <button className="relative p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
-                <FiBell className="w-5 h-5" />
+            {/* Menu para mobile */}
+            <div className="lg:hidden flex items-center space-x-2">
+              <button
+                onClick={() => setShowMobileMenu(!showMobileMenu)}
+                className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                aria-label="Menu"
+              >
+                <FiMenu className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Área do usuário - Desktop */}
+            <div className="hidden lg:flex items-center space-x-4">
+              {/* Notificações */}
+              <div className="relative">
+                <button
+                  className="relative p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                  aria-label={`Notificações ${
+                    notifications > 0 ? `(${notifications} não lidas)` : ""
+                  }`}
+                  onClick={() => setShowNotifications(!showNotifications)}
+                >
+                  <FiBell className="w-5 h-5" />
+                  {notifications > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                      {notifications > 9 ? "9+" : notifications}
+                    </span>
+                  )}
+                </button>
+
+                {/* Dropdown de Notificações */}
+                {showNotifications && (
+                  <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50">
+                    <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                        Notificações ({notifications})
+                      </h3>
+                    </div>
+                    <div className="max-h-60 overflow-y-auto">
+                      {notifications > 0 ? (
+                        // Lista de notificações
+                        <div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                          <FiBell className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                          <p>Nenhuma notificação nova</p>
+                        </div>
+                      ) : (
+                        <div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                          <FiBell className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                          <p>Nenhuma notificação</p>
+                        </div>
+                      )}
+                    </div>
+                    <div className="px-4 py-2 border-t border-gray-200 dark:border-gray-700">
+                      <button className="w-full text-center text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">
+                        Ver todas as notificações
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Informações do usuário */}
+              <div className="flex items-center space-x-3">
+                <div className="hidden md:block text-right">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-32">
+                    {user.nome}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Cliente • Porto da Beira
+                  </p>
+                </div>
+
+                {/* Avatar do usuário */}
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-sm font-medium shadow-sm">
+                  {user.nome.charAt(0).toUpperCase()}
+                </div>
+
+                {/* Menu do usuário */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowUserMenu(!showUserMenu)}
+                    className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                    aria-label="Menu do usuário"
+                  >
+                    <FiChevronDown
+                      className={`w-4 h-4 transition-transform ${
+                        showUserMenu ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {/* Dropdown do usuário */}
+                  {showUserMenu && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
+                      <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                          {user.nome}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                          {user.email}
+                        </p>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          setActiveTab("perfil");
+                          setShowUserMenu(false);
+                        }}
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        <FiUser className="w-4 h-4 mr-2" />
+                        Meu Perfil
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setActiveTab("configuracoes");
+                          setShowUserMenu(false);
+                        }}
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        <FiSettings className="w-4 h-4 mr-2" />
+                        Configurações
+                      </button>
+
+                      <div className="border-t border-gray-200 dark:border-gray-700">
+                        <button
+                          onClick={logout}
+                          className="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                        >
+                          <FiLogOut className="w-4 h-4 mr-2" />
+                          Sair
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Menu Mobile */}
+        {showMobileMenu && (
+          <div className="lg:hidden bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-2 px-4">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-700">
+                <div>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">
+                    {user.nome}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {user.email}
+                  </p>
+                </div>
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-lg font-medium">
+                  {user.nome.charAt(0).toUpperCase()}
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  setActiveTab("perfil");
+                  setShowMobileMenu(false);
+                }}
+                className="flex items-center w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                <FiUser className="w-4 h-4 mr-2" />
+                Meu Perfil
+              </button>
+
+              <button
+                onClick={() => {
+                  setActiveTab("configuracoes");
+                  setShowMobileMenu(false);
+                }}
+                className="flex items-center w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                <FiSettings className="w-4 h-4 mr-2" />
+                Configurações
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowMobileMenu(false);
+                  // Lógica para notificações mobile
+                }}
+                className="flex items-center w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                <FiBell className="w-4 h-4 mr-2" />
+                Notificações
                 {notifications > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    {notifications}
+                  <span className="ml-auto bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    {notifications > 9 ? "9+" : notifications}
                   </span>
                 )}
               </button>
 
-              <div className="text-right">
-                <p className="text-sm font-medium text-gray-900 dark:text-white">
-                  {user.nome}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Cliente • Porto da Beira
-                </p>
-              </div>
-
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => setActiveTab("configuracoes")}
-                  className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
-                >
-                  <FiSettings className="w-5 h-5" />
-                </button>
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-2">
                 <button
                   onClick={logout}
-                  className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                  className="flex items-center w-full px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                 >
+                  <FiLogOut className="w-4 h-4 mr-2" />
                   Sair
                 </button>
               </div>
             </div>
           </div>
-        </div>
+        )}
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -1179,13 +1190,13 @@ export default function DashboardCliente() {
                   key={alerta.id}
                   className={`p-4 rounded-lg ${getAlertaColor(
                     alerta.tipo
-                  )} transition-all hover:shadow-md cursor-pointer flex justify-between items-center`}
+                  )} transition-all hover:shadow-md cursor-pointer flex justify-between items-center text-gray-950`}
                   onClick={() => marcarAlertaComoLido(alerta.id)}
                 >
-                  <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-3 text-gray-950">
                     {getAlertaIcon(alerta.tipo)}
                     <div>
-                      <h4 className="font-medium text-gray-900 dark:text-white">
+                      <h4 className="font-medium text-gray-900 ">
                         {alerta.titulo}
                       </h4>
                       <p className="text-sm text-gray-600 dark:text-gray-300">
@@ -1194,7 +1205,7 @@ export default function DashboardCliente() {
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <span className="text-xs text-gray-500">{alerta.data}</span>
+                    <span className="text-xs text-gray-950">{alerta.data}</span>
                     {alerta.cargoId && (
                       <button
                         onClick={(e) => {
@@ -1299,371 +1310,7 @@ export default function DashboardCliente() {
         </div>
 
         {/* Conteúdo das Tabs */}
-        {activeTab === "minhas-cargas" && (
-          <div className="space-y-6">
-            {/* Filtros e Busca */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-              <div className="flex flex-col lg:flex-row gap-4 justify-between items-start lg:items-center">
-                <div className="flex flex-col lg:flex-row gap-4 flex-1 w-full">
-                  <div className="relative flex-1 max-w-md">
-                    <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                    <input
-                      type="text"
-                      placeholder="Buscar por número, destino, tipo ou motorista..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    />
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    <select
-                      value={statusFilter}
-                      onChange={(e) => setStatusFilter(e.target.value)}
-                      className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    >
-                      <option value="todos">Todos os Status</option>
-                      <option value="pendente">Pendentes</option>
-                      <option value="coletado">Coletados</option>
-                      <option value="transito">Em Trânsito</option>
-                      <option value="entregue">Entregues</option>
-                      <option value="atrasado">Atrasadas</option>
-                    </select>
-
-                    <select
-                      value={tipoFilter}
-                      onChange={(e) => setTipoFilter(e.target.value)}
-                      className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    >
-                      <option value="todos">Todos os Tipos</option>
-                      <option value="adubo">Adubo</option>
-                      <option value="cereais">Cereais</option>
-                      <option value="equipamento agrícola">Equipamentos</option>
-                      <option value="farinha de trigo">Farinha</option>
-                    </select>
-
-                    <button
-                      onClick={() =>
-                        setFiltrosAvancados((prev) => ({
-                          ...prev,
-                          prioridade: "todos",
-                          valorMin: "",
-                          valorMax: "",
-                        }))
-                      }
-                      className="flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                    >
-                      <FiFilter className="w-4 h-4" />
-                      <span>Limpar Filtros</span>
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex gap-2 w-full lg:w-auto">
-                  <button
-                    onClick={() => setShowNovaCargaModal(true)}
-                    className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex-1 lg:flex-none justify-center"
-                  >
-                    <FiPlus className="w-4 h-4" />
-                    <span>Nova Carga</span>
-                  </button>
-
-                  <button
-                    onClick={() => exportarDados("cargos")}
-                    className="flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                  >
-                    <FiDownload className="w-4 h-4" />
-                    <span>Exportar</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Filtros Avançados */}
-              <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-medium text-gray-900 dark:text-white">
-                    Filtros Avançados
-                  </h4>
-                  <FiFilter className="text-gray-400" />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Prioridade
-                    </label>
-                    <select
-                      value={filtrosAvancados.prioridade}
-                      onChange={(e) =>
-                        setFiltrosAvancados((prev) => ({
-                          ...prev,
-                          prioridade: e.target.value,
-                        }))
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    >
-                      <option value="todos">Todas</option>
-                      <option value="alta">Alta</option>
-                      <option value="media">Média</option>
-                      <option value="baixa">Baixa</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Valor Mínimo (MZN)
-                    </label>
-                    <input
-                      type="number"
-                      placeholder="0"
-                      value={filtrosAvancados.valorMin}
-                      onChange={(e) =>
-                        setFiltrosAvancados((prev) => ({
-                          ...prev,
-                          valorMin: e.target.value,
-                        }))
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Valor Máximo (MZN)
-                    </label>
-                    <input
-                      type="number"
-                      placeholder="1000000"
-                      value={filtrosAvancados.valorMax}
-                      onChange={(e) =>
-                        setFiltrosAvancados((prev) => ({
-                          ...prev,
-                          valorMax: e.target.value,
-                        }))
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Tabela de Cargas */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Minhas Cargas ({filteredCargos.length})
-                  </h2>
-                  <div className="flex gap-2">
-                    <button className="flex items-center space-x-2 px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                      <FiPrinter className="w-4 h-4" />
-                      <span>Imprimir</span>
-                    </button>
-                    <button className="flex items-center space-x-2 px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                      <FiShare2 className="w-4 h-4" />
-                      <span>Compartilhar</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 dark:bg-gray-700">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Carga
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Tipo
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Rota
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Estado Recebimento
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Prioridade
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Valor
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Ações
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                    {isDataLoading ? (
-                      <tr>
-                        <td colSpan={8} className="px-6 py-8 text-center">
-                          <div className="flex justify-center">
-                            <Spinner size="md" />
-                          </div>
-                          <p className="mt-2 text-sm text-gray-500">
-                            Carregando cargas...
-                          </p>
-                        </td>
-                      </tr>
-                    ) : filteredCargos.length === 0 ? (
-                      <tr>
-                        <td colSpan={8} className="px-6 py-8 text-center">
-                          <FiPackage className="mx-auto h-12 w-12 text-gray-400" />
-                          <p className="mt-2 text-sm text-gray-500">
-                            Nenhuma carga encontrada
-                          </p>
-                          <button
-                            onClick={() => setShowNovaCargaModal(true)}
-                            className="mt-2 text-blue-600 hover:text-blue-800 text-sm font-medium"
-                          >
-                            Cadastrar primeira carga
-                          </button>
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredCargos.map((cargo) => (
-                        <tr
-                          key={cargo.id}
-                          className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                        >
-                          <td className="px-6 py-4">
-                            <div>
-                              <div className="text-sm font-medium text-gray-900 dark:text-white">
-                                {cargo.numero}
-                              </div>
-                              <div className="text-xs text-gray-500 flex items-center space-x-1">
-                                <FiCalendar className="w-3 h-3" />
-                                <span>{formatarData(cargo.dataColeta)}</span>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="text-sm text-gray-900 dark:text-white">
-                              {cargo.tipo}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {cargo.peso} kg
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="text-sm text-gray-900 dark:text-white">
-                              {cargo.origem} → {cargo.destino}
-                            </div>
-                            {cargo.motorista && (
-                              <div className="text-xs text-gray-500 flex items-center space-x-1">
-                                <FiUser className="w-3 h-3" />
-                                <span>{cargo.motorista}</span>
-                              </div>
-                            )}
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex flex-col space-y-1">
-                              <span
-                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
-                                  cargo.status
-                                )}`}
-                              >
-                                {getStatusText(cargo.status)}
-                              </span>
-                              {cargo.dataEntregaPrevista && (
-                                <div className="text-xs text-gray-500 flex items-center space-x-1">
-                                  <FiClock className="w-3 h-3" />
-                                  <span>
-                                    Prev:{" "}
-                                    {formatarData(cargo.dataEntregaPrevista)}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            {cargo.estadoRecebimento ? (
-                              <div className="flex flex-col space-y-1">
-                                <span
-                                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getEstadoRecebimentoColor(
-                                    cargo.estadoRecebimento.estado
-                                  )}`}
-                                >
-                                  {getEstadoRecebimentoText(
-                                    cargo.estadoRecebimento.estado
-                                  )}
-                                </span>
-                                <div className="text-xs text-gray-500">
-                                  {formatarData(
-                                    cargo.estadoRecebimento.dataReport
-                                  )}
-                                </div>
-                              </div>
-                            ) : cargo.status === "entregue" ? (
-                              <button
-                                onClick={() => abrirReportModal(cargo)}
-                                className="inline-flex items-center px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium hover:bg-purple-200 transition-colors"
-                              >
-                                <FiCamera className="w-3 h-3 mr-1" />
-                                Reportar Estado
-                              </button>
-                            ) : (
-                              <span className="text-xs text-gray-400">
-                                Aguardando entrega
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-6 py-4">
-                            <span
-                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPrioridadeColor(
-                                cargo.prioridade
-                              )}`}
-                            >
-                              {cargo.prioridade.charAt(0).toUpperCase() +
-                                cargo.prioridade.slice(1)}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="text-sm font-medium text-gray-900 dark:text-white">
-                              {formatarMoeda(cargo.valor)}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex space-x-2">
-                              <button
-                                onClick={() => visualizarCargo(cargo)}
-                                className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center"
-                              >
-                                <FiEye className="w-4 h-4 mr-1" />
-                                Ver
-                              </button>
-                              {cargo.status === "entregue" &&
-                                !cargo.estadoRecebimento && (
-                                  <button
-                                    onClick={() => abrirReportModal(cargo)}
-                                    className="text-purple-600 hover:text-purple-800 text-sm font-medium flex items-center"
-                                  >
-                                    <FiCamera className="w-4 h-4 mr-1" />
-                                    Reportar
-                                  </button>
-                                )}
-                              <button
-                                onClick={() => abrirRastreamentoModal(cargo)}
-                                className="text-green-600 hover:text-green-800 text-sm font-medium flex items-center"
-                              >
-                                <FiMapPin className="w-4 h-4 mr-1" />
-                                Rastrear
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
+        {activeTab === "minhas-cargas" && <CargasComponent />}
 
         {/* Tab de Rastreamento */}
         {activeTab === "rastreamento" && (

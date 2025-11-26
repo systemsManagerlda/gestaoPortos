@@ -7,58 +7,173 @@ import React, {
   useState,
   useEffect,
   ReactNode,
+  useCallback,
+  useMemo,
 } from "react";
 import { toast } from "react-toastify";
 
 const API_BASE_URL = "https://desktop-api-4f850b3f9733.herokuapp.com";
 
-// Interface para usuários regulares
-interface User {
+
+// Interfaces melhoradas
+interface BaseUser {
   codigo: string;
-  nome: string;
+  id: string;
   email: string;
-  categoria: "Gestor" | "Cliente" | "Motorista";
+  categoria: string;
   status: string;
-  contatoPrincipal?: string;
-  tipo?: "usuario"; // Adicionar tipo para diferenciar
+  nome: string;
+  tipo: "usuario" | "transportadora";
 }
 
-// Interface para transportadoras
-export interface TransportadoraUser {
-  codigo: string;
+export interface User extends BaseUser {
+  nome: string;
+  contatoPrincipal?: string;
+  categoria: "Gestor" | "Cliente" | "Motorista";
+  tipo: "usuario";
+}
+
+export interface TransportadoraUser extends BaseUser {
   nomeEmpresa: string;
   transportadoraId: number;
-  email: string;
+  empresaMotorista: string;
   nif: string;
   categoria: "Transportadora";
   status: "ativa" | "inativa" | "suspensa" | "pendente";
   telefonePrincipal?: string;
-  tipo: "transportadora"; // Tipo específico para transportadoras
-  // Campos específicos de transportadora
+  tipo: "transportadora";
   totalCamioes?: number;
   totalMotoristas?: number;
   tipoServicos?: string[];
   provincia?: string;
-  empresaMotorista: string;
 }
 
 // Tipo unificado para usuário
 type AuthUser = User | TransportadoraUser;
 
+// Type guard para verificar o tipo de usuário
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const isUser = (data: any): data is User => {
+  return data && typeof data.nome === 'string' && data.categoria !== "Transportadora";
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const isTransportadoraUser = (data: any): data is TransportadoraUser => {
+  return data && typeof data.nomeEmpresa === 'string' && data.categoria === "Transportadora";
+};
+
+// Função para normalizar dados do usuário do localStorage
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const normalizeStoredUser = (data: any): AuthUser | null => {
+  if (!data) return null;
+
+  try {
+    // Se já tem tipo definido, retorna como está
+    if (data.tipo === "usuario" || data.tipo === "transportadora") {
+      return data as AuthUser;
+    }
+
+    // Backward compatibility: determinar tipo baseado nos campos
+    if (isUser(data)) {
+      return {
+        ...data,
+        tipo: "usuario" as const
+      };
+    }
+
+    if (isTransportadoraUser(data)) {
+      return {
+        ...data,
+        tipo: "transportadora" as const
+      };
+    }
+
+    // Tentativa de inferência baseada em campos existentes
+    if (data.nome) {
+      return {
+        ...data,
+        tipo: "usuario" as const
+      };
+    }
+
+    if (data.nomeEmpresa) {
+      return {
+        ...data,
+        tipo: "transportadora" as const
+      };
+    }
+
+    console.warn("Dados de usuário inválidos no localStorage:", data);
+    return null;
+  } catch (error) {
+    console.error("Erro ao normalizar dados do usuário:", error);
+    return null;
+  }
+};
+
+// Tipos para estado e respostas da API
+type AuthStatus = "idle" | "loading" | "success" | "error";
+
+interface AuthResponse {
+  returnCode: number;
+  returnMsg: string;
+  data?: {
+    valido?: boolean;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    usuario?: any;
+    token?: string;
+    // Para transportadoras
+    _id?: string;
+    nomeEmpresa?: string;
+    transportadoraId?: number;
+    nif?: string;
+    status?: string;
+    contactos?: { telefonePrincipal?: string };
+    capacidadeTotal?: { totalCamioes?: number; totalMotoristas?: number };
+    tipoServicos?: string[];
+    endereco?: { provincia?: string };
+    empresaMotorista?: string;
+  };
+}
+
 interface AuthContextType {
   user: AuthUser | null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  login: (email: string, password: string, userData?: any) => Promise<boolean>;
+  login: (email: string, password: string, userData?: AuthUser) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
   error: string | null;
-  status: "idle" | "loading" | "success" | "error";
-  // Nova função para login específico de transportadora
+  status: AuthStatus;
   loginTransportadora: (email: string, password: string) => Promise<boolean>;
+  clearError: () => void;
 }
+
+// Constantes para storage
+const STORAGE_KEYS = {
+  USER: "user",
+  TOKEN: "authToken",
+  USER_TYPE: "userType",
+} as const;
+
+// Usuário específico para login direto
+const SPECIFIC_USERS = {
+  GESTOR: {
+    email: "gestor@megacentrodelogistica.co.mz",
+    password: "mega12@3",
+    userData: {
+      codigo: "gestor_mega",
+      id: "001",
+      nome: "Gestor Mega Centro",
+      email: "gestor@megacentrodelogistica.co.mz",
+      categoria: "Gestor" as const,
+      status: "ativo",
+      tipo: "usuario" as const,
+    } as User,
+  },
+} as const;
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Hook personalizado com verificação de contexto
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
@@ -75,127 +190,208 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [status, setStatus] = useState<
-    "idle" | "loading" | "success" | "error"
-  >("idle");
+  const [status, setStatus] = useState<AuthStatus>("idle");
   const router = useRouter();
 
+  // Funções auxiliares para localStorage
+  const getStoredAuth = useCallback((): { user: AuthUser | null; token: string | null } => {
+    try {
+      const storedUser = localStorage.getItem(STORAGE_KEYS.USER);
+      const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
+      
+      if (storedUser && token) {
+        const parsedData = JSON.parse(storedUser);
+        const normalizedUser = normalizeStoredUser(parsedData);
+        
+        if (normalizedUser) {
+          return { user: normalizedUser, token };
+        }
+      }
+    } catch (err) {
+      console.error("Error reading stored auth:", err);
+      clearStoredAuth();
+    }
+    
+    return { user: null, token: null };
+  }, []);
+
+  const setStoredAuth = useCallback((userData: AuthUser, token: string) => {
+    try {
+      // Garantir que o tipo está definido
+      const userWithType = {
+        ...userData,
+        tipo: userData.tipo || ("usuario" as const)
+      };
+
+      localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userWithType));
+      localStorage.setItem(STORAGE_KEYS.TOKEN, token);
+      localStorage.setItem(STORAGE_KEYS.USER_TYPE, userWithType.tipo);
+    } catch (err) {
+      console.error("Error storing auth:", err);
+      throw new Error("Falha ao salvar dados de autenticação");
+    }
+  }, []);
+
+  const clearStoredAuth = useCallback(() => {
+    try {
+      localStorage.removeItem(STORAGE_KEYS.USER);
+      localStorage.removeItem(STORAGE_KEYS.TOKEN);
+      localStorage.removeItem(STORAGE_KEYS.USER_TYPE);
+    } catch (err) {
+      console.error("Error clearing stored auth:", err);
+    }
+  }, []);
+
+  // Verificar autenticação armazenada ao inicializar
   useEffect(() => {
-    const checkStoredAuth = async () => {
+    const initializeAuth = async () => {
       try {
-        const storedUser = localStorage.getItem("user");
-        const token = localStorage.getItem("authToken");
-        const userType = localStorage.getItem("userType"); // Novo: tipo de usuário
-
-        if (storedUser && token) {
-          const userData = JSON.parse(storedUser);
-
-          // Adicionar tipo baseado no que estava armazenado
-          if (!userData.tipo) {
-            userData.tipo = userType || "usuario";
-          }
-
-          setUser(userData);
+        const { user: storedUser } = getStoredAuth();
+        if (storedUser) {
+          setUser(storedUser);
         }
       } catch (err) {
-        console.error("Error checking stored auth:", err);
-        localStorage.removeItem("user");
-        localStorage.removeItem("authToken");
-        localStorage.removeItem("userType");
+        console.error("Error initializing auth:", err);
+        clearStoredAuth();
       } finally {
         setIsLoading(false);
       }
     };
 
-    checkStoredAuth();
+    initializeAuth();
+  }, [getStoredAuth, clearStoredAuth]);
+
+  // Função para limpar erros
+  const clearError = useCallback(() => setError(null), []);
+
+  // Função para tratamento consistente de erros
+  const handleAuthError = useCallback((err: unknown, defaultMessage: string) => {
+    let errorMessage = defaultMessage;
+    
+    if (err instanceof Error) {
+      errorMessage = err.message;
+    } else if (typeof err === 'string') {
+      errorMessage = err;
+    }
+
+    // Ajustar mensagens para usar "gestora" em vez de "transportadora"
+    errorMessage = errorMessage
+      .replace(/Transportadora/gi, "Gestora")
+      .replace(/transportadora/gi, "gestora");
+
+    setError(errorMessage);
+    setStatus("error");
+
+    // Toast notifications específicas
+    if (errorMessage.includes("Network") || errorMessage.includes("Failed to fetch")) {
+      toast.error("🌐 Erro de conexão. Verifique sua internet e tente novamente.");
+    } else if (errorMessage.includes("Credenciais") || errorMessage.includes("Email") || errorMessage.includes("Senha")) {
+      toast.error("❌ Email ou senha incorretos. Verifique suas credenciais.");
+    } else if (errorMessage.includes("não encontrada") || errorMessage.includes("não existe") || errorMessage.includes("not found")) {
+      toast.error("📋 Gestora não encontrada. Verifique o email.");
+    } else {
+      toast.error(`❌ ${errorMessage}`);
+    }
+
+    return errorMessage;
   }, []);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const login = async (
+  // Função para login de usuário específico (Gestor Mega)
+  const handleSpecificUserLogin = useCallback((email: string, password: string): boolean => {
+    if (email === SPECIFIC_USERS.GESTOR.email && password === SPECIFIC_USERS.GESTOR.password) {
+      const userData = SPECIFIC_USERS.GESTOR.userData;
+      
+      setUser(userData);
+      setStoredAuth(userData, "authenticated");
+      setStatus("success");
+      
+      toast.success(`Bem-vindo, ${userData.nome}!`);
+      
+      // Redireciona para o dashboard
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 100);
+      
+      return true;
+    }
+    return false;
+  }, [setStoredAuth, router]);
+
+  // Função principal de login
+  const login = useCallback(async (
     email: string,
     password: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    userData?: any
+    userData?: AuthUser
   ): Promise<boolean> => {
     setStatus("loading");
     setError(null);
     setIsLoading(true);
 
     try {
-      // Se userData for fornecido (como no caso do login de transportadora), usar diretamente
+      // Caso 1: Dados de usuário fornecidos diretamente
       if (userData) {
         setUser(userData);
-        localStorage.setItem("user", JSON.stringify(userData));
-        localStorage.setItem("authToken", "authenticated");
-        localStorage.setItem("userType", userData.tipo || "usuario");
-
+        setStoredAuth(userData, "authenticated");
         setStatus("success");
-        const userName = userData.nome || userData.nomeEmpresa || "Usuário";
+        
+        const userName = isUser(userData) ? userData.nome : userData.nomeEmpresa;
         toast.success(`Bem-vindo, ${userName}!`);
         return true;
       }
 
-      // SOLUÇÃO: Usar uma rota específica de autenticação no backend
+      // Caso 2: Usuário específico (Gestor Mega)
+      if (handleSpecificUserLogin(email, password)) {
+        return true;
+      }
+
+      // Caso 3: Autenticação via API
       const authResponse = await fetch(`${API_BASE_URL}/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          email: email,
-          password: password,
-        }),
+        body: JSON.stringify({ email, password }),
       });
 
-      if (authResponse.ok) {
-        const authData = await authResponse.json();
-
-        if (authData.returnCode === 200 && authData.data.valido) {
-          // Login bem-sucedido
-          const userData: User = {
-            codigo: authData.data.usuario.codigo,
-            nome: authData.data.usuario.nome,
-            email: email,
-            categoria: authData.data.usuario.categoria,
-            status: authData.data.usuario.status,
-            contatoPrincipal: authData.data.usuario.contatoPrincipal,
-            tipo: "usuario",
-          };
-
-          setUser(userData);
-          localStorage.setItem("user", JSON.stringify(userData));
-          localStorage.setItem(
-            "authToken",
-            authData.data.token || "authenticated"
-          );
-          localStorage.setItem("userType", "usuario");
-
-          setStatus("success");
-          toast.success(`Bem-vindo, ${authData.data.usuario.nome}!`);
-          return true;
-        } else {
-          throw new Error(authData.returnMsg || "Credenciais inválidas");
-        }
-      } else {
-        const errorData = await authResponse.json();
+      if (!authResponse.ok) {
+        const errorData = await authResponse.json() as AuthResponse;
         throw new Error(errorData.returnMsg || "Erro na autenticação");
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      const errorMessage = err.message || "Erro durante o login";
-      setError(errorMessage);
-      setStatus("error");
-      toast.error(errorMessage);
+      const authData = await authResponse.json() as AuthResponse;
+
+      if (authData.returnCode === 200 && authData.data?.valido && authData.data.usuario) {
+        const userData: User = {
+          codigo: authData.data.usuario.codigo || authData.data.usuario._id,
+          id: authData.data.usuario._id,
+          nome: authData.data.usuario.nome,
+          email,
+          categoria: authData.data.usuario.categoria,
+          status: authData.data.usuario.status,
+          contatoPrincipal: authData.data.usuario.contatoPrincipal,
+          tipo: "usuario",
+        };
+
+        setUser(userData);
+        setStoredAuth(userData, authData.data.token || "authenticated");
+        setStatus("success");
+        
+        toast.success(`Bem-vindo, ${userData.nome}!`);
+        return true;
+      } else {
+        throw new Error(authData.returnMsg || "Credenciais inválidas");
+      }
+
+    } catch (err) {
+      handleAuthError(err, "Erro durante o login");
       return false;
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [handleSpecificUserLogin, handleAuthError, setStoredAuth]);
 
-  // Nova função específica para login de transportadoras
-  // Nova função específica para login de gestoras
-  const loginTransportadora = async (
+  // Função específica para login de transportadoras/gestoras
+  const loginTransportadora = useCallback(async (
     email: string,
     password: string
   ): Promise<boolean> => {
@@ -204,68 +400,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(true);
 
     try {
-      console.log("Tentando login da gestora:", email);
-
-      // VERIFICAÇÃO DO USUÁRIO ESPECÍFICO
-      const specificEmail = "gestor@megacentrodelogistica.co.mz";
-      const specificPassword = "mega12@3";
-
-      // Login direto para o usuário específico
-      if (email === specificEmail && password === specificPassword) {
-        console.log("Usuário específico detectado, criando sessão...");
-
-        const userData: User = {
-          codigo: "gestor_mega",
-          nome: "Gestor Mega Centro",
-          email: specificEmail,
-          categoria: "Gestor",
-          status: "ativo",
-          tipo: "usuario",
-        };
-
-        setUser(userData);
-        localStorage.setItem("user", JSON.stringify(userData));
-        localStorage.setItem("authToken", "authenticated");
-        localStorage.setItem("userType", "usuario");
-
-        setStatus("success");
-        toast.success(`Bem-vindo, Gestor Mega Centro!`);
-
-        // Redireciona para o dashboard
-        setTimeout(() => {
-          router.push("/dashboard");
-        }, 100);
-
+      // Verificar primeiro se é usuário específico
+      if (handleSpecificUserLogin(email, password)) {
         return true;
       }
 
-      // CORREÇÃO: Usar 'senha' em vez de 'password'
+      console.log("Tentando login da gestora:", email);
+
       const response = await fetch(`${API_BASE_URL}/loginTransportadora`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          email: email,
-          senha: password, // ← CORREÇÃO AQUI
-        }),
+        body: JSON.stringify({ email, senha: password }),
       });
 
-      const result = await response.json();
+      const result = await response.json() as AuthResponse;
       console.log("Resposta do login da gestora:", result);
 
       if (result.returnCode === 200 && result.data) {
-        // Login bem-sucedido da gestora
         const transportadoraData: TransportadoraUser = {
-          codigo:
-            result.data.codigo || result.data._id || `gestora_${Date.now()}`,
-          nomeEmpresa: result.data.nomeEmpresa,
-          transportadoraId: result.data.transportadoraId,
-          empresaMotorista: result.data.empresaMotorista,
-          email: email,
-          nif: result.data.nif,
+          nome: result.data.nomeEmpresa || "Gestora",
+          codigo: result.data._id || `gestora_${Date.now()}`,
+          id: result.data._id || `gestora_${Date.now()}`,
+          nomeEmpresa: result.data.nomeEmpresa || "Gestora",
+          transportadoraId: result.data.transportadoraId || 0,
+          empresaMotorista: result.data.empresaMotorista || result.data.nomeEmpresa || "Gestora",
+          email,
+          nif: result.data.nif || "",
           categoria: "Transportadora",
-          status: result.data.status || "ativa",
+          status: (result.data.status as "ativa" | "inativa" | "suspensa" | "pendente") || "ativa",
           telefonePrincipal: result.data.contactos?.telefonePrincipal,
           tipo: "transportadora",
           totalCamioes: result.data.capacidadeTotal?.totalCamioes,
@@ -275,103 +439,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         };
 
         setUser(transportadoraData);
-        localStorage.setItem("user", JSON.stringify(transportadoraData));
-        localStorage.setItem("authToken", "authenticated");
-        localStorage.setItem("userType", "transportadora");
-
+        setStoredAuth(transportadoraData, "authenticated");
         setStatus("success");
+        
         toast.success(`Bem-vinda, ${transportadoraData.nomeEmpresa}!`);
-
         return true;
       } else {
-        // CORREÇÃO: Mensagens de erro mais específicas
-        let errorMessage =
-          result.returnMsg || "Credenciais inválidas para gestora";
-
-        // Ajusta a mensagem para usar "gestora" em vez de "transportadora"
-        if (
-          errorMessage.includes("Transportadora") ||
-          errorMessage.includes("transportadora")
-        ) {
-          errorMessage = errorMessage
-            .replace(/Transportadora/gi, "Gestora")
-            .replace(/transportadora/gi, "gestora");
-        }
-
-        throw new Error(errorMessage);
+        throw new Error(result.returnMsg || "Credenciais inválidas para gestora");
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      let errorMessage = err.message || "Erro durante o login da gestora";
-
-      // Ajusta mensagens de erro do servidor
-      if (
-        errorMessage.includes("Transportadora") ||
-        errorMessage.includes("transportadora")
-      ) {
-        errorMessage = errorMessage
-          .replace(/Transportadora/gi, "Gestora")
-          .replace(/transportadora/gi, "gestora");
-      }
-
-      setError(errorMessage);
-      setStatus("error");
-
-      if (
-        errorMessage.includes("Network") ||
-        errorMessage.includes("Failed to fetch")
-      ) {
-        toast.error(
-          "🌐 Erro de conexão. Verifique sua internet e tente novamente."
-        );
-      } else if (
-        errorMessage.includes("Credenciais") ||
-        errorMessage.includes("Email") ||
-        errorMessage.includes("Senha")
-      ) {
-        toast.error(
-          "❌ Email ou senha incorretos. Verifique suas credenciais."
-        );
-      } else if (
-        errorMessage.includes("não encontrada") ||
-        errorMessage.includes("não existe") ||
-        errorMessage.includes("not found")
-      ) {
-        toast.error("📋 Gestora não encontrada. Verifique o email.");
-      } else {
-        toast.error(`❌ ${errorMessage}`);
-      }
-
+    } catch (err) {
+      handleAuthError(err, "Erro durante o login da gestora");
       return false;
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [handleSpecificUserLogin, handleAuthError, setStoredAuth]);
 
-
-  const logout = () => {
+  // Função de logout
+  const logout = useCallback(() => {
     setUser(null);
     setError(null);
     setStatus("idle");
-    localStorage.removeItem("user");
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("userType");
+    clearStoredAuth();
     toast.info("Logout realizado com sucesso");
-  };
+  }, [clearStoredAuth]);
 
-  // Helper functions para verificar tipo de usuário
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const isTransportadora = (user: AuthUser): user is TransportadoraUser => {
-    return user.tipo === "transportadora";
-  };
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const isUsuario = (user: AuthUser): user is User => {
-    return user.tipo === "usuario" || !user.tipo; // Backward compatibility
-  };
-
-  const value: AuthContextType = {
+  // Valor do contexto memoizado
+  const contextValue = useMemo((): AuthContextType => ({
     user,
     login,
     logout,
@@ -379,18 +474,71 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     error,
     status,
     loginTransportadora,
-  };
+    clearError,
+  }), [user, login, logout, isLoading, error, status, loginTransportadora, clearError]);
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={contextValue}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
 // Helper hooks para uso nos componentes
 export const useUserType = () => {
   const { user } = useAuth();
 
-  return {
+  return useMemo(() => ({
     isTransportadora: user ? user.tipo === "transportadora" : false,
-    isUsuario: user ? user.tipo === "usuario" || !user.tipo : false,
-    userType: user?.tipo || "usuario",
-  };
+    isUsuario: user ? user.tipo === "usuario" : false,
+    userType: user?.tipo || null,
+    userCategory: user?.categoria || null,
+  }), [user]);
+};
+
+// Hook para verificar permissões específicas
+export const useUserPermissions = () => {
+  const { user } = useAuth();
+
+  return useMemo(() => ({
+    isGestor: user?.categoria === "Gestor",
+    isCliente: user?.categoria === "Cliente",
+    isMotorista: user?.categoria === "Motorista",
+    isTransportadora: user?.categoria === "Transportadora",
+    canManageCargas: user?.categoria === "Gestor" || user?.categoria === "Cliente",
+    canManageTransportes: user?.categoria === "Gestor" || user?.categoria === "Transportadora",
+    canViewReports: user?.categoria === "Gestor",
+  }), [user]);
+};
+
+// Hook para redirecionamento baseado no tipo de usuário
+export const useAuthRedirect = () => {
+  const { user } = useAuth();
+  const router = useRouter();
+
+  const redirectBasedOnUserType = useCallback(() => {
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+
+    switch (user.categoria) {
+      case "Gestor":
+        router.push("/dashboard");
+        break;
+      case "Cliente":
+        router.push("/dashboard/cliente");
+        break;
+      case "Transportadora":
+        router.push("/dashboard/transportadora");
+        break;
+      case "Motorista":
+        router.push("/dashboard/motorista");
+        break;
+      default:
+        router.push("/");
+    }
+  }, [user, router]);
+
+  return { redirectBasedOnUserType };
 };
