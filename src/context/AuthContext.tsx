@@ -22,8 +22,8 @@ interface BaseUser {
   email: string;
   categoria: string;
   status: string;
-  nome: string;
-  tipo: "usuario" | "transportadora";
+  // nome: string;
+  // tipo: "usuario" | "transportadora";
 }
 
 export interface User extends BaseUser {
@@ -37,6 +37,7 @@ export interface TransportadoraUser extends BaseUser {
   nomeEmpresa: string;
   transportadoraId: number;
   empresaMotorista: string;
+  nome?: string;
   nif: string;
   categoria: "Transportadora";
   status: "ativa" | "inativa" | "suspensa" | "pendente";
