@@ -24,6 +24,7 @@ import {
   FiAlertTriangle,
   FiFileText,
   FiUsers,
+  FiBookOpen,
 } from "react-icons/fi";
 import {
   Chart as ChartJS,
@@ -54,6 +55,7 @@ import {
   FiltrosMotoristas,
   MetricsMotoristas,
 } from "./motoristas";
+import NoticiasPage from "../cliente/NoticiasPagePrincipal2";
 
 ChartJS.register(
   CategoryScale,
@@ -386,7 +388,8 @@ export default function DashboardTransportador() {
   const [showNovoCamiaoModal, setShowNovoCamiaoModal] = useState(false);
   const [viagens, setViagens] = useState<ViagemTransportador[]>([]);
   const [showNovoMotoristaModal, setShowNovoMotoristaModal] = useState(false);
-  const [showMotoristaDetailsModal, setShowMotoristaDetailsModal] = useState(false);
+  const [showMotoristaDetailsModal, setShowMotoristaDetailsModal] =
+    useState(false);
   const [cargasDisponiveis, setCargasDisponiveis] = useState<CargaDisponivel[]>(
     []
   );
@@ -430,16 +433,17 @@ export default function DashboardTransportador() {
     motoristaEmpresa: false,
     naturezaCarga: "todos",
   });
-  const [filtrosIniciais, setFiltrosIniciais] = useState<FiltrosAvancadosMotoristas>({
-  status: "todos",
-  statusContratual: "todos",
-  categoriaCarta: "todos",
-  nivelInspecao: "todos",
-  empresaMotorista: "",
-  qualificadoTransito: "todos",
-  avaliacaoMin: "",
-  avaliacaoMax: "",
-});
+  const [filtrosIniciais, setFiltrosIniciais] =
+    useState<FiltrosAvancadosMotoristas>({
+      status: "todos",
+      statusContratual: "todos",
+      categoriaCarta: "todos",
+      nivelInspecao: "todos",
+      empresaMotorista: "",
+      qualificadoTransito: "todos",
+      avaliacaoMin: "",
+      avaliacaoMax: "",
+    });
   // const filtrosIniciais: FiltrosAvancadosMotoristas = {
   //   status: "",
   //   statusContratual: "",
@@ -473,20 +477,21 @@ export default function DashboardTransportador() {
     totalCamioesTransportadores: 0,
   };
 
-  const [filtrosCamioes, setFiltrosCamioes] =
-  useState<FiltrosAvancadosCamioes>({
-    status: "todos",
-    categoriaInspecao: "todas",
-    tipoCamiao: "todos",
-    marca: "todas",
-    anoMin: "",
-    anoMax: "",
-    transportadoraId: "",
-    motoristaId: "",
-    idTransportadora: 0,
-    tipoGPS: "todos",
-    gpsStatus: "todos",
-  });
+  const [filtrosCamioes, setFiltrosCamioes] = useState<FiltrosAvancadosCamioes>(
+    {
+      status: "todos",
+      categoriaInspecao: "todas",
+      tipoCamiao: "todos",
+      marca: "todas",
+      anoMin: "",
+      anoMax: "",
+      transportadoraId: "",
+      motoristaId: "",
+      idTransportadora: 0,
+      tipoGPS: "todos",
+      gpsStatus: "todos",
+    }
+  );
 
   const [novoExpediente, setNovoExpediente] = useState({
     data: new Date().toISOString().split("T")[0],
@@ -897,18 +902,18 @@ export default function DashboardTransportador() {
     valorTotalFretes: viagens.reduce((sum, v) => sum + v.valorFrete, 0),
   };
   const metricsCamioes: MetricsCamioes = {
-  totalCamioes: transportadora?.totalCamioes || 0,
-  disponiveis: 0,
-  emViagem: 0,
-  emManutencao: 0,
-  totalKmPercorridos: 0,
-  camioesCategoriaA: 0,
-  camioesCategoriaB: 0,
-  camioesCategoriaC: 0,
-  totalGPSNormal: 0,
-  totalGPSVip: 0,
-  totalValorRegistroGPS: 0,
-};
+    totalCamioes: transportadora?.totalCamioes || 0,
+    disponiveis: 0,
+    emViagem: 0,
+    emManutencao: 0,
+    totalKmPercorridos: 0,
+    camioesCategoriaA: 0,
+    camioesCategoriaB: 0,
+    camioesCategoriaC: 0,
+    totalGPSNormal: 0,
+    totalGPSVip: 0,
+    totalValorRegistroGPS: 0,
+  };
 
   // Funções para o FiltrosCargas
   const visualizarCarga = (carga: Carga) => {
@@ -1137,6 +1142,10 @@ export default function DashboardTransportador() {
               { id: "motoristas", label: "Motoristas", icon: FiUsers },
               { id: "desempenho", label: "Desempenho", icon: FiBarChart2 },
               { id: "financeiro", label: "Financeiro", icon: FiDollarSign },
+
+              // ➕ ABA DE NOTÍCIAS
+              { id: "noticias", label: "Notícias", icon: FiBookOpen },
+
               { id: "configuracoes", label: "Configurações", icon: FiSettings },
             ].map((tab) => (
               <button
@@ -1188,6 +1197,9 @@ export default function DashboardTransportador() {
               // Implementar lógica de aceitação
             }}
           />
+        )}
+        {activeTab === "noticias" && (
+          <NoticiasPage />
         )}
 
         {activeTab === "desempenho" && (

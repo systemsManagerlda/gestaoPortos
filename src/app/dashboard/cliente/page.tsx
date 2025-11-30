@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // app/dashboard/cliente/page.tsx
 "use client";
 
@@ -54,6 +55,9 @@ import {
 } from "chart.js";
 import { Spinner } from "@nextui-org/react";
 import CargasComponent from "./minhasCargas";
+import { useNoticias } from "@/types/useNoticias";
+import { Noticia } from "@/types/noticia";
+import NoticiasPage from "./NoticiasPagePrincipal2";
 
 ChartJS.register(
   CategoryScale,
@@ -194,10 +198,30 @@ type IntegracaoAPI = {
 };
 
 export default function DashboardCliente() {
+  const {
+      noticias,
+      noticia,
+      loading,
+      error,
+      estatisticas,
+      criarNoticia,
+      atualizarNoticia,
+      deletarNoticia,
+      buscarNoticia,
+      buscarNoticias,
+      buscarNoticiasUrgentes,
+      aprovarNoticia,
+      arquivarNoticia,
+      carregarEstatisticas,
+      clearError,
+      adicionarArquivosNoticia,
+      removerArquivoNoticia
+    } = useNoticias();
   const { user, logout, isLoading } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("minhas-cargas");
   const [cargos, setCargos] = useState<CargoCliente[]>([]);
+  const [viewingNoticia, setViewingNoticia] = useState<Noticia | null>(null);
   const [alertas, setAlertas] = useState<AlertaCliente[]>([]);
   const [faturas, setFaturas] = useState<FaturaCliente[]>([]);
   const [localizacoes, setLocalizacoes] = useState<LocalizacaoCarga[]>([]);
@@ -225,6 +249,13 @@ export default function DashboardCliente() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [filtros, setFiltros] = useState({
+      query: "",
+      entidade: "",
+      setor: "",
+      status: "",
+    });
+  
   const [formSenha, setFormSenha] = useState({
     senhaAtual: "",
     novaSenha: "",
@@ -930,6 +961,23 @@ export default function DashboardCliente() {
     // Simulação de exportação
     alert(`Exportando ${tipo}...`);
   };
+  const handleViewNoticia = async (id: string) => {
+    console.log("👀 Visualizando notícia:", id);
+    const result = await buscarNoticia(id);
+    if (result.success && noticia) {
+      setViewingNoticia(noticia);
+    } else {
+      console.error("❌ Erro ao carregar notícia para visualização");
+    }
+  };
+
+   const handleArchive = async (id: string) => {
+    const result = await arquivarNoticia(id);
+    if (result.success) {
+      await buscarNoticias(filtros);
+      await carregarEstatisticas();
+    }
+  };
 
   if (isLoading || !user || user.categoria !== "Cliente") {
     return (
@@ -1291,6 +1339,7 @@ export default function DashboardCliente() {
               { id: "rastreamento", label: "Rastreamento", icon: FiMapPin },
               { id: "faturas", label: "Faturas", icon: FiFileText },
               { id: "relatorios", label: "Relatórios", icon: FiBarChart2 },
+              { id: "noticias", label: "Notícias", icon: FiGlobe }, // ✅ NOVA ABA
               { id: "configuracoes", label: "Configurações", icon: FiSettings },
             ].map((tab) => (
               <button
@@ -1837,6 +1886,10 @@ export default function DashboardCliente() {
               </div>
             </div>
           </div>
+        )}
+
+        {activeTab === "noticias" && (
+          <NoticiasPage />
         )}
 
         {/* Tab de Configurações */}

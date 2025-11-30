@@ -34,6 +34,7 @@ import CentralRiscos from "../../../components/janelas/CentralRiscos";
 import ReferenciaContas from "../../../components/janelas/ReferenciaContas";
 import MemoriaDescritiva from "../../../components/janelas/MemoriaDescritiva";
 import AreaLogisticaMunhava from "../../../components/janelas/Logistica";
+import NoticiasPage from "@/components/janelas/NoticiasPagePrincipal";
 
 // Tipos
 interface DashboardModule {
@@ -119,6 +120,7 @@ const PanelContent: React.FC<PanelContentProps> = ({ activeModule }) => {
       "Referência de Contas": <ReferenciaContas />,
       "Memória Descritiva": <MemoriaDescritiva />,
       "Logística": <AreaLogisticaMunhava />,
+      "Notícias": <NoticiasPage />,
     };
 
     return (
@@ -382,6 +384,14 @@ export default function DashboardAdmin() {
     icon: "⚓",
     href: "/estiva",
     color: "bg-indigo-500 hover:bg-indigo-600",
+    category: "lateral",
+  },
+  {
+    title: "Notícias",
+    description: "Atualizações, avisos e comunicados",
+    icon: "📰",
+    href: "/noticias",
+    color: "bg-orange-500 hover:bg-orange-600",
     category: "lateral",
   },
 ];
