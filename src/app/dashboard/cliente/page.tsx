@@ -1,10 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 // app/dashboard/cliente/page.tsx
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, SetStateAction } from "react";
 import Image from "next/image";
 import {
   FiPackage,
@@ -58,6 +59,10 @@ import CargasComponent from "./minhasCargas";
 import { useNoticias } from "@/types/useNoticias";
 import { Noticia } from "@/types/noticia";
 import NoticiasPage from "./NoticiasPagePrincipal2";
+import MainPanel from "@/components/janelas/DefaultPanel";
+import FaturasDashboard from "./Facturas";
+import RelatoriosDashboard, { CargaStats } from "./Relatorios";
+import ConfiguracoesPage from "./ConfiguracoesPage";
 
 ChartJS.register(
   CategoryScale,
@@ -199,24 +204,24 @@ type IntegracaoAPI = {
 
 export default function DashboardCliente() {
   const {
-      noticias,
-      noticia,
-      loading,
-      error,
-      estatisticas,
-      criarNoticia,
-      atualizarNoticia,
-      deletarNoticia,
-      buscarNoticia,
-      buscarNoticias,
-      buscarNoticiasUrgentes,
-      aprovarNoticia,
-      arquivarNoticia,
-      carregarEstatisticas,
-      clearError,
-      adicionarArquivosNoticia,
-      removerArquivoNoticia
-    } = useNoticias();
+    noticias,
+    noticia,
+    loading,
+    error,
+    estatisticas,
+    criarNoticia,
+    atualizarNoticia,
+    deletarNoticia,
+    buscarNoticia,
+    buscarNoticias,
+    buscarNoticiasUrgentes,
+    aprovarNoticia,
+    arquivarNoticia,
+    carregarEstatisticas,
+    clearError,
+    adicionarArquivosNoticia,
+    removerArquivoNoticia,
+  } = useNoticias();
   const { user, logout, isLoading } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("minhas-cargas");
@@ -243,19 +248,23 @@ export default function DashboardCliente() {
   );
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [notifications, setNotifications] = useState(3);
-  const [rastreamentoSearch, setRastreamentoSearch] = useState("");
+  const [valorPendete, setValorPendete] = useState(0);
+  const [filtros2, setFiltros2] = useState("");
   const [showNovaSenha, setShowNovaSenha] = useState(false);
   const [showConfirmarSenha, setShowConfirmarSenha] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [cargas, setCargas] = useState([]);
+  const [stats, setStats] = useState({});
+  const [isLoading2, setIsLoading] = useState(false);
   const [filtros, setFiltros] = useState({
-      query: "",
-      entidade: "",
-      setor: "",
-      status: "",
-    });
-  
+    query: "",
+    entidade: "",
+    setor: "",
+    status: "",
+  });
+
   const [formSenha, setFormSenha] = useState({
     senhaAtual: "",
     novaSenha: "",
@@ -288,6 +297,63 @@ export default function DashboardCliente() {
       exportarDados: true,
     },
   });
+
+  const carregarDados = async (filtrosAtuais: any) => {
+    setIsLoading(true);
+    try {
+      // Chamar endpoint de estatísticas
+      const response = await fetch("/api/getCargaStats", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(filtrosAtuais),
+      });
+
+      const data = await response.json();
+      if (data.returnCode === 200) {
+        setStats(data.data);
+      }
+
+      // Chamar endpoint de listagem de cargas
+      const cargasResponse = await fetch("/api/getCargaList", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          curPage: 1,
+          pageSize: 100,
+          ...filtrosAtuais,
+        }),
+      });
+
+      const cargasData = await cargasResponse.json();
+      if (cargasData.returnCode === 200) {
+        setCargas(cargasData.data.list);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar dados:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  useEffect(() => {
+    carregarDados({});
+  }, []);
+
+  const handleExportar = (tipo: any) => {
+    // Implementar exportação
+    console.log(`Exportando ${tipo}`);
+  };
+
+  const handleAtualizarFiltros = (
+    novosFiltros: SetStateAction<{
+      query: string;
+      entidade: string;
+      setor: string;
+      status: string;
+    }>
+  ) => {
+    setFiltros(novosFiltros);
+    carregarDados(novosFiltros);
+  };
 
   // Estado para o formulário de report
   const [formReport, setFormReport] = useState({
@@ -494,6 +560,13 @@ export default function DashboardCliente() {
 
   const getLocalizacaoCargo = (cargoId: number) => {
     return localizacoes.find((loc) => loc.cargoId === cargoId);
+  };
+
+  const DEFAULT_FILTROS = {
+    dataInicio: "",
+    dataFim: "",
+    tipoPercurso: "",
+    clienteId: "",
   };
 
   // Funções para o report de estado da carga
@@ -859,6 +932,20 @@ export default function DashboardCliente() {
       year: "numeric",
     });
   };
+  const DEFAULT_STATS: CargaStats = {
+    totalCargas: 0,
+    cargasEntregues: 0,
+    cargasTransito: 0,
+    cargasAtrasadas: 0,
+    valorTotalFretes: 0,
+    valorTotalSeguros: 0,
+    comissaoTotal: 0,
+    pesoTotalTransportado: 0,
+    distanciaTotal: 0,
+    margemLucroTotal: 0,
+    cargasComSeguro: 0,
+    ocorrenciasTotal: 0,
+  };
 
   const formatarDataHora = (data: string) => {
     return new Date(data).toLocaleString("pt-MZ", {
@@ -971,7 +1058,7 @@ export default function DashboardCliente() {
     }
   };
 
-   const handleArchive = async (id: string) => {
+  const handleArchive = async (id: string) => {
     const result = await arquivarNoticia(id);
     if (result.success) {
       await buscarNoticias(filtros);
@@ -1226,7 +1313,7 @@ export default function DashboardCliente() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Alertas */}
-        {alertas.filter((a) => !a.lido).length > 0 && (
+        {/* {alertas.filter((a) => !a.lido).length > 0 && (
           <div className="mb-6 space-y-3 text-gray-900">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
               Alertas Recentes
@@ -1272,10 +1359,10 @@ export default function DashboardCliente() {
                 </div>
               ))}
           </div>
-        )}
+        )} */}
 
         {/* Métricas Rápidas */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div>
@@ -1329,7 +1416,7 @@ export default function DashboardCliente() {
               <FiCamera className="text-purple-600 text-xl" />
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* Navegação */}
         <div className="mb-6 border-b border-gray-200 dark:border-gray-700">
@@ -1362,1147 +1449,60 @@ export default function DashboardCliente() {
         {activeTab === "minhas-cargas" && <CargasComponent />}
 
         {/* Tab de Rastreamento */}
-        {activeTab === "rastreamento" && (
-          <div className="space-y-6">
-            {/* Busca de Rastreamento */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-              <div className="flex flex-col lg:flex-row gap-4 justify-between items-start lg:items-center">
-                <div className="flex-1 max-w-2xl">
-                  <div className="relative">
-                    <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                    <input
-                      type="text"
-                      placeholder="Digite o número da carga para rastrear (ex: CAR-2024-001)..."
-                      value={rastreamentoSearch}
-                      onChange={(e) => setRastreamentoSearch(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    />
-                  </div>
-                </div>
-                <button
-                  onClick={() => {
-                    const cargo = cargos.find(
-                      (c) => c.numero === rastreamentoSearch
-                    );
-                    if (cargo) {
-                      abrirRastreamentoModal(cargo);
-                    } else {
-                      alert(
-                        "Carga não encontrada. Verifique o número da carga."
-                      );
-                    }
-                  }}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-                >
-                  <FiMapPin className="w-4 h-4" />
-                  <span>Rastrear Carga</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Cargas em Trânsito */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Cargas em Trânsito (
-                  {
-                    cargos.filter(
-                      (c) => c.status === "transito" || c.status === "coletado"
-                    ).length
-                  }
-                  )
-                </h2>
-              </div>
-
-              <div className="p-6">
-                {isDataLoading ? (
-                  <div className="text-center py-8">
-                    <Spinner size="md" />
-                    <p className="mt-2 text-sm text-gray-500">Carregando...</p>
-                  </div>
-                ) : cargos.filter(
-                    (c) => c.status === "transito" || c.status === "coletado"
-                  ).length === 0 ? (
-                  <div className="text-center py-8">
-                    <FiTruck className="mx-auto h-12 w-12 text-gray-400" />
-                    <p className="mt-2 text-sm text-gray-500">
-                      Nenhuma carga em trânsito
-                    </p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {cargos
-                      .filter(
-                        (c) =>
-                          c.status === "transito" || c.status === "coletado"
-                      )
-                      .map((cargo) => {
-                        const localizacao = getLocalizacaoCargo(cargo.id);
-                        return (
-                          <div
-                            key={cargo.id}
-                            className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow"
-                          >
-                            <div className="flex justify-between items-start mb-3">
-                              <div>
-                                <h3 className="font-semibold text-gray-900 dark:text-white">
-                                  {cargo.numero}
-                                </h3>
-                                <p className="text-sm text-gray-500">
-                                  {cargo.tipo}
-                                </p>
-                              </div>
-                              <span
-                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
-                                  cargo.status
-                                )}`}
-                              >
-                                {getStatusText(cargo.status)}
-                              </span>
-                            </div>
-
-                            <div className="space-y-2 mb-4">
-                              <div className="flex justify-between text-sm">
-                                <span className="text-gray-500">Origem:</span>
-                                <span className="font-medium">
-                                  {cargo.origem}
-                                </span>
-                              </div>
-                              <div className="flex justify-between text-sm">
-                                <span className="text-gray-500">Destino:</span>
-                                <span className="font-medium">
-                                  {cargo.destino}
-                                </span>
-                              </div>
-                              {localizacao && (
-                                <>
-                                  <div className="flex justify-between text-sm">
-                                    <span className="text-gray-500">
-                                      Última localização:
-                                    </span>
-                                    <span className="font-medium">
-                                      {localizacao.localizacao}
-                                    </span>
-                                  </div>
-                                  <div className="flex justify-between text-sm">
-                                    <span className="text-gray-500">
-                                      Atualizado em:
-                                    </span>
-                                    <span className="font-medium">
-                                      {formatarDataHora(
-                                        localizacao.ultimaAtualizacao
-                                      )}
-                                    </span>
-                                  </div>
-                                  {localizacao.velocidade && (
-                                    <div className="flex justify-between text-sm">
-                                      <span className="text-gray-500">
-                                        Velocidade:
-                                      </span>
-                                      <span className="font-medium">
-                                        {localizacao.velocidade} km/h
-                                      </span>
-                                    </div>
-                                  )}
-                                </>
-                              )}
-                            </div>
-
-                            <div className="flex space-x-2">
-                              <button
-                                onClick={() => abrirRastreamentoModal(cargo)}
-                                className="flex-1 bg-blue-600 text-white py-2 px-3 rounded text-sm hover:bg-blue-700 transition-colors flex items-center justify-center space-x-1"
-                              >
-                                <FiMap className="w-4 h-4" />
-                                <span>Ver Rota</span>
-                              </button>
-                              <button
-                                onClick={() => visualizarCargo(cargo)}
-                                className="flex-1 border border-gray-300 dark:border-gray-600 py-2 px-3 rounded text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                              >
-                                Detalhes
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Mapa de Visão Geral */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Visão Geral do Rastreamento
-                </h2>
-              </div>
-              <div className="p-6">
-                <div className="bg-gray-100 dark:bg-gray-700 rounded-lg h-64 flex items-center justify-center">
-                  <div className="text-center">
-                    <FiMap className="w-12 h-12 text-gray-400 mx-auto" />
-                    <p className="mt-2 text-gray-500">
-                      Mapa de rastreamento em tempo real
-                    </p>
-                    <p className="text-sm text-gray-400">
-                      Integração com Google Maps
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        {activeTab === "rastreamento" && <MainPanel />}
 
         {/* Tab de Faturas */}
         {activeTab === "faturas" && (
-          <div className="space-y-6">
-            {/* Métricas de Faturas */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-                <div className="text-2xl font-bold text-blue-600">
-                  {faturas.length}
-                </div>
-                <div className="text-sm text-gray-500">Total de Faturas</div>
-              </div>
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-                <div className="text-2xl font-bold text-green-600">
-                  {faturas.filter((f) => f.status === "paga").length}
-                </div>
-                <div className="text-sm text-gray-500">Faturas Pagas</div>
-              </div>
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-                <div className="text-2xl font-bold text-yellow-600">
-                  {faturas.filter((f) => f.status === "pendente").length}
-                </div>
-                <div className="text-sm text-gray-500">Faturas Pendentes</div>
-              </div>
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-                <div className="text-2xl font-bold text-red-600">
-                  {formatarMoeda(metrics.valorPendente)}
-                </div>
-                <div className="text-sm text-gray-500">Valor Pendente</div>
-              </div>
-            </div>
-
-            {/* Gráfico de Faturas */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Evolução de Faturas
-                </h3>
-                <button
-                  onClick={() => exportarDados("faturas")}
-                  className="flex items-center space-x-1 text-sm text-blue-600 hover:text-blue-800"
-                >
-                  <FiDownload className="w-4 h-4" />
-                  <span>Exportar</span>
-                </button>
-              </div>
-              <div className="h-64">
-                <Line
-                  data={faturaChartData}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                      legend: {
-                        position: "top",
-                      },
-                    },
-                    scales: {
-                      y: {
-                        beginAtZero: true,
-                        ticks: {
-                          callback: function (value) {
-                            return "MZN " + value.toLocaleString();
-                          },
-                        },
-                      },
-                    },
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Lista de Faturas */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Minhas Faturas ({faturas.length})
-                  </h2>
-                  <div className="flex gap-2">
-                    <button className="flex items-center space-x-2 px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                      <FiPrinter className="w-4 h-4" />
-                      <span>Imprimir</span>
-                    </button>
-                    <button
-                      onClick={() => exportarDados("faturas")}
-                      className="flex items-center space-x-2 px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                    >
-                      <FiDownload className="w-4 h-4" />
-                      <span>Exportar</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 dark:bg-gray-700">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Fatura
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Data Emissão
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Vencimento
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Valor
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Cargas
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Ações
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                    {isDataLoading ? (
-                      <tr>
-                        <td colSpan={7} className="px-6 py-8 text-center">
-                          <div className="flex justify-center">
-                            <Spinner size="md" />
-                          </div>
-                          <p className="mt-2 text-sm text-gray-500">
-                            Carregando faturas...
-                          </p>
-                        </td>
-                      </tr>
-                    ) : faturas.length === 0 ? (
-                      <tr>
-                        <td colSpan={7} className="px-6 py-8 text-center">
-                          <FiFileText className="mx-auto h-12 w-12 text-gray-400" />
-                          <p className="mt-2 text-sm text-gray-500">
-                            Nenhuma fatura encontrada
-                          </p>
-                        </td>
-                      </tr>
-                    ) : (
-                      faturas.map((fatura) => (
-                        <tr
-                          key={fatura.id}
-                          className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                        >
-                          <td className="px-6 py-4">
-                            <div className="text-sm font-medium text-gray-900 dark:text-white">
-                              {fatura.numero}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="text-sm text-gray-900 dark:text-white">
-                              {formatarData(fatura.dataEmissao)}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="text-sm text-gray-900 dark:text-white">
-                              {formatarData(fatura.dataVencimento)}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="text-sm font-medium text-gray-900 dark:text-white">
-                              {formatarMoeda(fatura.valor)}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span
-                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getFaturaStatusColor(
-                                fatura.status
-                              )}`}
-                            >
-                              {fatura.status === "paga"
-                                ? "Paga"
-                                : fatura.status === "pendente"
-                                ? "Pendente"
-                                : "Atrasada"}
-                            </span>
-                            {fatura.dataPagamento && (
-                              <div className="text-xs text-gray-500 mt-1">
-                                Paga em: {formatarData(fatura.dataPagamento)}
-                              </div>
-                            )}
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="text-sm text-gray-900 dark:text-white">
-                              {fatura.cargos.length} carga(s)
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {fatura.cargos
-                                .map((id) => {
-                                  const cargo = cargos.find((c) => c.id === id);
-                                  return cargo?.numero;
-                                })
-                                .join(", ")}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex space-x-2">
-                              <button
-                                onClick={() => downloadFatura(fatura.id)}
-                                className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center"
-                              >
-                                <FiDownload className="w-4 h-4 mr-1" />
-                                Baixar
-                              </button>
-                              {fatura.status !== "paga" && (
-                                <button
-                                  onClick={() => pagarFatura(fatura.id)}
-                                  className="text-green-600 hover:text-green-800 text-sm font-medium flex items-center"
-                                >
-                                  <FiCreditCard className="w-4 h-4 mr-1" />
-                                  Pagar
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
+          <FaturasDashboard
+            faturas={[]}
+            cargos={[]}
+            metrics={{ valorPendente: 0 }}
+            faturaChartData={{
+              labels: [],
+              datasets: [],
+            }}
+            isDataLoading={false}
+            formatarMoeda={formatarMoeda}
+            formatarData={function (data: Date | string): string {
+              throw new Error("Function not implemented.");
+            }}
+            getFaturaStatusColor={function (status: string): string {
+              throw new Error("Function not implemented.");
+            }}
+            exportarDados={function (tipo: string): void {
+              throw new Error("Function not implemented.");
+            }}
+            downloadFatura={function (id: string): void {
+              throw new Error("Function not implemented.");
+            }}
+            pagarFatura={function (id: string): void {
+              throw new Error("Function not implemented.");
+            }}
+          />
         )}
 
         {activeTab === "relatorios" && (
-          <div className="space-y-6">
-            {/* Métricas de Relatórios */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-                <div className="text-2xl font-bold text-blue-600">
-                  {metrics.totalCargas}
-                </div>
-                <div className="text-sm text-gray-500">Total de Cargas</div>
-              </div>
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-                <div className="text-2xl font-bold text-green-600">
-                  {metrics.entregues}
-                </div>
-                <div className="text-sm text-gray-500">Entregues no Prazo</div>
-              </div>
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-                <div className="text-2xl font-bold text-red-600">
-                  {metrics.atrasadas}
-                </div>
-                <div className="text-sm text-gray-500">Cargas Atrasadas</div>
-              </div>
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-                <div className="text-2xl font-bold text-purple-600">
-                  {formatarMoeda(metrics.valorTotal)}
-                </div>
-                <div className="text-sm text-gray-500">
-                  Valor Total Transportado
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Status das Cargas
-                  </h3>
-                  <button
-                    onClick={() => exportarDados("relatorios")}
-                    className="flex items-center space-x-1 text-sm text-blue-600 hover:text-blue-800"
-                  >
-                    <FiDownload className="w-4 h-4" />
-                    <span>Exportar</span>
-                  </button>
-                </div>
-                <div className="h-80">
-                  <Doughnut
-                    data={statusChartData}
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      plugins: {
-                        legend: {
-                          position: "bottom",
-                        },
-                      },
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Distribuição por Tipo de Carga
-                  </h3>
-                  <button
-                    onClick={() => exportarDados("relatorios")}
-                    className="flex items-center space-x-1 text-sm text-blue-600 hover:text-blue-800"
-                  >
-                    <FiDownload className="w-4 h-4" />
-                    <span>Exportar</span>
-                  </button>
-                </div>
-                <div className="h-80">
-                  <Bar
-                    data={tiposCargaData}
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      plugins: {
-                        legend: {
-                          display: false,
-                        },
-                      },
-                      scales: {
-                        y: {
-                          beginAtZero: true,
-                          ticks: {
-                            callback: function (value) {
-                              return `${value}%`;
-                            },
-                          },
-                        },
-                      },
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
+          <RelatoriosDashboard
+            cargas={cargas}
+            stats={DEFAULT_STATS}
+            isLoading={isLoading2}
+            filtros={DEFAULT_FILTROS}
+            onExportarDados={handleExportar}
+            onAtualizarFiltros={handleAtualizarFiltros}
+            formatarMoeda={(valor) =>
+              `MZN ${valor.toLocaleString("pt-MZ", {
+                minimumFractionDigits: 2,
+              })}`
+            }
+            formatarData={(data) => new Date(data).toLocaleDateString("pt-MZ")}
+          />
         )}
 
-        {activeTab === "noticias" && (
-          <NoticiasPage />
-        )}
+        {activeTab === "noticias" && <NoticiasPage />}
 
         {/* Tab de Configurações */}
         {activeTab === "configuracoes" && (
-          <div className="space-y-6">
-            {/* Perfil do Usuário */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-                  <FiUser className="w-5 h-5 mr-2" />
-                  Perfil do Usuário
-                </h2>
-              </div>
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Nome Completo
-                    </label>
-                    <input
-                      type="text"
-                      value={configuracoes.nome}
-                      onChange={(e) =>
-                        handleConfigChange("nome", e.target.value)
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Email
-                    </label>
-                    <input
-                      type="email"
-                      value={configuracoes.email}
-                      onChange={(e) =>
-                        handleConfigChange("email", e.target.value)
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Telefone
-                    </label>
-                    <input
-                      type="tel"
-                      value={configuracoes.telefone}
-                      onChange={(e) =>
-                        handleConfigChange("telefone", e.target.value)
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Empresa
-                    </label>
-                    <input
-                      type="text"
-                      value={configuracoes.empresa}
-                      onChange={(e) =>
-                        handleConfigChange("empresa", e.target.value)
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      País
-                    </label>
-                    <select
-                      value={configuracoes.pais}
-                      onChange={(e) =>
-                        handleConfigChange("pais", e.target.value)
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    >
-                      <option value="Moçambique">Moçambique</option>
-                      <option value="Angola">Angola</option>
-                      <option value="Brasil">Brasil</option>
-                      <option value="Portugal">Portugal</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Cidade
-                    </label>
-                    <input
-                      type="text"
-                      value={configuracoes.cidade}
-                      onChange={(e) =>
-                        handleConfigChange("cidade", e.target.value)
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Endereço
-                    </label>
-                    <input
-                      type="text"
-                      value={configuracoes.endereco}
-                      onChange={(e) =>
-                        handleConfigChange("endereco", e.target.value)
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Preferências de Notificação */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-                  <FiBell className="w-5 h-5 mr-2" />
-                  Preferências de Notificação
-                </h2>
-              </div>
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <h3 className="font-medium text-gray-900">
-                      Canais de Notificação
-                    </h3>
-                    <div className="space-y-3">
-                      {[
-                        {
-                          key: "email",
-                          label: "Email",
-                          description: "Receber notificações por email",
-                        },
-                        {
-                          key: "sms",
-                          label: "SMS",
-                          description: "Receber notificações por SMS",
-                        },
-                        {
-                          key: "push",
-                          label: "Notificações Push",
-                          description: "Receber notificações no navegador",
-                        },
-                      ].map((item) => (
-                        <div
-                          key={item.key}
-                          className="flex items-center justify-between"
-                        >
-                          <div>
-                            <p className="font-medium text-gray-900 ">
-                              {item.label}
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              {item.description}
-                            </p>
-                          </div>
-                          <button
-                            onClick={() =>
-                              handleNotificacaoChange(
-                                item.key,
-                                !configuracoes.notificacoes[
-                                  item.key as keyof typeof configuracoes.notificacoes
-                                ]
-                              )
-                            }
-                            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                              configuracoes.notificacoes[
-                                item.key as keyof typeof configuracoes.notificacoes
-                              ]
-                                ? "bg-blue-600"
-                                : "bg-gray-200"
-                            }`}
-                          >
-                            <span
-                              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                                configuracoes.notificacoes[
-                                  item.key as keyof typeof configuracoes.notificacoes
-                                ]
-                                  ? "translate-x-5"
-                                  : "translate-x-0"
-                              }`}
-                            />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="space-y-4">
-                    <h3 className="font-medium text-gray-900 dark:text-white">
-                      Tipos de Notificação
-                    </h3>
-                    <div className="space-y-3">
-                      {[
-                        {
-                          key: "alertasCarga",
-                          label: "Alertas de Carga",
-                          description: "Notificações sobre status de cargas",
-                        },
-                        {
-                          key: "atualizacoesStatus",
-                          label: "Atualizações de Status",
-                          description: "Mudanças no status das cargas",
-                        },
-                        {
-                          key: "notificacoesFinanceiras",
-                          label: "Notificações Financeiras",
-                          description: "Faturas e pagamentos",
-                        },
-                      ].map((item) => (
-                        <div
-                          key={item.key}
-                          className="flex items-center justify-between"
-                        >
-                          <div>
-                            <p className="font-medium text-gray-900 dark:text-white">
-                              {item.label}
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              {item.description}
-                            </p>
-                          </div>
-                          <button
-                            onClick={() =>
-                              handleNotificacaoChange(
-                                item.key,
-                                !configuracoes.notificacoes[
-                                  item.key as keyof typeof configuracoes.notificacoes
-                                ]
-                              )
-                            }
-                            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                              configuracoes.notificacoes[
-                                item.key as keyof typeof configuracoes.notificacoes
-                              ]
-                                ? "bg-blue-600"
-                                : "bg-gray-200"
-                            }`}
-                          >
-                            <span
-                              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                                configuracoes.notificacoes[
-                                  item.key as keyof typeof configuracoes.notificacoes
-                                ]
-                                  ? "translate-x-5"
-                                  : "translate-x-0"
-                              }`}
-                            />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Preferências do Sistema */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-                  <FiSettings className="w-5 h-5 mr-2" />
-                  Preferências do Sistema
-                </h2>
-              </div>
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Tema
-                    </label>
-                    <select
-                      value={configuracoes.preferencias.tema}
-                      onChange={(e) =>
-                        handlePreferenciaChange("tema", e.target.value)
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    >
-                      <option value="claro">Claro</option>
-                      <option value="escuro">Escuro</option>
-                      <option value="auto">Automático</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Itens por Página
-                    </label>
-                    <select
-                      value={configuracoes.preferencias.itensPorPagina}
-                      onChange={(e) =>
-                        handlePreferenciaChange(
-                          "itensPorPagina",
-                          parseInt(e.target.value).toString()
-                        )
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    >
-                      <option value={10}>10 itens</option>
-                      <option value={25}>25 itens</option>
-                      <option value={50}>50 itens</option>
-                      <option value={100}>100 itens</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Idioma
-                    </label>
-                    <select
-                      value={configuracoes.idioma}
-                      onChange={(e) =>
-                        handleConfigChange("idioma", e.target.value)
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    >
-                      <option value="pt">Português</option>
-                      <option value="en">English</option>
-                      <option value="es">Español</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Fuso Horário
-                    </label>
-                    <select
-                      value={configuracoes.fusoHorario}
-                      onChange={(e) =>
-                        handleConfigChange("fusoHorario", e.target.value)
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    >
-                      <option value="Africa/Maputo">Maputo (UTC+2)</option>
-                      <option value="Africa/Johannesburg">
-                        Johannesburg (UTC+2)
-                      </option>
-                      <option value="Europe/Lisbon">Lisboa (UTC+0)</option>
-                    </select>
-                  </div>
-                  <div className="md:col-span-2">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium text-gray-900 dark:text-white">
-                          Relatórios Automáticos
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          Receber relatórios semanais automaticamente
-                        </p>
-                      </div>
-                      <button
-                        onClick={() =>
-                          handlePreferenciaChange(
-                            "relatoriosAutomaticos",
-                            !configuracoes.preferencias.relatoriosAutomaticos
-                          )
-                        }
-                        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                          configuracoes.preferencias.relatoriosAutomaticos
-                            ? "bg-blue-600"
-                            : "bg-gray-200"
-                        }`}
-                      >
-                        <span
-                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                            configuracoes.preferencias.relatoriosAutomaticos
-                              ? "translate-x-5"
-                              : "translate-x-0"
-                          }`}
-                        />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Segurança */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-                  <FiShield className="w-5 h-5 mr-2" />
-                  Segurança
-                </h2>
-              </div>
-              <div className="p-6">
-                <div className="max-w-md space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Senha Atual
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showSenhaAtual ? "text" : "password"}
-                        value={formSenha.senhaAtual}
-                        onChange={(e) =>
-                          setFormSenha((prev) => ({
-                            ...prev,
-                            senhaAtual: e.target.value,
-                          }))
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white pr-10"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowSenhaAtual(!showSenhaAtual)}
-                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                      >
-                        {showSenhaAtual ? (
-                          <FiEyeOff className="text-gray-400" />
-                        ) : (
-                          <FiEyeOn className="text-gray-400" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Nova Senha
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showNovaSenha ? "text" : "password"}
-                        value={formSenha.novaSenha}
-                        onChange={(e) =>
-                          setFormSenha((prev) => ({
-                            ...prev,
-                            novaSenha: e.target.value,
-                          }))
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white pr-10"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowNovaSenha(!showNovaSenha)}
-                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                      >
-                        {showNovaSenha ? (
-                          <FiEyeOff className="text-gray-400" />
-                        ) : (
-                          <FiEyeOn className="text-gray-400" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Confirmar Nova Senha
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showConfirmarSenha ? "text" : "password"}
-                        value={formSenha.confirmarSenha}
-                        onChange={(e) =>
-                          setFormSenha((prev) => ({
-                            ...prev,
-                            confirmarSenha: e.target.value,
-                          }))
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white pr-10"
-                      />
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setShowConfirmarSenha(!showConfirmarSenha)
-                        }
-                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                      >
-                        {showConfirmarSenha ? (
-                          <FiEyeOff className="text-gray-400" />
-                        ) : (
-                          <FiEyeOn className="text-gray-400" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                  <button
-                    onClick={alterarSenha}
-                    disabled={isDataLoading}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
-                  >
-                    {isDataLoading ? (
-                      <Spinner size="sm" />
-                    ) : (
-                      <FiKey className="w-4 h-4" />
-                    )}
-                    <span>
-                      {isDataLoading ? "Alterando..." : "Alterar Senha"}
-                    </span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Integrações API */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-                  <FiGlobe className="w-5 h-5 mr-2" />
-                  Integrações API
-                </h2>
-              </div>
-              <div className="p-6">
-                <div className="space-y-4">
-                  {integracaoAPI.map((api) => (
-                    <div
-                      key={api.id}
-                      className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
-                    >
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <h3 className="font-medium text-gray-900 dark:text-white">
-                            {api.nome}
-                          </h3>
-                          <p className="text-sm text-gray-500">
-                            {api.descricao}
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => toggleIntegracaoAPI(api.id)}
-                          className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                            api.ativa ? "bg-green-600" : "bg-gray-200"
-                          }`}
-                        >
-                          <span
-                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                              api.ativa ? "translate-x-5" : "translate-x-0"
-                            }`}
-                          />
-                        </button>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <span className="text-gray-500">Chave API:</span>
-                          <div className="flex items-center space-x-2 mt-1">
-                            <code className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-xs font-mono">
-                              {api.chave}
-                            </code>
-                            <button
-                              onClick={() =>
-                                navigator.clipboard.writeText(api.chave)
-                              }
-                              className="text-blue-600 hover:text-blue-800 text-xs"
-                            >
-                              Copiar
-                            </button>
-                          </div>
-                        </div>
-                        <div className="space-y-1">
-                          <div className="flex justify-between">
-                            <span className="text-gray-500">Criada em:</span>
-                            <span>{formatarData(api.dataCriacao)}</span>
-                          </div>
-                          {api.ultimoUso && (
-                            <div className="flex justify-between">
-                              <span className="text-gray-500">Último uso:</span>
-                              <span>{formatarData(api.ultimoUso)}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="mt-3 flex space-x-2">
-                        <button
-                          onClick={() => gerarNovaChaveAPI(api.id)}
-                          className="px-3 py-1 text-sm bg-yellow-600 text-white rounded hover:bg-yellow-700 transition-colors flex items-center space-x-1"
-                        >
-                          <FiKey className="w-3 h-3" />
-                          <span>Gerar Nova Chave</span>
-                        </button>
-                        <button className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center space-x-1">
-                          <FiFileText className="w-3 h-3" />
-                          <span>Documentação</span>
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Ações */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Ações
-                </h2>
-              </div>
-              <div className="p-6">
-                <div className="flex flex-wrap gap-4">
-                  <button
-                    onClick={salvarConfiguracoes}
-                    disabled={isDataLoading}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
-                  >
-                    {isDataLoading ? (
-                      <Spinner size="sm" />
-                    ) : (
-                      <FiSave className="w-4 h-4" />
-                    )}
-                    <span>
-                      {isDataLoading ? "Salvando..." : "Salvar Configurações"}
-                    </span>
-                  </button>
-                  <button className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center space-x-2">
-                    <FiDownload className="w-4 h-4" />
-                    <span>Exportar Dados</span>
-                  </button>
-                  <button className="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors flex items-center space-x-2">
-                    <FiTrash2 className="w-4 h-4" />
-                    <span>Excluir Conta</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+         <ConfiguracoesPage />
         )}
 
         {/* Ações Rápidas */}

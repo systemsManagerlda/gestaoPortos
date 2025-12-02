@@ -6,7 +6,7 @@ import { JSX, useEffect, useState } from "react";
 import { Spinner } from "@nextui-org/react";
 import Head from "next/head";
 import Image from "next/image";
-import { DefaultPanel } from "../../../components/janelas/DefaultPanel";
+import { MainPanel } from "../../../components/janelas/DefaultPanel";
 import { CadastroPanel } from "../../../components/janelas/CadastroPanel";
 import { LancamentosPanel } from "../../../components/janelas/LancamentosPanel";
 import { CombustivelExpedientePanel } from "../../../components/janelas/CombustivelExpedientePanel";
@@ -60,7 +60,7 @@ const PanelContent: React.FC<PanelContentProps> = ({ activeModule }) => {
   const [activeCombustivelForm, setActiveCombustivelForm] = useState<string>("abastecimento");
 
   if (!activeModule) {
-    return <DefaultPanel />;
+    return <MainPanel />;
   }
 
   // Conteúdo específico para cada módulo
