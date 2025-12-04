@@ -54,6 +54,14 @@ export type ResultadoInspecao =
 export type TipoGPS = "normal" | "vip";
 export type StatusGPS = "ativo" | "inativo" | "pendente" | "expirado";
 
+export interface FotoCamiao {
+  url: string;
+  tipo: 'camião' | 'gps_instalacao';
+  descricao?: string;
+  dataUpload: Date;
+  nomeArquivo: string;
+}
+
 export interface Camiao {
   _id?: string;
   camiaoId: number;
@@ -67,6 +75,7 @@ export interface Camiao {
   transportadoraId: number;
   motoristaId: number;
   codigoGPS: string;
+  
 
   // Tipo de GPS e Registro
   tipoGPS: {
@@ -422,8 +431,6 @@ function useCamioesFiltrados(
     if (filtrosAvancados.motoristaId) 
       requestBody.motoristaId = parseInt(filtrosAvancados.motoristaId);
 
-    console.log("Enviando filtros para API:", requestBody);
-
     const response = await fetch(`${API_BASE_URL}/getCamiaoList`, {
       method: "POST",
       headers: {
@@ -435,12 +442,9 @@ function useCamioesFiltrados(
     const data = await response.json();
 
     if (data.returnCode === 200) {
-      console.log("Camiões retornados da API:", data.data.list.length);
-      console.log("Filtros aplicados:", requestBody);
       setCamioes(data.data.list);
       aplicarFiltrosLocais(data.data.list);
     } else {
-      console.error("Erro ao buscar camiões:", data.returnMsg);
       setCamioes([]);
       setFilteredCamioes([]);
     }
@@ -462,7 +466,6 @@ const aplicarFiltrosLocais = (camioesList: Camiao[]) => {
   // Como a API já aplicou todos os filtros, apenas atualizamos a lista
   // Isso evita duplicação de filtros e conflitos
   setFilteredCamioes(camioesList);
-  console.log(`Camiões após filtros da API: ${camioesList.length}`);
 };
 
   // Efeito para buscar dados iniciais
@@ -482,7 +485,6 @@ const aplicarFiltrosLocais = (camioesList: Camiao[]) => {
     if (filteredCamioes.length > 0) {
       const novasMetrics = calcularMetricsLocais(filteredCamioes);
       setMetrics(novasMetrics);
-      console.log("Métricas atualizadas:", novasMetrics);
     } else {
       // Resetar métricas se não há camiões
       setMetrics({
@@ -720,8 +722,7 @@ export function FiltrosCamioes({
 
   // Debug para verificar métricas
   useEffect(() => {
-    console.log("Métricas atuais:", metrics);
-    console.log("Camiões filtrados:", filteredCamioes.length);
+    
   }, [metrics, filteredCamioes]);
 
   // Funções auxiliares
@@ -1622,7 +1623,7 @@ export function FiltrosCamioes({
                       </td>
 
                       <td className="px-6 py-4">
-                        <div className="flex space-x-2">
+                        <div className="flex flex-col space-x-2">
                           <button
                             onClick={() => handleVisualizarCamiao(camiao)}
                             className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center transition-colors"

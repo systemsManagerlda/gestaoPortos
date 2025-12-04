@@ -83,6 +83,7 @@ export interface Motorista {
   nomeCompleto: string;
   dataNascimento?: string;
   nacionalidade?: string;
+  nomeEmpresa?: string; // Adicionado do schema MongoDB
 
   // Empresa e vínculo
   empresaMotorista: string;
@@ -174,6 +175,39 @@ export interface Motorista {
   indiceAcidentes: number;
   indiceMultas: number;
 
+  // Controle de horas e jornada (Novo)
+  limitesJornada?: {
+    horasMaxDia?: number;
+    horasMaxSemana?: number;
+    horasMaxMensal?: number;
+  };
+
+  registroHoras?: Array<{
+    data: string;
+    viagemId?: number;
+    horasConduzidas?: number;
+    horasTrabalhadas?: number;
+    pausas?: Array<{
+      inicio?: string;
+      fim?: string;
+      motivo?: string;
+    }>;
+  }>;
+
+  // Histórico de viagens (Novo)
+  historicoViagens?: Array<{
+    viagemId: number;
+    numeroViagem?: string;
+    dataPartida?: string;
+    dataChegada?: string;
+    origem?: string;
+    destino?: string;
+    distancia?: number;
+    veiculo?: string;
+    status?: string;
+    avaliacao?: number;
+  }>;
+
   // Veículos habilitados
   veiculosHabilitados: VeiculoHabilitado[];
 
@@ -193,8 +227,65 @@ export interface Motorista {
   alergias?: string[];
   tipoSanguineo?: string;
 
+  // Treinamentos e capacitações (Novo)
+  treinamentos?: Array<{
+    nome: string;
+    tipo?: string;
+    dataRealizacao?: string;
+    dataValidade?: string;
+    instituicao?: string;
+    certificado?: string;
+  }>;
+
+  // Incidentes e ocorrências (Novo)
+  incidentes?: Array<{
+    data: string;
+    tipo?: string;
+    descricao?: string;
+    gravidade?: string;
+    local?: string;
+    acaoTomada?: string;
+    responsabilidade?: string;
+  }>;
+
+  multas?: Array<{
+    data?: string;
+    infracao?: string;
+    local?: string;
+    valor?: number;
+    pontos?: number;
+    status?: string;
+  }>;
+
+  // Dados bancários e remuneração (Novo)
+  dadosBancarios?: {
+    banco?: string;
+    numeroConta?: string;
+    nib?: string;
+    tipoConta?: string;
+  };
+
+  remuneracao?: {
+    salarioBase?: number;
+    tipoRemuneracao?: string;
+    bonusDesempenho?: number;
+    ajudasCusto?: number;
+  };
+
+  // Equipamentos e uniforme (Novo)
+  equipamentos?: Array<{
+    tipo?: string;
+    descricao?: string;
+    dataEntrega?: string;
+    estado?: string;
+  }>;
+
   // Status operacional
   status: StatusMotorista;
+
+  // FOTOS - Campos atualizados
+  foto?: string; // URL da foto principal do motorista
+  fotos?: string[]; // URLs de fotos adicionais do motorista
 
   // Metadados
   dataCriacao: string;
@@ -202,7 +293,18 @@ export interface Motorista {
   criadoPor?: string;
   atualizadoPor?: string;
   observacoes?: string;
-  foto?: string;
+
+  // Virtual fields do MongoDB (opcional - podem ser calculados no frontend se necessário)
+  idade?: number; // Virtual
+  cartaValida?: boolean; // Virtual
+  horasConduzidasMes?: number; // Virtual
+  veiculosAptos?: VeiculoHabilitado[]; // Virtual
+  restricoesTransportador?: {
+    // Virtual
+    podeNacional: boolean;
+    podeTransito: boolean;
+    motivos: string[];
+  };
 }
 
 export interface MetricsMotoristas {
@@ -1233,6 +1335,9 @@ export function FiltrosMotoristas({
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Foto
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Motorista
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
@@ -1293,9 +1398,32 @@ export function FiltrosMotoristas({
                       className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                     >
                       <td className="px-6 py-4">
+                        <div className="flex items-center">
+                          {motorista.foto ? (
+                            <div className="flex-shrink-0 h-10 w-10">
+                              <img
+                                className="h-10 w-10 rounded-full object-cover"
+                                src={motorista.foto
+                                  .replace(/^"+|"+$/g, "")
+                                  .trim()}
+                                alt={motorista.nomeCompleto}
+                                onError={(e) => {
+                                  e.currentTarget.src =
+                                    "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2U1ZTVlNSIvPjxjaXJjbGUgY3g9IjEwMCIgY3k9IjgwIiByPSI0MCIgZmlsbD0iIzk5OSIvPjxjaXJjbGUgY3g9IjEwMCIgY3k9IjUwIiByPSIyMCIgZmlsbD0iIzk5OSIvPjwvc3ZnPg==";
+                                }}
+                              />
+                            </div>
+                          ) : (
+                            <div className="flex-shrink-0 h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                              <FiUser className="h-6 w-6 text-gray-400" />
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
                         <div>
                           <div className="text-sm font-medium text-gray-900 dark:text-white flex items-center space-x-2">
-                            <FiUser className="w-4 h-4 text-blue-600" />
+                            {/* <FiUser className="w-4 h-4 text-blue-600" /> */}
                             <span>{motorista.nomeCompleto}</span>
                           </div>
                           <div className="text-sm text-gray-500">
@@ -1454,7 +1582,7 @@ export function FiltrosMotoristas({
                       </td>
 
                       <td className="px-6 py-4">
-                        <div className="flex space-x-2">
+                        <div className="flex flex-col space-x-2">
                           <button
                             onClick={() => visualizarMotorista(motorista)}
                             className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center transition-colors"
@@ -1466,7 +1594,7 @@ export function FiltrosMotoristas({
                           {motorista.status === "disponivel" && (
                             <button
                               onClick={() =>
-                               handleVisualizarVeiculo(motorista.motoristaId)
+                                handleVisualizarVeiculo(motorista.motoristaId)
                               }
                               className="text-green-600 hover:text-green-800 text-sm font-medium flex items-center transition-colors"
                             >

@@ -206,6 +206,10 @@ export interface CustoExtra {
 // Interface principal da Carga
 export interface Carga {
   // Identificação
+  _id?: string; // Para MongoDB
+  id?: string | number; // Para uso geral
+  tempoRestante: string;
+  requisitos?: string[]; 
   codigo: string;
   atrasada: string;
   nomeEmpresa: string;
@@ -290,7 +294,7 @@ export interface Carga {
   // Datas
   dataCriacao: string;
   dataColeta?: string;
-  dataEntregaPrevista?: string;
+  dataEntregaPrevista: string;
   dataEntregaReal?: string;
   dataAtualizacao?: string;
   tempoArmazenagemHoras?: number;
@@ -302,7 +306,7 @@ export interface Carga {
   freteVolta?: number;
   percentualLogistica?: number;
   contentorVazio?: number;
-  valorFrete?: number;
+  valorFrete: number;
   taxasPortuarias?: number;
   despesasOperacionais?: number;
   custoCarga?: number;

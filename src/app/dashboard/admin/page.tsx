@@ -159,6 +159,14 @@ export default function DashboardAdmin() {
     href: "/cadastros",
     color: "bg-green-500 hover:bg-green-600",
     category: "superior",
+  },  
+  {
+    title: "Vistoria",
+    description: "Vistorias de veículos e cargas",
+    icon: "🔍",
+    href: "/vistorias",
+    color: "bg-pink-500 hover:bg-pink-600",
+    category: "superior",
   },
   {
     title: "Lançamentos",
@@ -166,14 +174,6 @@ export default function DashboardAdmin() {
     icon: "📥",
     href: "/lancamentos",
     color: "bg-blue-500 hover:bg-blue-600",
-    category: "superior",
-  },
-  {
-    title: "Combustível e Expediente",
-    description: "Controle de combustível e expedientes",
-    icon: "⛽",
-    href: "/combustivel-expediente",
-    color: "bg-yellow-500 hover:bg-yellow-600",
     category: "superior",
   },
   {
@@ -185,13 +185,14 @@ export default function DashboardAdmin() {
     category: "superior",
   },
   {
-    title: "Vistoria",
-    description: "Vistorias de veículos e cargas",
-    icon: "🔍",
-    href: "/vistorias",
-    color: "bg-pink-500 hover:bg-pink-600",
+    title: "Combustível e Expediente",
+    description: "Controle de combustível e expedientes",
+    icon: "⛽",
+    href: "/combustivel-expediente",
+    color: "bg-yellow-500 hover:bg-yellow-600",
     category: "superior",
   },
+  
   {
     title: "GPS Camiões",
     description: "Monitoramento de caminhões",

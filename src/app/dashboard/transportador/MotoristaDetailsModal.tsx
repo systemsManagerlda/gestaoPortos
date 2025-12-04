@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // Crie um novo arquivo chamado MotoristaDetailsModal.tsx
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import {
   FiX,
@@ -18,9 +19,11 @@ import {
   FiHeart,
   FiPrinter,
   FiDownload,
+  FiCamera,
 } from "react-icons/fi";
 import { Motorista, StatusContratual } from "./motoristas";
 import { StatusMotorista } from "./modelNovoMotorista";
+import { UploadFotosMotorista } from "./UploadFotosMotorista";
 
 interface MotoristaDetailsModalProps {
   isOpen: boolean;
@@ -28,6 +31,13 @@ interface MotoristaDetailsModalProps {
   motorista: Motorista | null;
   onEdit?: (motorista: Motorista) => void;
   onAddVehicle?: (motoristaId: number) => void;
+}
+interface FotoMotorista {
+  url: string;
+  tipo: "principal" | "documento" | "uniforme" | "outro";
+  descricao?: string;
+  dataUpload: Date;
+  nomeArquivo: string;
 }
 
 export function MotoristaDetailsModal({
@@ -146,6 +156,8 @@ export function MotoristaDetailsModal({
         return <DesempenhoTab motorista={motorista} />;
       case "saude":
         return <SaudeTab motorista={motorista} />;
+      case "fotos":
+        return <FotosTab motorista={motorista} />;
       default:
         return <GeralTab motorista={motorista} />;
     }
@@ -1001,15 +1013,71 @@ export function MotoristaDetailsModal({
     </div>
   );
 
+  const FotosTab = ({ motorista }: { motorista: Motorista }) => {
+    const [fotos, setFotos] = useState<FotoMotorista[]>([]);
+
+    // Inicializar fotos
+    useEffect(() => {
+      const fotosIniciais: FotoMotorista[] = [];
+
+      // Adicionar foto principal se existir
+      if (motorista.foto) {
+        fotosIniciais.push({
+          url: motorista.foto,
+          tipo: "principal",
+          dataUpload: new Date(),
+          nomeArquivo: "foto-principal.jpg",
+        });
+      }
+
+      // Adicionar fotos adicionais se existirem
+      if (motorista.fotos && motorista.fotos.length > 0) {
+        motorista.fotos.forEach((url, index) => {
+          fotosIniciais.push({
+            url,
+            tipo: "outro",
+            dataUpload: new Date(),
+            nomeArquivo: `foto-${index + 1}.jpg`,
+          });
+        });
+      }
+
+      setFotos(fotosIniciais);
+    }, [motorista.foto, motorista.fotos]);
+
+    const handleUploadComplete = useCallback((novasFotos: FotoMotorista[]) => {
+      setFotos(novasFotos);
+    }, []);
+
+    return (
+      <div className="space-y-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            Gestão de Fotos do Motorista
+          </h3>
+
+          <div className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+            <p>Adicione fotos para documentação completa do motorista.</p>
+            <p className="mt-1">
+              Recomendado: Foto principal 3x4, documentos, uniforme.
+            </p>
+          </div>
+
+          <UploadFotosMotorista
+            motoristaId={motorista.motoristaId}
+            nomeMotorista={motorista.nomeCompleto}
+            onUploadComplete={handleUploadComplete}
+            fotoPrincipalExistentes={motorista.foto || ""}
+            fotosAdicionaisExistentes={motorista.fotos || []}
+          />
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        {/* Overlay */}
-        <div
-          className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
-          onClick={onClose}
-        ></div>
-
         {/* Modal */}
         <div className="relative inline-block w-full max-w-6xl my-8 overflow-hidden text-left align-middle bg-white dark:bg-gray-800 rounded-2xl shadow-xl transform transition-all">
           {/* Header */}
@@ -1083,6 +1151,7 @@ export function MotoristaDetailsModal({
                 { id: "veiculos", label: "Veículos", icon: FiTruck },
                 { id: "desempenho", label: "Desempenho", icon: FiBarChart2 },
                 { id: "saude", label: "Saúde", icon: FiHeart },
+                { id: "fotos", label: "Fotos", icon: FiCamera },
               ].map((tab) => {
                 const Icon = tab.icon;
                 return (

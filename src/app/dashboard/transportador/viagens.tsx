@@ -14,10 +14,12 @@ import {
   FiMapPin,
   FiPackage,
   FiDollarSign,
+  FiEdit,
 } from "react-icons/fi";
 import { Carga } from "../cliente/cargaService";
 import { useState } from "react";
 import { ModalDetalhesCarga } from "./ModalDetalhesCarga";
+import { ModalEditarCarga } from "./ModalEditarCarga";
 
 // Interfaces adaptadas para Cargas
 export type StatusCarga =
@@ -140,6 +142,21 @@ export function FiltrosCargas({
 }: FiltrosCargasProps) {
   const [cargaDetalhada, setCargaDetalhada] = useState<Carga | null>(null);
   const [modalAberto, setModalAberto] = useState(false);
+  const [cargaParaEditar, setCargaParaEditar] = useState<Carga | null>(null);
+  const [modalEditarAberto, setModalEditarAberto] = useState(false);
+
+  // Função para abrir o modal de edição
+  const abrirEditarCarga = (carga: Carga) => {
+    setCargaParaEditar(carga);
+    setModalEditarAberto(true);
+  };
+
+  // Função para fechar o modal de edição
+  const fecharEditarCarga = () => {
+    setModalEditarAberto(false);
+    setCargaParaEditar(null);
+  };
+
   // Função para filtrar cargas com motoristas da mesma empresa
   const filterCargasByMotoristaEmpresa = (cargas: Carga[]) => {
     console.log(nomeEmpresa);
@@ -154,7 +171,7 @@ export function FiltrosCargas({
     });
   };
 
-   // Função para abrir o modal com os detalhes da carga
+  // Função para abrir o modal com os detalhes da carga
   const abrirDetalhesCarga = (carga: Carga) => {
     setCargaDetalhada(carga);
     setModalAberto(true);
@@ -165,7 +182,6 @@ export function FiltrosCargas({
     setModalAberto(false);
     setCargaDetalhada(null);
   };
-
 
   // Aplicar filtro de motorista da empresa se estiver ativo
   const cargasFinais = filtrosAvancados.motoristaEmpresa
@@ -284,6 +300,71 @@ export function FiltrosCargas({
     ); // ← ADICIONADO
   };
 
+  // Função para salvar as alterações da carga
+  const handleSalvarCarga = async (
+    cargaAtualizada: Carga,
+    dadosAssociacao?: {
+      motoristaId?: number;
+      camiaoId?: number;
+    }
+  ) => {
+    try {
+      // 1. Primeiro, atualizar os dados da carga
+      const response = await fetch(
+        "https://desktop-api-4f850b3f9733.herokuapp.com/updateCarga",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(cargaAtualizada),
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+
+        if (data.returnCode === 200) {
+          // 2. Se houver dados de associação, associar a carga ao camião
+          if (dadosAssociacao?.camiaoId) {
+            const associacaoResponse = await fetch(
+              "https://desktop-api-4f850b3f9733.herokuapp.com/associarCargaCamiao",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  codigoCarga: cargaAtualizada.codigo,
+                  camiaoId: dadosAssociacao.camiaoId,
+                  motoristaId: dadosAssociacao.motoristaId,
+                }),
+              }
+            );
+
+            if (!associacaoResponse.ok) {
+              console.error("Erro ao associar carga ao camião");
+            }
+          }
+
+          alert("Carga atualizada com sucesso!");
+
+          // Recarregar as cargas (você precisará implementar esta função)
+          // fetchCargas(); // Descomente se tiver uma função para recarregar cargas
+
+          return true;
+        }
+      }
+
+      alert("Erro ao atualizar a carga");
+      return false;
+    } catch (error) {
+      console.error("Erro ao salvar carga:", error);
+      alert("Erro ao atualizar a carga");
+      return false;
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Modal de Detalhes da Carga */}
@@ -291,6 +372,13 @@ export function FiltrosCargas({
         carga={cargaDetalhada}
         isOpen={modalAberto}
         onClose={fecharDetalhesCarga}
+      />
+      {/* Modal de Edição da Carga */}
+      <ModalEditarCarga
+        carga={cargaParaEditar}
+        isOpen={modalEditarAberto}
+        onClose={fecharEditarCarga}
+        onSave={handleSalvarCarga}
       />
       {/* Filtros e Busca */}
       <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
@@ -789,8 +877,8 @@ export function FiltrosCargas({
                     </td>
 
                     <td className="px-6 py-4">
-                      <div className="flex space-x-2">
-                       <button
+                      <div className="flex flex-col space-x-2">
+                        <button
                           onClick={() => abrirDetalhesCarga(carga)}
                           className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center transition-colors"
                         >
@@ -798,7 +886,14 @@ export function FiltrosCargas({
                           Detalhes
                         </button>
 
-                        {carga.status === "planeada" && (
+                        <button
+                          onClick={() => abrirEditarCarga(carga)}
+                          className="text-yellow-600 hover:text-yellow-800 text-sm font-medium flex items-center transition-colors"
+                        >
+                          <FiEdit className="w-4 h-4 mr-1" />
+                          Editar
+                        </button>
+                        {/* {carga.status === "planeada" && (
                           <button
                             onClick={() => aceitarCarga(carga.codigo)}
                             className="text-green-600 hover:text-green-800 text-sm font-medium flex items-center transition-colors"
@@ -806,7 +901,7 @@ export function FiltrosCargas({
                             <FiCheckCircle className="w-4 h-4 mr-1" />
                             Aceitar
                           </button>
-                        )}
+                        )} */}
 
                         {carga.status === "coletada" && (
                           <button

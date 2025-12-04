@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 // app/dashboard/transportador/page.tsx
 "use client";
@@ -791,14 +792,17 @@ export default function DashboardTransportador() {
   };
 
   // Adaptar viagens para cargas
- const adaptarViagensParaCargas = (
-  viagens: ViagemTransportador[]
-): Carga[] => {
+const adaptarViagensParaCargas = (viagens: any[]): Carga[] => {
   return viagens.map((viagem) => ({
     codigo: viagem.numero,
+    tempoRestante: "", // preencha conforme cálculo de prazo
+    atrasada: "false",
+    nomeEmpresa: viagem.cliente || "Mega Centro e Logistica",
+    clienteId: String(viagem.clienteId),
+    cliente: viagem.cliente,
     tipoCarga: viagem.tipoCarga as TipoCarga,
-    descricao: viagem.descricao,
     subtipo: viagem.subtipo,
+    descricao: viagem.descricao,
     naturezaCarga: "não perigosa" as NaturezaCarga,
     categoriaSeguro: "Carga Geral" as CategoriaSeguro,
     abrangenciaSeguro: "Nacional" as AbrangenciaSeguro,
@@ -808,58 +812,33 @@ export default function DashboardTransportador() {
     pesoBruto: viagem.peso,
     volume: viagem.volume,
 
-    clienteId: String(viagem.id),
-    cliente: viagem.cliente,
-    nomeEmpresa: viagem.cliente || "Mega Centro e Logistica",
-
     origem: {
+      pais: "Moçambique",
       cidade: viagem.origem.split(",")[0],
       local: viagem.origem,
-      pais: "Moçambique",
       coordenadas: { lat: 0, lng: 0 },
     },
     destino: {
+      pais: "Moçambique",
       cidade: viagem.destino.split(",")[0],
       local: viagem.destino,
-      pais: "Moçambique",
       coordenadas: { lat: 0, lng: 0 },
     },
 
-    status: adaptarStatusViagemParaCarga(viagem.status),
+    status: viagem.status as StatusCarga,
     prioridade: viagem.prioridade as Prioridade,
-    valorTotal: viagem.valorFrete,
-    valorMercadoria: viagem.valorMercadoria || 0,
 
-    dataColeta: viagem.dataColeta,
-    dataEntregaPrevista: viagem.dataChegada,
-    dataEntregaReal: viagem.dataEntrega,
-    dataCriacao: viagem.dataPartida,
-    dataAtualizacao: new Date().toISOString(),
+    valorFrete: viagem.valorFrete || 0, // ✅ obrigatório
+    valorMercadoria: viagem.valorMercadoria || 0, // obrigatório
+    valorTotal: viagem.valorTotal || 0, // obrigatório
 
-    // Construir veiculo completo conforme interface
-    veiculo: {
-      id: 0, // se não tiver, usa 0 ou outro identificador padrão
-      matricula: viagem.veiculo.split(" - ")[0],
-      modelo: viagem.veiculo.split(" - ")[1] || viagem.veiculo,
-      ano: undefined,
-      quilometragemInicial: undefined,
-      quilometragemFinal: undefined,
-      proximaRevisaoKM: undefined,
-      estadoVeiculoAntes: undefined,
-      estadoVeiculoDepois: undefined,
-      seguroVeiculo: undefined,
-    },
-
-    viagemId: viagem.id,
-    atrasada: "false",
-
-    exportador: "",
-    importador: "",
-    consignatario: "",
-    contatoCliente: "",
-    instrucaoEspecial: "",
+    dataCriacao: new Date().toISOString(),
+    dataEntregaPrevista: viagem.dataEntregaPrevista || new Date().toISOString(),
+    dataEntregaReal: viagem.dataEntregaReal || new Date().toISOString(),
   }));
 };
+
+
 
 
 
@@ -1125,12 +1104,7 @@ export default function DashboardTransportador() {
         )}
 
         {activeTab === "disponiveis" && (
-          <CargasDisponiveis
-            aceitarCarga={(id: string) => {
-              console.log(`Aceitando carga: ${id}`);
-              // Implementar lógica de aceitação
-            }}
-          />
+          <CargasDisponiveis />
         )}
         {activeTab === "noticias" && <NoticiasPage />}
 
