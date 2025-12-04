@@ -17,6 +17,7 @@ import {
   FiTruck,
   FiDollarSign,
   FiShield,
+  FiEdit,
 } from "react-icons/fi";
 
 // Importações das novas funções
@@ -32,13 +33,16 @@ import {
 } from "./cargaUtils";
 import { VisualizarCargaModal } from "./VisualizarCargaModal";
 import { RastreamentoModal } from "./RastreamentoModal";
-import { Carga } from "./cargaService";
-
+import { EditarCargaModal } from "./EditarCargaModal";
+// Importar do serviço para garantir compatibilidade
+import { Carga, cargaService } from "./cargaService";
 
 const CargasComponent = () => {
   const [showVisualizarModal, setShowVisualizarModal] = useState(false);
   const [cargaSelecionada, setCargaSelecionada] = useState<Carga | null>(null);
   const [showRastreamentoModal, setShowRastreamentoModal] = useState(false);
+  const [showEditarModal, setShowEditarModal] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   // Usando o hook personalizado para gerenciar o estado das cargas
   const {
@@ -128,9 +132,49 @@ const CargasComponent = () => {
     setShowVisualizarModal(true);
   }, []);
 
+  // Função para editar carga
+  const handleEditarCarga = useCallback((carga: Carga) => {
+    console.log("Editar carga:", carga);
+    setCargaSelecionada(carga);
+    setShowEditarModal(true);
+  }, []);
+
+  // Função para salvar edição da carga
+  const handleSalvarEdicao = useCallback(
+    async (cargaAtualizada: Carga) => {
+      setIsEditing(true);
+      try {
+        // Usar o serviço para atualizar a carga
+        await cargaService.atualizarCarga(
+          cargaAtualizada.codigo,
+          cargaAtualizada
+        );
+
+        setShowEditarModal(false);
+
+        // Recarregar a lista de cargas
+        fetchCargas(pagination.curPage || 1, pagination.pageSize);
+
+        alert("Carga atualizada com sucesso!");
+      } catch (error) {
+        console.error("Erro ao salvar edição:", error);
+        alert(
+          `Erro ao atualizar carga: ${
+            error instanceof Error ? error.message : "Erro desconhecido"
+          }`
+        );
+        throw error;
+      } finally {
+        setIsEditing(false);
+      }
+    },
+    [fetchCargas, pagination.curPage, pagination.pageSize]
+  );
+
   const visualizarOcorrencias = useCallback((carga: Carga) => {
     console.log("Visualizar ocorrências:", carga.ocorrencias);
     // Implementar visualização de ocorrências
+    alert(`Ocorrências: ${carga.ocorrencias?.length || 0} registros`);
   }, []);
 
   // Função para exportar dados
@@ -168,40 +212,42 @@ const CargasComponent = () => {
   ]);
 
   // Estatísticas calculadas
- const estatisticas = useMemo(() => {
-  const total = filteredCargas.length;
-  const emTransito = filteredCargas.filter(
-    c => c.status === "em_transito"
-  ).length;
-  const entregues = filteredCargas.filter(
-    c => c.status === "entregue"
-  ).length;
-  const atrasadas = filteredCargas.filter(c => c.atrasada).length;
-  
-  // Correção para o filtro de seguro - usando verificação segura
-  const comSeguroAtivo = filteredCargas.filter(
-    c => c.seguro?.statusSeguro === "ativo"
-  ).length;
+  const estatisticas = useMemo(() => {
+    const total = filteredCargas.length;
+    const emTransito = filteredCargas.filter(
+      (c) => c.status === "em_transito"
+    ).length;
+    const entregues = filteredCargas.filter(
+      (c) => c.status === "entregue"
+    ).length;
+    const atrasadas = filteredCargas.filter(
+      (c) => c.atrasada === "true"
+    ).length;
 
-  const valorTotalCargas = filteredCargas.reduce(
-    (sum, c) => sum + (c.valorTotal || 0),
-    0
-  );
-  const comissaoTotal = filteredCargas.reduce(
-    (sum, c) => sum + (c.comissaoCalculada || 0),
-    0
-  );
+    const comSeguroAtivo = filteredCargas.filter(
+      (c) => c.seguro?.statusSeguro === "ativo"
+    ).length;
 
-  return {
-    total,
-    emTransito,
-    entregues,
-    atrasadas,
-    comSeguroAtivo,
-    valorTotalCargas,
-    comissaoTotal,
-  };
-}, [filteredCargas]);
+    const valorTotalCargas = filteredCargas.reduce(
+      (sum, c) => sum + (c.valorTotal || 0),
+      0
+    );
+    const comissaoTotal = filteredCargas.reduce(
+      (sum, c) => sum + (c.comissaoCalculada || 0),
+      0
+    );
+
+    return {
+      total,
+      emTransito,
+      entregues,
+      atrasadas,
+      comSeguroAtivo,
+      valorTotalCargas,
+      comissaoTotal,
+    };
+  }, [filteredCargas]);
+
   // Componente Spinner
   const Spinner = ({ size = "md" }: { size?: "sm" | "md" | "lg" }) => {
     const sizes: Record<"sm" | "md" | "lg", string> = {
@@ -432,15 +478,15 @@ const CargasComponent = () => {
                 Categoria Seguro
               </label>
               <select
-  value={filtrosAvancados.categoriaSeguro}
-  onChange={(e) =>
-    setFiltrosAvancados({
-      ...filtrosAvancados,
-      categoriaSeguro: e.target.value,
-    })
-  }
-  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
->
+                value={filtrosAvancados.categoriaSeguro}
+                onChange={(e) =>
+                  setFiltrosAvancados({
+                    ...filtrosAvancados,
+                    categoriaSeguro: e.target.value,
+                  })
+                }
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              >
                 <option value="todos">Todas</option>
                 <option value="Produtos Alimentares">
                   Produtos Alimentares
@@ -457,15 +503,15 @@ const CargasComponent = () => {
                 Abrangência
               </label>
               <select
-  value={filtrosAvancados.abrangenciaSeguro}
-  onChange={(e) =>
-    setFiltrosAvancados({
-      ...filtrosAvancados,
-      abrangenciaSeguro: e.target.value,
-    })
-  }
-  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
->
+                value={filtrosAvancados.abrangenciaSeguro}
+                onChange={(e) =>
+                  setFiltrosAvancados({
+                    ...filtrosAvancados,
+                    abrangenciaSeguro: e.target.value,
+                  })
+                }
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              >
                 <option value="todos">Todas</option>
                 <option value="Nacional">Nacional</option>
                 <option value="Regional SADC">Regional SADC</option>
@@ -477,16 +523,16 @@ const CargasComponent = () => {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Tipo Percurso
               </label>
-             <select
-  value={filtrosAvancados.tipoPercurso}
-  onChange={(e) =>
-    setFiltrosAvancados({
-      ...filtrosAvancados,
-      tipoPercurso: e.target.value,
-    })
-  }
-  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
->
+              <select
+                value={filtrosAvancados.tipoPercurso}
+                onChange={(e) =>
+                  setFiltrosAvancados({
+                    ...filtrosAvancados,
+                    tipoPercurso: e.target.value,
+                  })
+                }
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              >
                 <option value="todos">Todos</option>
                 <option value="Beira-Interland">Beira-Interland</option>
                 <option value="Local">Local</option>
@@ -499,17 +545,17 @@ const CargasComponent = () => {
                 Valor Mínimo (MZN)
               </label>
               <input
-  type="number"
-  placeholder="0"
-  value={filtrosAvancados.valorMin}
-  onChange={(e) =>
-    setFiltrosAvancados({
-      ...filtrosAvancados,
-      valorMin: e.target.value,
-    })
-  }
-  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-/>
+                type="number"
+                placeholder="0"
+                value={filtrosAvancados.valorMin}
+                onChange={(e) =>
+                  setFiltrosAvancados({
+                    ...filtrosAvancados,
+                    valorMin: e.target.value,
+                  })
+                }
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              />
             </div>
 
             <div>
@@ -517,34 +563,34 @@ const CargasComponent = () => {
                 Valor Máximo (MZN)
               </label>
               <input
-  type="number"
-  placeholder="1000000"
-  value={filtrosAvancados.valorMax}
-  onChange={(e) =>
-    setFiltrosAvancados({
-      ...filtrosAvancados,
-      valorMax: e.target.value,
-    })
-  }
-  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-/>
+                type="number"
+                placeholder="1000000"
+                value={filtrosAvancados.valorMax}
+                onChange={(e) =>
+                  setFiltrosAvancados({
+                    ...filtrosAvancados,
+                    valorMax: e.target.value,
+                  })
+                }
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Data Início
               </label>
-             <input
-  type="date"
-  value={filtrosAvancados.dataInicio}
-  onChange={(e) =>
-    setFiltrosAvancados({
-      ...filtrosAvancados,
-      dataInicio: e.target.value,
-    })
-  }
-  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-/>
+              <input
+                type="date"
+                value={filtrosAvancados.dataInicio}
+                onChange={(e) =>
+                  setFiltrosAvancados({
+                    ...filtrosAvancados,
+                    dataInicio: e.target.value,
+                  })
+                }
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              />
             </div>
 
             <div>
@@ -552,16 +598,16 @@ const CargasComponent = () => {
                 Data Fim
               </label>
               <input
-  type="date"
-  value={filtrosAvancados.dataFim}
-  onChange={(e) =>
-    setFiltrosAvancados({
-      ...filtrosAvancados,
-      dataFim: e.target.value,
-    })
-  }
-  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-/>
+                type="date"
+                value={filtrosAvancados.dataFim}
+                onChange={(e) =>
+                  setFiltrosAvancados({
+                    ...filtrosAvancados,
+                    dataFim: e.target.value,
+                  })
+                }
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              />
             </div>
           </div>
         </div>
@@ -689,10 +735,10 @@ const CargasComponent = () => {
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-900 dark:text-white">
-                        {cargo.origem.cidade} → {cargo.destino.cidade}
+                        {cargo.origem?.cidade} → {cargo.destino?.cidade}
                       </div>
                       <div className="text-xs text-gray-500">
-                        {cargo.origem.pais} → {cargo.destino.pais}
+                        {cargo.origem?.pais} → {cargo.destino?.pais}
                       </div>
                       {cargo.tipoPercurso && (
                         <div className="text-xs text-blue-600">
@@ -723,7 +769,7 @@ const CargasComponent = () => {
                             </span>
                           </div>
                         )}
-                        {cargo.atrasada && (
+                        {cargo.atrasada === "true" && (
                           <div className="text-xs text-red-500 flex items-center space-x-1">
                             <FiAlertTriangle className="w-3 h-3" />
                             <span>Atrasada</span>
@@ -788,23 +834,38 @@ const CargasComponent = () => {
                         <button
                           onClick={() => visualizarCarga(cargo)}
                           className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center"
+                          title="Visualizar detalhes"
                         >
                           <FiEye className="w-4 h-4 mr-1" />
                           Ver
                         </button>
 
+                        {/* Botão de Editar - Só aparece para cargas não entregues/encerradas */}
+                        {cargo.status !== "entregue" &&
+                          cargo.status !== "encerrada" && (
+                            <button
+                              onClick={() => handleEditarCarga(cargo)}
+                              className="text-green-600 hover:text-green-800 text-sm font-medium flex items-center"
+                              title="Editar carga"
+                            >
+                              <FiEdit className="w-4 h-4 mr-1" />
+                              Editar
+                            </button>
+                          )}
+
                         {/* Botão de Rastreamento - Só aparece se tiver transporte */}
                         {cargaTemTransporteAceite(cargo) && (
                           <button
                             onClick={() => abrirRastreamentoModal(cargo)}
-                            className="text-green-600 hover:text-green-800 text-sm font-medium flex items-center"
+                            className="text-purple-600 hover:text-purple-800 text-sm font-medium flex items-center"
+                            title="Rastrear carga"
                           >
                             <FiMapPin className="w-4 h-4 mr-1" />
                             Rastrear
                           </button>
                         )}
 
-                        {/* Botão desabilitado se não tiver transporte */}
+                        {/* Botão de Rastreamento desabilitado se não tiver transporte */}
                         {!cargaTemTransporteAceite(cargo) &&
                           cargo.status !== "entregue" &&
                           cargo.status !== "encerrada" && (
@@ -819,10 +880,12 @@ const CargasComponent = () => {
                             </button>
                           )}
 
+                        {/* Botão de ocorrências */}
                         {cargo.ocorrencias && cargo.ocorrencias.length > 0 && (
                           <button
                             onClick={() => visualizarOcorrencias(cargo)}
                             className="text-orange-600 hover:text-orange-800 text-sm font-medium flex items-center"
+                            title="Ver ocorrências"
                           >
                             <FiAlertCircle className="w-4 h-4 mr-1" />
                             {cargo.ocorrencias.length}
@@ -843,7 +906,14 @@ const CargasComponent = () => {
           onPageChange={handlePageChange}
         />
       </div>
-
+      {/* Modal Editar Carga */}
+      <EditarCargaModal
+        show={showEditarModal}
+        onClose={() => setShowEditarModal(false)}
+        carga={cargaSelecionada}
+        onSave={handleSalvarEdicao}
+        isSubmitting={isEditing}
+      />
       {/* Modal Nova Carga */}
       <NovaCargaModal
         show={showNovaCargaModal}

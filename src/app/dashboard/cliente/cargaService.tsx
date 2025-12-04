@@ -66,7 +66,34 @@ export interface Contentor {
   lacreOrigem?: string;
   lacreDestino?: string;
 }
+export interface DocumentoFile {
+  id: string;
+  nome: string;
+  tipo: string;
+  tamanho: number;
+  url: string;
+  dataUpload: string;
+  descricao?: string;
+}
 
+export interface UploadDocumentoRequest {
+  file: File;
+  nomeEmpresa: string;
+  descricao?: string;
+}
+
+export interface UploadDocumentoResponse {
+  success: boolean;
+  url: string;
+  filename: string;
+  message?: string;
+  descricao?: string;
+}
+
+export interface DeleteDocumentoRequest {
+  filename: string;
+  nomeEmpresa: string;
+}
 export interface GPS {
   codigo?: string;
   modelo?: string;
@@ -251,11 +278,14 @@ export interface Carga {
     notaDebito?: string;
     manifest?: string;
     outros?: string[];
+    documentosCarregados?: DocumentoFile[];
+    dataAtualizacaoDocumentos?: string;
   };
 
   // Recursos
   motorista?: Motorista;
   veiculo?: Veiculo;
+  
 
   // Datas
   dataCriacao: string;
@@ -1304,6 +1334,208 @@ export const cargaService = {
       );
     }
   },
+  /**
+   * Upload de documento para a carga
+   */
+  async uploadDocumento(
+    request: UploadDocumentoRequest
+  ): Promise<UploadDocumentoResponse> {
+    try {
+      const formData = new FormData();
+      formData.append("file", request.file);
+      formData.append("nomeEmpresa", request.nomeEmpresa);
+      if (request.descricao) {
+        formData.append("descricao", request.descricao);
+      }
+
+      const response = await fetch(`${API_BASE_URL}/docUpload`, {
+        method: "POST",
+        body: formData,
+        // Note: Não definir Content-Type manualmente para FormData
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new CargaServiceError(
+          `HTTP error! status: ${response.status}, details: ${errorText}`,
+          "HTTP_ERROR",
+          response.status
+        );
+      }
+
+      const url = await response.json();
+
+      return {
+        success: true,
+        url: url,
+        filename: request.file.name,
+      };
+    } catch (error) {
+      console.error("Erro ao fazer upload do documento:", error);
+      if (error instanceof CargaServiceError) {
+        throw error;
+      }
+      throw new CargaServiceError(
+        error instanceof Error
+          ? error.message
+          : "Erro desconhecido ao fazer upload do documento"
+      );
+    }
+  },
+  /**
+   * Deletar documento
+   */
+  async deleteDocumento(
+    request: DeleteDocumentoRequest
+  ): Promise<ApiResponse<void>> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/deleteDoc`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(request),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new CargaServiceError(
+          `HTTP error! status: ${response.status}, details: ${errorText}`,
+          "HTTP_ERROR",
+          response.status
+        );
+      }
+
+      const data: ApiResponse<void> = await response.json();
+
+      if (data.returnCode === 200) {
+        return data;
+      } else {
+        throw new CargaServiceError(
+          data.returnMsg,
+          data.errorCode,
+          data.returnCode
+        );
+      }
+    } catch (error) {
+      console.error("Erro ao deletar documento:", error);
+      if (error instanceof CargaServiceError) {
+        throw error;
+      }
+      throw new CargaServiceError(
+        error instanceof Error
+          ? error.message
+          : "Erro desconhecido ao deletar documento"
+      );
+    }
+  },
+
+  /**
+   * Atualizar documentos da carga
+   */
+  async atualizarDocumentosCarga(
+    codigo: string,
+    documentos: {
+      conhecimentoEmbarque?: string;
+      invoice?: string;
+      packingList?: string;
+      certificadoOrigem?: string;
+      contratoTransporte?: string;
+      numeroCotacao?: string;
+      numeroRecibo?: string;
+      notaDebito?: string;
+      manifest?: string;
+      outros?: string[];
+    }
+  ): Promise<Carga> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/updateCargaDocumentos`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          codigo,
+          documentos,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new CargaServiceError(
+          `HTTP error! status: ${response.status}`,
+          "HTTP_ERROR",
+          response.status
+        );
+      }
+
+      const data: ApiResponse<Carga> = await response.json();
+
+      if (data.returnCode === 200) {
+        return data.data!;
+      } else {
+        throw new CargaServiceError(
+          data.returnMsg,
+          data.errorCode,
+          data.returnCode
+        );
+      }
+    } catch (error) {
+      console.error("Erro ao atualizar documentos da carga:", error);
+      if (error instanceof CargaServiceError) {
+        throw error;
+      }
+      throw new CargaServiceError(
+        error instanceof Error
+          ? error.message
+          : "Erro desconhecido ao atualizar documentos"
+      );
+    }
+  },
+
+  /**
+   * Obter URLs assinadas para documentos privados (se necessário)
+   */
+  async obterUrlAssinada(filename: string): Promise<string> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/getSignedUrl`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ filename }),
+      });
+
+      if (!response.ok) {
+        throw new CargaServiceError(
+          `HTTP error! status: ${response.status}`,
+          "HTTP_ERROR",
+          response.status
+        );
+      }
+
+      const data: ApiResponse<{ url: string }> = await response.json();
+
+      if (data.returnCode === 200) {
+        return data.data!.url;
+      } else {
+        throw new CargaServiceError(
+          data.returnMsg,
+          data.errorCode,
+          data.returnCode
+        );
+      }
+    } catch (error) {
+      console.error("Erro ao obter URL assinada:", error);
+      if (error instanceof CargaServiceError) {
+        throw error;
+      }
+      throw new CargaServiceError(
+        error instanceof Error
+          ? error.message
+          : "Erro desconhecido ao obter URL assinada"
+      );
+    }
+  },
 };
 
 // Utilitários
@@ -1376,5 +1608,110 @@ export const cargaUtils = {
     } else {
       return "baixa";
     }
+  },
+  /**
+   * Validar arquivo para upload
+   */
+  validarArquivoUpload(file: File): { valido: boolean; erro?: string } {
+    // Verificar se é imagem
+    const isImage = file.type.startsWith("image/");
+    const isPDF = file.type === "application/pdf";
+
+    if (!isImage && !isPDF) {
+      return {
+        valido: false,
+        erro: "Apenas imagens e PDFs são permitidos",
+      };
+    }
+
+    // Verificar tamanho máximo (10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      return {
+        valido: false,
+        erro: `O arquivo excede o tamanho máximo de 10MB (${(
+          file.size /
+          (1024 * 1024)
+        ).toFixed(2)}MB)`,
+      };
+    }
+
+    // Verificar extensões permitidas
+    const allowedExtensions = ["jpg", "jpeg", "png", "gif", "webp", "pdf"];
+    const extension = file.name.split(".").pop()?.toLowerCase();
+
+    if (!extension || !allowedExtensions.includes(extension)) {
+      return {
+        valido: false,
+        erro: `Extensão não permitida. Use: ${allowedExtensions.join(", ")}`,
+      };
+    }
+
+    return { valido: true };
+  },
+  /**
+   * Formatar tamanho do arquivo
+   */
+  formatarTamanhoArquivo(bytes: number): string {
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  },
+  /**
+   * Obter ícone baseado no tipo de arquivo
+   */
+  obterIconeDocumento(tipo: string): string {
+    if (tipo.includes("pdf")) return "📄";
+    if (tipo.includes("image")) return "🖼️";
+    if (tipo.includes("word") || tipo.includes("document")) return "📝";
+    if (tipo.includes("excel") || tipo.includes("spreadsheet")) return "📊";
+    return "📎";
+  },
+  /**
+   * Obter descrição do documento baseado no nome do arquivo
+   */
+  obterDescricaoDocumento(nomeArquivo: string): string {
+    const nomeLower = nomeArquivo.toLowerCase();
+
+    if (nomeLower.includes("conhecimento") || nomeLower.includes("embarque"))
+      return "conhecimentoEmbarque";
+    if (nomeLower.includes("invoice") || nomeLower.includes("fatura"))
+      return "invoice";
+    if (nomeLower.includes("packing") || nomeLower.includes("lista"))
+      return "packingList";
+    if (nomeLower.includes("certificado") || nomeLower.includes("origem"))
+      return "certificadoOrigem";
+    if (nomeLower.includes("contrato") || nomeLower.includes("transporte"))
+      return "contratoTransporte";
+    if (nomeLower.includes("cotacao")) return "numeroCotacao";
+    if (nomeLower.includes("recibo")) return "numeroRecibo";
+    if (nomeLower.includes("nota") || nomeLower.includes("debito"))
+      return "notaDebito";
+    if (nomeLower.includes("manifest")) return "manifest";
+    if (
+      nomeLower.includes("foto") ||
+      nomeLower.includes("imagem") ||
+      nomeLower.includes("photo")
+    )
+      return "evidencia";
+
+    return "outro";
+  },
+  /**
+   * Agrupar documentos por tipo
+   */
+  agruparDocumentosPorTipo(
+    documentos: DocumentoFile[]
+  ): Record<string, DocumentoFile[]> {
+    return documentos.reduce((grupos, doc) => {
+      const tipo = doc.descricao || "outros";
+      if (!grupos[tipo]) {
+        grupos[tipo] = [];
+      }
+      grupos[tipo].push(doc);
+      return grupos;
+    }, {} as Record<string, DocumentoFile[]>);
   },
 };

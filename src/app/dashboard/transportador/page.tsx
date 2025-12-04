@@ -56,6 +56,15 @@ import {
   MetricsMotoristas,
 } from "./motoristas";
 import NoticiasPage from "../cliente/NoticiasPagePrincipal2";
+import {
+  AbrangenciaSeguro,
+  Carga,
+  CategoriaSeguro,
+  NaturezaCarga,
+  Prioridade,
+  TipoPercurso,
+} from "../cliente/cargaService";
+import { TabelaCargasContainer } from "../cliente/TabelaCargasContainer";
 
 ChartJS.register(
   CategoryScale,
@@ -145,9 +154,11 @@ type ProblemaViagem = {
 
 type ViagemTransportador = {
   id: number;
+  valorMercadoria: number;
   numero: string;
   origem: string;
   destino: string;
+  subtipo: string;
   status:
     | "disponivel"
     | "coletando"
@@ -252,54 +263,6 @@ export type TipoCarga =
   | "Granel"
   | "Frigorífica"
   | "Perigosa";
-
-export interface Carga {
-  _id?: string;
-  codigo: string;
-  tipoCarga: TipoCarga;
-  descricao: string;
-  naturezaCarga: string;
-  pesoBruto: number;
-  cliente: string;
-  clienteId: number;
-  origem: {
-    cidade: string;
-    local: string;
-  };
-  destino: {
-    cidade: string;
-    local: string;
-  };
-  status: StatusCarga;
-  prioridade: PrioridadeCarga;
-  valorTotal: number;
-  dataColeta?: string;
-  dataEntregaPrevista?: string;
-  dataEntregaReal?: string;
-  motorista?: {
-    nome: string;
-    telefone: string;
-  };
-  veiculo?: {
-    matricula: string;
-    modelo: string;
-  };
-  dataCriacao: string;
-  dataAtualizacao: string;
-  volume?: number;
-  embalagem?: string;
-  pontoAtual?: {
-    descricao: string;
-    lat: number;
-    lng: number;
-  };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ocorrencias?: any[];
-  documentos?: {
-    conhecimentoEmbarque?: string;
-    invoice?: string;
-  };
-}
 
 export interface Metrics {
   totalCargas: number;
@@ -828,40 +791,77 @@ export default function DashboardTransportador() {
   };
 
   // Adaptar viagens para cargas
-  const adaptarViagensParaCargas = (
-    viagens: ViagemTransportador[]
-  ): Carga[] => {
-    return viagens.map((viagem) => ({
-      codigo: viagem.numero,
-      tipoCarga: viagem.tipoCarga as TipoCarga,
-      descricao: viagem.descricao,
-      naturezaCarga: "não perigosa",
-      pesoBruto: viagem.peso,
-      cliente: viagem.cliente,
-      clienteId: viagem.id,
-      origem: {
-        cidade: viagem.origem.split(",")[0],
-        local: viagem.origem,
-      },
-      destino: {
-        cidade: viagem.destino.split(",")[0],
-        local: viagem.destino,
-      },
-      status: adaptarStatusViagemParaCarga(viagem.status),
-      prioridade: viagem.prioridade as PrioridadeCarga,
-      valorTotal: viagem.valorFrete,
-      dataColeta: viagem.dataColeta,
-      dataEntregaPrevista: viagem.dataChegada,
-      dataEntregaReal: viagem.dataEntrega,
-      dataCriacao: viagem.dataPartida,
-      dataAtualizacao: new Date().toISOString(),
-      volume: viagem.volume,
-      veiculo: {
-        matricula: viagem.veiculo.split(" - ")[0],
-        modelo: viagem.veiculo.split(" - ")[1] || viagem.veiculo,
-      },
-    }));
-  };
+ const adaptarViagensParaCargas = (
+  viagens: ViagemTransportador[]
+): Carga[] => {
+  return viagens.map((viagem) => ({
+    codigo: viagem.numero,
+    tipoCarga: viagem.tipoCarga as TipoCarga,
+    descricao: viagem.descricao,
+    subtipo: viagem.subtipo,
+    naturezaCarga: "não perigosa" as NaturezaCarga,
+    categoriaSeguro: "Carga Geral" as CategoriaSeguro,
+    abrangenciaSeguro: "Nacional" as AbrangenciaSeguro,
+    tipoPercurso: "Nacional" as TipoPercurso,
+    destinoFrete: viagem.destino,
+
+    pesoBruto: viagem.peso,
+    volume: viagem.volume,
+
+    clienteId: String(viagem.id),
+    cliente: viagem.cliente,
+    nomeEmpresa: viagem.cliente || "Mega Centro e Logistica",
+
+    origem: {
+      cidade: viagem.origem.split(",")[0],
+      local: viagem.origem,
+      pais: "Moçambique",
+      coordenadas: { lat: 0, lng: 0 },
+    },
+    destino: {
+      cidade: viagem.destino.split(",")[0],
+      local: viagem.destino,
+      pais: "Moçambique",
+      coordenadas: { lat: 0, lng: 0 },
+    },
+
+    status: adaptarStatusViagemParaCarga(viagem.status),
+    prioridade: viagem.prioridade as Prioridade,
+    valorTotal: viagem.valorFrete,
+    valorMercadoria: viagem.valorMercadoria || 0,
+
+    dataColeta: viagem.dataColeta,
+    dataEntregaPrevista: viagem.dataChegada,
+    dataEntregaReal: viagem.dataEntrega,
+    dataCriacao: viagem.dataPartida,
+    dataAtualizacao: new Date().toISOString(),
+
+    // Construir veiculo completo conforme interface
+    veiculo: {
+      id: 0, // se não tiver, usa 0 ou outro identificador padrão
+      matricula: viagem.veiculo.split(" - ")[0],
+      modelo: viagem.veiculo.split(" - ")[1] || viagem.veiculo,
+      ano: undefined,
+      quilometragemInicial: undefined,
+      quilometragemFinal: undefined,
+      proximaRevisaoKM: undefined,
+      estadoVeiculoAntes: undefined,
+      estadoVeiculoDepois: undefined,
+      seguroVeiculo: undefined,
+    },
+
+    viagemId: viagem.id,
+    atrasada: "false",
+
+    exportador: "",
+    importador: "",
+    consignatario: "",
+    contatoCliente: "",
+    instrucaoEspecial: "",
+  }));
+};
+
+
 
   const adaptarStatusViagemParaCarga = (status: string): StatusCarga => {
     const statusMap: Record<string, StatusCarga> = {
@@ -964,68 +964,7 @@ export default function DashboardTransportador() {
       setIsDataLoading(true);
       try {
         // Dados mock de viagens
-        const mockViagens: ViagemTransportador[] = [
-          {
-            id: 1,
-            numero: "VG001",
-            origem: "Maputo, Mozambique",
-            destino: "Beira, Mozambique",
-            status: "em_viagem",
-            tipoCarga: "Contentorizada",
-            dataPartida: "2024-01-15",
-            dataChegada: "2024-01-20",
-            dataColeta: "2024-01-15",
-            dataEntrega: "",
-            valorFrete: 25000,
-            pontuacao: 4.5,
-            cliente: "Empresa ABC Ltda",
-            contatoCliente: "+258 84 123 4567",
-            distancia: 1200,
-            peso: 15000,
-            volume: 68,
-            prioridade: "alta",
-            descricao: "Carga de equipamentos eletrônicos",
-            observacoes: "Carga frágil - manusear com cuidado",
-            documentos: ["Invoice_001.pdf", "Conhecimento_001.pdf"],
-            veiculo: "AB-123-CD - Volvo FH16",
-            combustivel: 8000,
-            pedagios: 1500,
-            despesas: 2000,
-            relatorios: [],
-            expedientes: [],
-            problemas: [],
-          },
-          {
-            id: 2,
-            numero: "VG002",
-            origem: "Nampula, Mozambique",
-            destino: "Pemba, Mozambique",
-            status: "disponivel",
-            tipoCarga: "Solta",
-            dataPartida: "2024-01-18",
-            dataChegada: "2024-01-22",
-            dataColeta: "",
-            dataEntrega: "",
-            valorFrete: 18000,
-            pontuacao: undefined,
-            cliente: "Comércio Geral XYZ",
-            contatoCliente: "+258 86 987 6543",
-            distancia: 800,
-            peso: 8000,
-            volume: 45,
-            prioridade: "media",
-            descricao: "Carga de materiais de construção",
-            observacoes: "",
-            documentos: ["Invoice_002.pdf"],
-            veiculo: "EF-456-GH - Mercedes Actros",
-            combustivel: 5000,
-            pedagios: 800,
-            despesas: 1200,
-            relatorios: [],
-            expedientes: [],
-            problemas: [],
-          },
-        ];
+        const mockViagens: ViagemTransportador[] = [];
 
         setViagens(mockViagens);
         setIsDataLoading(false);
@@ -1063,23 +1002,28 @@ export default function DashboardTransportador() {
       <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <FiTruck className="h-8 w-8 text-green-600" />
-              <h1 className="ml-2 text-xl font-semibold text-gray-900 dark:text-white">
+            {/* LOGO + TÍTULO */}
+            <div className="flex items-center space-x-2">
+              <FiTruck className="h-7 w-7 text-green-600" />
+              <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white truncate">
                 Dashboard Transportador
               </h1>
             </div>
 
-            <div className="flex items-center space-x-4">
+            {/* AÇÕES */}
+            <div className="flex items-center space-x-3">
+              {/* NOTIFICAÇÕES */}
               <button className="relative p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                <FiBell className="h-6 w-6" />
+                <FiBell className="h-5 w-5 sm:h-6 sm:w-6" />
                 <span className="absolute top-0 right-0 block h-2 w-2 bg-red-600 rounded-full"></span>
               </button>
 
-              {/* Menu de usuário com dropdown para logout */}
-              <div className="relative">
-                <div className="flex items-center space-x-3">
-                  <div className="text-right">
+              {/* MENU DE USUÁRIO */}
+              <div className="relative group">
+                {/* INFO + AVATAR */}
+                <div className="flex items-center space-x-2 cursor-pointer">
+                  {/* Esconde os textos no mobile */}
+                  <div className="hidden sm:block text-right">
                     <p className="text-sm font-medium text-gray-900 dark:text-white">
                       {transportadora?.nomeEmpresa || "Transportadora"}
                     </p>
@@ -1087,15 +1031,20 @@ export default function DashboardTransportador() {
                       Transportadora {transportadora?.transportadoraId || "ID"}
                     </p>
                   </div>
-                  <div className="h-8 w-8 bg-green-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-green-700 transition-colors">
+
+                  <div className="h-8 w-8 bg-green-600 rounded-full flex items-center justify-center hover:bg-green-700 transition-colors">
                     <span className="text-white text-sm font-medium">
                       {transportadora?.nomeEmpresa?.charAt(0) || "T"}
                     </span>
                   </div>
                 </div>
 
-                {/* Dropdown menu */}
-                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                {/* DROPDOWN */}
+                <div
+                  className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border 
+                          border-gray-200 dark:border-gray-700 py-1 z-50 opacity-0 invisible 
+                          group-hover:opacity-100 group-hover:visible transition-all duration-200"
+                >
                   <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
                     <p className="text-sm font-medium text-gray-900 dark:text-white">
                       {transportadora?.nomeEmpresa}
@@ -1104,9 +1053,11 @@ export default function DashboardTransportador() {
                       {transportadora?.email}
                     </p>
                   </div>
+
                   <button
                     onClick={logout}
-                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center space-x-2"
+                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 
+                         dark:hover:bg-red-900/20 flex items-center space-x-2 transition-colors"
                   >
                     <FiSettings className="w-4 h-4" />
                     <span>Sair da Conta</span>
@@ -1114,10 +1065,12 @@ export default function DashboardTransportador() {
                 </div>
               </div>
 
-              {/* Botão de logout simples (alternativa) */}
+              {/* BOTÃO "SAIR" – OCULTO EM TELAS MENORES */}
               <button
                 onClick={logout}
-                className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                className="hidden sm:flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 
+                     dark:text-gray-300 hover:text-gray-900 dark:hover:text-white 
+                     hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
               >
                 <FiSettings className="w-4 h-4" />
                 <span>Sair</span>
@@ -1168,26 +1121,7 @@ export default function DashboardTransportador() {
       {/* Conteúdo Principal */}
       <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         {activeTab === "viagens" && (
-          <FiltrosCargas
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            statusFilter={statusFilter}
-            setStatusFilter={setStatusFilter}
-            tipoFilter={tipoFilter}
-            setTipoFilter={setTipoFilter}
-            filtrosAvancados={filtrosAvancados}
-            setFiltrosAvancados={setFiltrosAvancados}
-            filteredCargas={filteredCargas}
-            metrics={metrics}
-            isDataLoading={isDataLoading}
-            exportarDados={exportarDados}
-            setShowNovaCargaModal={setShowNovaCargaModal}
-            visualizarCarga={visualizarCarga}
-            aceitarCarga={aceitarCarga}
-            atualizarStatus={atualizarStatusCarga}
-            Spinner={Spinner}
-            nomeEmpresa={transportadora?.nomeEmpresa}
-          />
+         <TabelaCargasContainer nomeEmpresa="Mega Centro e Logistica" />
         )}
 
         {activeTab === "disponiveis" && (
@@ -1198,9 +1132,7 @@ export default function DashboardTransportador() {
             }}
           />
         )}
-        {activeTab === "noticias" && (
-          <NoticiasPage />
-        )}
+        {activeTab === "noticias" && <NoticiasPage />}
 
         {activeTab === "desempenho" && (
           <MetricsDashboard exportarDados={handleExportarDados} />
