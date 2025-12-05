@@ -7,7 +7,8 @@ import {
   FiPhone,
   FiMapPin,
   FiAlertCircle,
-  FiTruck
+  FiTruck,
+  FiGlobe
 } from "react-icons/fi";
 
 // Interfaces e tipos
@@ -26,6 +27,13 @@ export interface CreateMotoristaData {
   statusContratual: StatusContratual;
   numeroBI: string;
   validadeBI: string;
+  passaporte?: {
+    numero: string;
+    paisEmissor?: string;
+    dataEmissao?: string;
+    validade?: string;
+    localEmissao?: string;
+  };
   nuit?: string;
   numeroSegurancaSocial?: string;
   cartaConducao: {
@@ -104,6 +112,23 @@ const PARENTESCO_OPTIONS = [
   { value: "outro", label: "Outro" }
 ] as const;
 
+// NOVO: Países para o campo de passaporte
+const PAISES_OPTIONS = [
+  { value: "MZ", label: "Moçambique" },
+  { value: "PT", label: "Portugal" },
+  { value: "BR", label: "Brasil" },
+  { value: "AO", label: "Angola" },
+  { value: "ZA", label: "África do Sul" },
+  { value: "CN", label: "China" },
+  { value: "IN", label: "Índia" },
+  { value: "US", label: "Estados Unidos" },
+  { value: "GB", label: "Reino Unido" },
+  { value: "FR", label: "França" },
+  { value: "DE", label: "Alemanha" },
+  { value: "ES", label: "Espanha" },
+  { value: "outro", label: "Outro" }
+] as const;
+
 export function NovoMotoristaModal({ 
   isOpen, 
   onClose, 
@@ -123,6 +148,7 @@ export function NovoMotoristaModal({
     statusContratual: 'ativo',
     numeroBI: '',
     validadeBI: new Date(new Date().setFullYear(new Date().getFullYear() + 5)).toISOString().split('T')[0],
+    passaporte: undefined,
     nuit: '',
     numeroSegurancaSocial: '',
     cartaConducao: {
@@ -154,7 +180,8 @@ export function NovoMotoristaModal({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [activeTab, setActiveTab] = useState<'pessoal' | 'documentacao' | 'contactos' | 'habilitacao'>('pessoal');
+  const [activeTab, setActiveTab] = useState<'pessoal' | 'documentacao' | 'passaporte' | 'contactos' | 'habilitacao'>('pessoal');
+  const [showPassaporte, setShowPassaporte] = useState(false); // NOVO: Controlar exibição do passaporte
 
   // Função para validar o formulário
   const validateForm = (): boolean => {
@@ -183,6 +210,19 @@ export function NovoMotoristaModal({
       
       if (idade < 18) {
         newErrors.dataNascimento = 'Motorista deve ter pelo menos 18 anos';
+      }
+    }
+
+    // NOVO: Validação do passaporte se estiver ativo
+    if (showPassaporte && formData.passaporte) {
+      if (!formData.passaporte.numero?.trim()) {
+        newErrors.numeroPassaporte = 'Número do passaporte é obrigatório quando fornecido';
+      }
+      if (formData.passaporte.validade) {
+        const validadePassaporte = new Date(formData.passaporte.validade);
+        if (validadePassaporte <= new Date()) {
+          newErrors.validadePassaporte = 'Passaporte está vencido';
+        }
       }
     }
 
@@ -229,6 +269,24 @@ export function NovoMotoristaModal({
     }
   };
 
+  // NOVO: Função para alternar visibilidade do passaporte
+  const togglePassaporte = () => {
+    setShowPassaporte(!showPassaporte);
+    if (!showPassaporte && !formData.passaporte) {
+      // Inicializar objeto passaporte se estiver ativando
+      handleChange('passaporte', {
+        numero: '',
+        paisEmissor: 'MZ',
+        dataEmissao: new Date().toISOString().split('T')[0],
+        validade: new Date(new Date().setFullYear(new Date().getFullYear() + 5)).toISOString().split('T')[0],
+        localEmissao: ''
+      });
+    } else if (!showPassaporte && formData.passaporte) {
+      // Limpar passaporte se estiver desativando
+      handleChange('passaporte', undefined);
+    }
+  };
+
   // Função para submeter o formulário
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -237,8 +295,14 @@ export function NovoMotoristaModal({
       return;
     }
 
+    // NOVO: Limpar passaporte se não estiver ativo
+    const dadosParaEnviar = { ...formData };
+    if (!showPassaporte || !dadosParaEnviar.passaporte?.numero) {
+      delete dadosParaEnviar.passaporte;
+    }
+
     try {
-      await onSave(formData);
+      await onSave(dadosParaEnviar);
       // Limpar formulário após sucesso
       setFormData({
         nomeCompleto: '',
@@ -251,6 +315,7 @@ export function NovoMotoristaModal({
         statusContratual: 'ativo',
         numeroBI: '',
         validadeBI: new Date(new Date().setFullYear(new Date().getFullYear() + 5)).toISOString().split('T')[0],
+        passaporte: undefined,
         nuit: '',
         numeroSegurancaSocial: '',
         cartaConducao: {
@@ -280,6 +345,7 @@ export function NovoMotoristaModal({
         status: 'disponivel',
         observacoes: ''
       });
+      setShowPassaporte(false);
       setErrors({});
     } catch (error) {
       console.error('Erro ao salvar motorista:', error);
@@ -289,7 +355,7 @@ export function NovoMotoristaModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
@@ -313,6 +379,7 @@ export function NovoMotoristaModal({
             {[
               { id: 'pessoal', label: 'Informações Pessoais', icon: FiUser },
               { id: 'documentacao', label: 'Documentação', icon: FiFileText },
+              { id: 'passaporte', label: 'Passaporte', icon: FiGlobe },
               { id: 'contactos', label: 'Contactos', icon: FiPhone },
               { id: 'habilitacao', label: 'Habilitação', icon: FiTruck }
             ].map((tab) => {
@@ -549,6 +616,140 @@ export function NovoMotoristaModal({
                   />
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* NOVA Tab: Passaporte */}
+          {activeTab === 'passaporte' && (
+            <div className="space-y-6">
+              <div className="border-b border-gray-200 dark:border-gray-700 pb-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white flex items-center space-x-2">
+                    <FiGlobe className="h-5 w-5 text-blue-600" />
+                    <span>Informações do Passaporte</span>
+                  </h3>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                      Motorista possui passaporte?
+                    </span>
+                    <button
+                      type="button"
+                      onClick={togglePassaporte}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                        showPassaporte ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          showPassaporte ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {showPassaporte && formData.passaporte && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Número do Passaporte *
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.passaporte.numero || ''}
+                      onChange={(e) => handleChange('passaporte.numero', e.target.value)}
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        errors.numeroPassaporte ? 'border-red-300' : 'border-gray-300 dark:border-gray-600'
+                      } bg-white dark:bg-gray-700 text-gray-900 dark:text-white`}
+                      placeholder="Número do passaporte"
+                    />
+                    {errors.numeroPassaporte && (
+                      <p className="mt-1 text-sm text-red-600 flex items-center space-x-1">
+                        <FiAlertCircle className="h-4 w-4" />
+                        <span>{errors.numeroPassaporte}</span>
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      País Emissor
+                    </label>
+                    <select
+                      value={formData.passaporte.paisEmissor || 'MZ'}
+                      onChange={(e) => handleChange('passaporte.paisEmissor', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    >
+                      {PAISES_OPTIONS.map(option => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Data de Emissão
+                    </label>
+                    <input
+                      type="date"
+                      value={formData.passaporte.dataEmissao || ''}
+                      onChange={(e) => handleChange('passaporte.dataEmissao', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Validade
+                    </label>
+                    <input
+                      type="date"
+                      value={formData.passaporte.validade || ''}
+                      onChange={(e) => handleChange('passaporte.validade', e.target.value)}
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        errors.validadePassaporte ? 'border-red-300' : 'border-gray-300 dark:border-gray-600'
+                      } bg-white dark:bg-gray-700 text-gray-900 dark:text-white`}
+                    />
+                    {errors.validadePassaporte && (
+                      <p className="mt-1 text-sm text-red-600 flex items-center space-x-1">
+                        <FiAlertCircle className="h-4 w-4" />
+                        <span>{errors.validadePassaporte}</span>
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Local de Emissão
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.passaporte.localEmissao || ''}
+                      onChange={(e) => handleChange('passaporte.localEmissao', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      placeholder="Local onde o passaporte foi emitido"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {!showPassaporte && (
+                <div className="text-center py-8">
+                  <FiGlobe className="h-12 w-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Passaporte Não Disponível
+                  </h3>
+                  <p className="text-gray-500 dark:text-gray-400 mb-4">
+                    Este motorista não possui passaporte. Ative o interruptor acima se ele tiver um passaporte válido.
+                  </p>
+                  <p className="text-sm text-gray-400 dark:text-gray-500">
+                    Nota: O passaporte é necessário para serviços internacionais/trânsito.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 

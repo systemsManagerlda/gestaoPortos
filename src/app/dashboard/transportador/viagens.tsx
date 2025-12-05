@@ -464,13 +464,13 @@ export function FiltrosCargas({
               <span>Exportar</span>
             </button>
 
-            <button
+            {/* <button
               onClick={() => setShowNovaCargaModal(true)}
               className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
             >
               <FiPlus className="w-4 h-4" />
               <span>Nova Carga</span>
-            </button>
+            </button> */}
           </div>
         </div>
 

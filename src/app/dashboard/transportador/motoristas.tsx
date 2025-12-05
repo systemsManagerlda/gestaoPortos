@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   FiSearch,
   FiFilter,
@@ -20,11 +22,13 @@ import {
   FiChevronsLeft,
   FiChevronsRight,
 } from "react-icons/fi";
+import Image from "next/image";
 import { CreateMotoristaData, NovoMotoristaModal } from "./modelNovoMotorista";
 import { useState, useEffect } from "react";
 import { criarNovoMotorista } from "./criarNovoMotorista";
 import { MotoristaDetailsModal } from "./MotoristaDetailsModal";
 import { Veiculo, VeiculoDetailsModal } from "./VeiculoDetailsModal";
+import { EditarMotoristaModal } from "./EditarMotoristaModal";
 
 // Interfaces para Motoristas
 export type StatusMotorista =
@@ -95,6 +99,16 @@ export interface Motorista {
   // Documentação pessoal
   numeroBI: string;
   validadeBI: string;
+
+  // NOVO CAMPO: Passaporte
+  passaporte?: {
+    numero: string;
+    paisEmissor?: string;
+    dataEmissao?: string;
+    validade?: string;
+    localEmissao?: string;
+  };
+
   nuit?: string;
   numeroSegurancaSocial?: string;
 
@@ -175,7 +189,7 @@ export interface Motorista {
   indiceAcidentes: number;
   indiceMultas: number;
 
-  // Controle de horas e jornada (Novo)
+  // Controle de horas e jornada
   limitesJornada?: {
     horasMaxDia?: number;
     horasMaxSemana?: number;
@@ -194,7 +208,7 @@ export interface Motorista {
     }>;
   }>;
 
-  // Histórico de viagens (Novo)
+  // Histórico de viagens
   historicoViagens?: Array<{
     viagemId: number;
     numeroViagem?: string;
@@ -227,7 +241,7 @@ export interface Motorista {
   alergias?: string[];
   tipoSanguineo?: string;
 
-  // Treinamentos e capacitações (Novo)
+  // Treinamentos e capacitações
   treinamentos?: Array<{
     nome: string;
     tipo?: string;
@@ -237,7 +251,7 @@ export interface Motorista {
     certificado?: string;
   }>;
 
-  // Incidentes e ocorrências (Novo)
+  // Incidentes e ocorrências
   incidentes?: Array<{
     data: string;
     tipo?: string;
@@ -257,7 +271,7 @@ export interface Motorista {
     status?: string;
   }>;
 
-  // Dados bancários e remuneração (Novo)
+  // Dados bancários e remuneração
   dadosBancarios?: {
     banco?: string;
     numeroConta?: string;
@@ -272,7 +286,7 @@ export interface Motorista {
     ajudasCusto?: number;
   };
 
-  // Equipamentos e uniforme (Novo)
+  // Equipamentos e uniforme
   equipamentos?: Array<{
     tipo?: string;
     descricao?: string;
@@ -283,7 +297,7 @@ export interface Motorista {
   // Status operacional
   status: StatusMotorista;
 
-  // FOTOS - Campos atualizados
+  // FOTOS
   foto?: string; // URL da foto principal do motorista
   fotos?: string[]; // URLs de fotos adicionais do motorista
 
@@ -299,6 +313,10 @@ export interface Motorista {
   cartaValida?: boolean; // Virtual
   horasConduzidasMes?: number; // Virtual
   veiculosAptos?: VeiculoHabilitado[]; // Virtual
+
+  // NOVO VIRTUAL: Status do passaporte
+  passaporteValido?: boolean; // Virtual
+
   restricoesTransportador?: {
     // Virtual
     podeNacional: boolean;
@@ -329,7 +347,7 @@ export interface FiltrosAvancadosMotoristas {
   avaliacaoMax: string;
 }
 
-interface FiltrosMotoristasProps {
+export interface FiltrosMotoristasProps {
   // Estados
   searchTerm: string;
   idTransportadora: number;
@@ -337,7 +355,6 @@ interface FiltrosMotoristasProps {
   setSearchTerm: (value: string) => void;
   statusFilter: string;
   showNovoMotoristaModal: boolean;
-  showMotoristaDetailsModal: boolean; // ✅ já está
   setStatusFilter: (value: string) => void;
   statusContratualFilter: string;
   setStatusContratualFilter: (value: string) => void;
@@ -345,6 +362,12 @@ interface FiltrosMotoristasProps {
   setFiltrosAvancados: React.Dispatch<
     React.SetStateAction<FiltrosAvancadosMotoristas>
   >;
+
+  // NOVAS PROPRIEDADES: Estados para controle de modais
+  showMotoristaDetailsModal: boolean;
+  setShowMotoristaDetailsModal: React.Dispatch<React.SetStateAction<boolean>>;
+  showEditarMotoristaModal?: boolean; // opcional
+  setShowEditarMotoristaModal?: React.Dispatch<React.SetStateAction<boolean>>; // opcional
 
   // Dados
   filteredMotoristas: Motorista[];
@@ -354,7 +377,6 @@ interface FiltrosMotoristasProps {
   // Funções
   exportarDados: (tipo: string) => void;
   setShowNovoMotoristaModal: (show: boolean) => void;
-  setShowMotoristaDetailsModal: React.Dispatch<React.SetStateAction<boolean>>; // ✅ adicionar
   visualizarMotorista: (motorista: Motorista) => void;
   adicionarVeiculo: (motoristaId: number) => void;
   atualizarStatus: (motoristaId: number, status: StatusMotorista) => void;
@@ -362,7 +384,6 @@ interface FiltrosMotoristasProps {
   // Componente Spinner
   Spinner: React.ComponentType<{ size?: string }>;
 }
-
 // Constantes para os filtros
 const STATUS_OPTIONS = [
   { value: "todos", label: "Todos os Status" },
@@ -408,6 +429,17 @@ function useMotoristasFiltrados(
   statusContratualFilter: string,
   filtrosAvancados: FiltrosAvancadosMotoristas
 ) {
+  
+  const [showMotoristaDetailsModal, setShowMotoristaDetailsModal] =
+    useState(false);
+  const [showEditarMotoristaModal, setShowEditarMotoristaModal] =
+    useState(false);
+  const [showNovoMotoristaModal, setShowNovoMotoristaModal] = useState(false);
+
+  const [selectedMotorista, setSelectedMotorista] = useState<Motorista | null>(
+    null
+  );
+  const [isLoading, setIsLoading] = useState(false);
   const [motoristas, setMotoristas] = useState<Motorista[]>([]);
   const [filteredMotoristas, setFilteredMotoristas] = useState<Motorista[]>([]);
   const [metrics, setMetrics] = useState<MetricsMotoristas>({
@@ -423,8 +455,73 @@ function useMotoristasFiltrados(
 
   const [isDataLoading, setIsDataLoading] = useState(false);
 
+  // Função para lidar com a edição
+  const handleEditMotorista = async (motoristaData: Motorista) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/updateMotorista`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...motoristaData,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.returnCode === 200) {
+        // Atualizar a lista de motoristas
+        fetchMotoristas();
+        // Fechar modais
+        setShowEditarMotoristaModal(false);
+        setShowMotoristaDetailsModal(false);
+        // Mostrar mensagem de sucesso
+        alert("Motorista atualizado com sucesso!");
+      } else {
+        throw new Error(result.returnMsg);
+      }
+    } catch (error) {
+      console.error("Erro ao atualizar motorista:", error);
+      alert(`Erro ao atualizar motorista: ${error}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Função para abrir o modal de detalhes e armazenar o motorista selecionado
+  const handleViewMotorista = (motorista: Motorista) => {
+    setSelectedMotorista(motorista);
+    setShowMotoristaDetailsModal(true);
+  };
+
+  // Função para lidar com a criação de novo motorista
+  const handleCreateMotorista = async (motoristaData: any) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/createMotorista`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(motoristaData),
+      });
+      const result = await response.json();
+      if (result.returnCode === 201) {
+        fetchMotoristas();
+        setShowNovoMotoristaModal(false);
+        alert("Motorista criado com sucesso!");
+      } else {
+        throw new Error(result.returnMsg);
+      }
+    } catch (error) {
+      console.error("Erro ao criar motorista:", error);
+      alert(`Erro ao criar motorista: ${error}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Buscar dados da API
-  // No fetchMotoristas, dentro do useMotoristasFiltrados
   const fetchMotoristas = async () => {
     setIsDataLoading(true);
     try {
@@ -437,8 +534,8 @@ function useMotoristasFiltrados(
           curPage: 1,
           pageSize: 100,
           nomeCompleto: searchTerm || undefined,
-          empresaMotorista: nameTransportadora, // FORÇAR o filtro por transportadora
-          empresaMotoristaId: empresaMotoristaId, // FORÇAR o filtro por ID
+          empresaMotorista: nameTransportadora,
+          empresaMotoristaId: empresaMotoristaId,
           status: statusFilter !== "todos" ? statusFilter : undefined,
           statusContratual:
             statusContratualFilter !== "todos"
@@ -458,18 +555,7 @@ function useMotoristasFiltrados(
       const data = await response.json();
 
       if (data.returnCode === 200) {
-        console.log("Motoristas retornados da API:", data.data.list.length); // Debug
-        console.log(
-          "Motoristas retornados:",
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          data.data.list.map((m: any) => ({
-            id: m.motoristaId,
-            nome: m.nomeCompleto,
-            empresa: m.empresaMotorista,
-            empresaId: m.empresaMotoristaId,
-          }))
-        ); // Debug
-
+        console.log("Motoristas retornados da API:", data.data.list.length);
         setMotoristas(data.data.list);
         aplicarFiltrosLocais(data.data.list);
       } else {
@@ -517,67 +603,62 @@ function useMotoristasFiltrados(
         motorista.empresaMotorista === nameTransportadora
     );
 
-    console.log(`Motoristas da transportadora atual: ${filtered.length}`); // Debug
+    console.log(`Motoristas da transportadora atual: ${filtered.length}`);
 
     // DEPOIS: Aplicar os filtros avançados
-    // Filtro por categoria de carta
     if (filtrosAvancados.categoriaCarta !== "todos") {
       filtered = filtered.filter(
         (motorista) =>
           motorista.cartaConducao.categoria === filtrosAvancados.categoriaCarta
       );
-      console.log(`Após filtro categoria: ${filtered.length}`); // Debug
+      console.log(`Após filtro categoria: ${filtered.length}`);
     }
 
-    // Filtro por empresa (provavelmente pode remover este, já que estamos filtrando por transportadora)
     if (filtrosAvancados.empresaMotorista) {
       filtered = filtered.filter((motorista) =>
         motorista.empresaMotorista
           .toLowerCase()
           .includes(filtrosAvancados.empresaMotorista.toLowerCase())
       );
-      console.log(`Após filtro empresa: ${filtered.length}`); // Debug
+      console.log(`Após filtro empresa: ${filtered.length}`);
     }
 
-    // Filtro por avaliação mínima
     if (filtrosAvancados.avaliacaoMin) {
       const min = parseFloat(filtrosAvancados.avaliacaoMin);
       filtered = filtered.filter(
         (motorista) =>
           motorista.avaliacaoGeral && motorista.avaliacaoGeral >= min
       );
-      console.log(`Após filtro avaliação min: ${filtered.length}`); // Debug
+      console.log(`Após filtro avaliação min: ${filtered.length}`);
     }
 
-    // Filtro por avaliação máxima
     if (filtrosAvancados.avaliacaoMax) {
       const max = parseFloat(filtrosAvancados.avaliacaoMax);
       filtered = filtered.filter(
         (motorista) =>
           motorista.avaliacaoGeral && motorista.avaliacaoGeral <= max
       );
-      console.log(`Após filtro avaliação max: ${filtered.length}`); // Debug
+      console.log(`Após filtro avaliação max: ${filtered.length}`);
     }
 
-    // Filtro por status operacional
     if (filtrosAvancados.status !== "todos") {
       filtered = filtered.filter(
         (motorista) => motorista.status === filtrosAvancados.status
       );
-      console.log(`Após filtro status: ${filtered.length}`); // Debug
+      console.log(`Após filtro status: ${filtered.length}`);
     }
 
-    // Filtro por status contratual
     if (filtrosAvancados.statusContratual !== "todos") {
       filtered = filtered.filter(
         (motorista) =>
           motorista.statusContratual === filtrosAvancados.statusContratual
       );
-      console.log(`Após filtro status contratual: ${filtered.length}`); // Debug
+      console.log(`Após filtro status contratual: ${filtered.length}`);
     }
 
     setFilteredMotoristas(filtered);
   };
+
   // Efeito para buscar dados iniciais
   useEffect(() => {
     fetchMotoristas();
@@ -602,7 +683,19 @@ function useMotoristasFiltrados(
     filteredMotoristas,
     metrics,
     isDataLoading,
+    showMotoristaDetailsModal,
+    setShowMotoristaDetailsModal,
+    showEditarMotoristaModal,
+    setShowEditarMotoristaModal,
+    showNovoMotoristaModal,
+    setShowNovoMotoristaModal,
+    selectedMotorista,
+    setSelectedMotorista,
+    isLoading,
     refetch: fetchMotoristas,
+    handleEditMotorista,
+    handleViewMotorista,
+    handleCreateMotorista,
   };
 }
 
@@ -735,69 +828,54 @@ export function FiltrosMotoristas({
   Spinner,
   idTransportadora,
   nameTransportadora,
-  showMotoristaDetailsModal,
-  setShowMotoristaDetailsModal,
-}: FiltrosMotoristasProps) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  visualizarMotorista: propVisualizarMotorista,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  adicionarVeiculo,
+}: FiltrosMotoristasProps) {
   const [selectedMotorista, setSelectedMotorista] = useState<Motorista | null>(
     null
   );
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [loading, setLoading] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [selectedVeiculo, setSelectedVeiculo] = useState<Veiculo | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [showVeiculoDetailsModal, setShowVeiculoDetailsModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  const visualizarMotorista = (motorista: Motorista) => {
-    setSelectedMotorista(motorista);
-    setShowMotoristaDetailsModal(true);
-  };
-  // Função para lidar com a visualização do veículo
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleVisualizarVeiculo = async (motoristaId: number) => {
-    try {
-      // Buscar informações do veículo/camião associado ao motorista
-      const response = await fetch(`${API_BASE_URL}/getCamioesPorMotorista`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          motoristaId: motoristaId,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.returnCode === 200 && data.data.camioes.length > 0) {
-        setSelectedVeiculo(data.data.camioes[0]);
-        setShowVeiculoDetailsModal(true);
-      } else {
-        alert("Nenhum veículo encontrado para este motorista");
-      }
-    } catch (error) {
-      console.error("Erro ao buscar veículo:", error);
-      alert("Erro ao carregar informações do veículo");
-    }
-  };
-
   // Usar o hook personalizado para gerenciar os dados
-  const { filteredMotoristas, metrics, isDataLoading, refetch } =
-    useMotoristasFiltrados(
-      idTransportadora,
-      nameTransportadora,
-      searchTerm,
-      statusFilter,
-      statusContratualFilter,
-      filtrosAvancados
-    );
+  const {
+    filteredMotoristas,
+    metrics,
+    isDataLoading,
+    showMotoristaDetailsModal,
+    setShowMotoristaDetailsModal,
+    showEditarMotoristaModal,
+    setShowEditarMotoristaModal,
+    selectedMotorista: hookSelectedMotorista,
+    setSelectedMotorista: setHookSelectedMotorista,
+    isLoading,
+    refetch,
+    handleEditMotorista,
+    handleViewMotorista,
+    handleCreateMotorista,
+  } = useMotoristasFiltrados(
+    idTransportadora,
+    nameTransportadora,
+    searchTerm,
+    statusFilter,
+    statusContratualFilter,
+    filtrosAvancados
+  );
 
   const empresaMotorista = nameTransportadora;
   const empresaMotoristaId = idTransportadora;
+
+  // Sincronizar estados selecionados
+  useEffect(() => {
+    if (hookSelectedMotorista !== selectedMotorista) {
+      setSelectedMotorista(hookSelectedMotorista);
+    }
+  }, [hookSelectedMotorista, selectedMotorista]);
 
   // Calcular dados paginados
   const totalItems = filteredMotoristas.length;
@@ -879,7 +957,6 @@ export function FiltrosMotoristas({
     return categoriaMap[categoria];
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const getCategoriaInspecaoColor = (categoria: CategoriaInspecao) => {
     switch (categoria) {
       case "A":
@@ -893,7 +970,6 @@ export function FiltrosMotoristas({
     }
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const getCategoriaInspecaoText = (categoria: CategoriaInspecao) => {
     const categoriaMap: Record<CategoriaInspecao, string> = {
       A: "Chanté",
@@ -1006,6 +1082,37 @@ export function FiltrosMotoristas({
     setItemsPerPage(newItemsPerPage);
     setCurrentPage(1); // Reset para a primeira página
   };
+
+  // Função para lidar com a visualização do veículo
+  const handleVisualizarVeiculo = async (motoristaId: number) => {
+    try {
+      // Buscar informações do veículo/camião associado ao motorista
+      const response = await fetch(`${API_BASE_URL}/getCamioesPorMotorista`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          motoristaId: motoristaId,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.returnCode === 200 && data.data.camioes.length > 0) {
+        setSelectedVeiculo(data.data.camioes[0]);
+        setShowVeiculoDetailsModal(true);
+      } else {
+        alert("Nenhum veículo encontrado para este motorista");
+      }
+    } catch (error) {
+      console.error("Erro ao buscar veículo:", error);
+      alert("Erro ao carregar informações do veículo");
+    }
+  };
+
+  const fallback =
+    "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2U1ZTVlNSIvPjxjaXJjbGUgY3g9IjEwMCIgY3k9IjgwIiByPSI0MCIgZmlsbD0iIzk5OSIvPjxjaXJjbGUgY3g9IjEwMCIgY3k9IjUwIiByPSIyMCIgZmlsbD0iIzk5OSIvPjwvc3ZnPg==";
 
   return (
     <div className="space-y-6">
@@ -1363,7 +1470,7 @@ export function FiltrosMotoristas({
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {isDataLoading ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center">
+                  <td colSpan={8} className="px-6 py-12 text-center">
                     <div className="flex justify-center">
                       <Spinner size="md" />
                     </div>
@@ -1374,7 +1481,7 @@ export function FiltrosMotoristas({
                 </tr>
               ) : currentItems.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center">
+                  <td colSpan={8} className="px-6 py-12 text-center">
                     <FiUser className="mx-auto h-12 w-12 text-gray-400" />
                     <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
                       Nenhum motorista encontrado
@@ -1401,16 +1508,16 @@ export function FiltrosMotoristas({
                         <div className="flex items-center">
                           {motorista.foto ? (
                             <div className="flex-shrink-0 h-10 w-10">
-                              <img
-                                className="h-10 w-10 rounded-full object-cover"
+                              <Image
                                 src={motorista.foto
                                   .replace(/^"+|"+$/g, "")
                                   .trim()}
                                 alt={motorista.nomeCompleto}
-                                onError={(e) => {
-                                  e.currentTarget.src =
-                                    "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2U1ZTVlNSIvPjxjaXJjbGUgY3g9IjEwMCIgY3k9IjgwIiByPSI0MCIgZmlsbD0iIzk5OSIvPjxjaXJjbGUgY3g9IjEwMCIgY3k9IjUwIiByPSIyMCIgZmlsbD0iIzk5OSIvPjwvc3ZnPg==";
-                                }}
+                                width={40}
+                                height={40}
+                                className="h-10 w-10 rounded-full object-cover"
+                                onError={() => fallback}
+                                unoptimized={true}
                               />
                             </div>
                           ) : (
@@ -1423,7 +1530,6 @@ export function FiltrosMotoristas({
                       <td className="px-6 py-4">
                         <div>
                           <div className="text-sm font-medium text-gray-900 dark:text-white flex items-center space-x-2">
-                            {/* <FiUser className="w-4 h-4 text-blue-600" /> */}
                             <span>{motorista.nomeCompleto}</span>
                           </div>
                           <div className="text-sm text-gray-500">
@@ -1582,9 +1688,9 @@ export function FiltrosMotoristas({
                       </td>
 
                       <td className="px-6 py-4">
-                        <div className="flex flex-col space-x-2">
+                        <div className="flex flex-col space-y-2">
                           <button
-                            onClick={() => visualizarMotorista(motorista)}
+                            onClick={() => handleViewMotorista(motorista)}
                             className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center transition-colors"
                           >
                             <FiEye className="w-4 h-4 mr-1" />
@@ -1629,19 +1735,26 @@ export function FiltrosMotoristas({
           />
         )}
       </div>
+
+      {/* Modal de Detalhes */}
       <MotoristaDetailsModal
         isOpen={showMotoristaDetailsModal}
-        onClose={() => setShowMotoristaDetailsModal(false)}
+        onClose={() => {
+          setShowMotoristaDetailsModal(false);
+          setSelectedMotorista(null);
+        }}
         motorista={selectedMotorista}
         onEdit={(motorista) => {
-          // Implementar edição do motorista
-          console.log("Editar motorista:", motorista);
+          setSelectedMotorista(motorista);
+          setShowMotoristaDetailsModal(false);
+          setShowEditarMotoristaModal(true);
         }}
         onAddVehicle={(motoristaId) => {
-          // Implementar adição de veículo
           console.log("Adicionar veículo para motorista:", motoristaId);
         }}
       />
+
+      {/* Modal de Novo Motorista */}
       <NovoMotoristaModal
         isOpen={showNovoMotoristaModal}
         onClose={() => setShowNovoMotoristaModal(false)}
@@ -1650,17 +1763,29 @@ export function FiltrosMotoristas({
         empresaMotorista={empresaMotorista}
         empresaMotoristaId={empresaMotoristaId}
       />
+
+      {/* Modal de Edição */}
+      <EditarMotoristaModal
+        isOpen={showEditarMotoristaModal}
+        onClose={() => {
+          setShowEditarMotoristaModal(false);
+          setSelectedMotorista(null);
+        }}
+        motorista={selectedMotorista}
+        onSave={handleEditMotorista}
+        isLoading={isLoading}
+      />
+
+      {/* Modal de Detalhes do Veículo */}
       <VeiculoDetailsModal
         isOpen={showVeiculoDetailsModal}
         onClose={() => setShowVeiculoDetailsModal(false)}
         veiculo={selectedVeiculo}
         onEdit={(veiculo) => {
-          // Implementar edição do veículo
           console.log("Editar veículo:", veiculo);
           setShowVeiculoDetailsModal(false);
         }}
         onUpdateGPS={(veiculoId) => {
-          // Implementar atualização do GPS
           console.log("Atualizar GPS do veículo:", veiculoId);
           setShowVeiculoDetailsModal(false);
         }}

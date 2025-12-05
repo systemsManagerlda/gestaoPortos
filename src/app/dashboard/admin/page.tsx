@@ -177,6 +177,14 @@ export default function DashboardAdmin() {
     category: "superior",
   },
   {
+    title: "Carga Disponível NLT",
+    description: "Cargas disponíveis para transporte",
+    icon: "📋",
+    href: "/cargas/disponiveis",
+    color: "bg-cyan-500 hover:bg-cyan-600",
+    category: "superior",
+  },
+  {
     title: "Seguro de Cargas",
     description: "Gestão de seguros e apólices",
     icon: "🛡️",
@@ -217,14 +225,7 @@ export default function DashboardAdmin() {
     color: "bg-teal-500 hover:bg-teal-600",
     category: "superior",
   },
-  {
-    title: "Carga Disponível NLT",
-    description: "Cargas disponíveis para transporte",
-    icon: "📋",
-    href: "/cargas/disponiveis",
-    color: "bg-cyan-500 hover:bg-cyan-600",
-    category: "superior",
-  },
+  
   {
     title: "Carga Carregada",
     description: "Controle de cargas carregadas",
