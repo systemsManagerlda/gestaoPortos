@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 const API_BASE_URL = "https://desktop-api-4f850b3f9733.herokuapp.com";
 
 // Novos tipos para GPS
@@ -287,6 +288,66 @@ const validarDadosCamiao = (dados: CreateCamiaoData): { valido: boolean; erros: 
     valido: erros.length === 0,
     erros
   };
+};
+
+export const camiaoService = {
+  async update(camiaoId: number, dadosAtualizados: Partial<Camiao>): Promise<Camiao> {
+    const response = await fetch(`${API_BASE_URL}/updateCamiao`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        camiaoId,
+        ...dadosAtualizados,
+        dataAtualizacao: new Date().toISOString(),
+      }),
+    });
+
+    const data = await response.json();
+
+    if (data.returnCode === 200) {
+      return data.data;
+    } else {
+      throw new Error(data.returnMsg || "Erro ao atualizar camião");
+    }
+  },
+
+  async create(dadosNovoCamiao: CreateCamiaoData): Promise<Camiao> {
+    const response = await fetch(`${API_BASE_URL}/createCamiao`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(dadosNovoCamiao),
+    });
+
+    const data = await response.json();
+
+    if (data.returnCode === 201) {
+      return data.data;
+    } else {
+      throw new Error(data.returnMsg || "Erro ao criar camião");
+    }
+  },
+
+  async list(filtros: any): Promise<{ list: Camiao[]; total: number }> {
+    const response = await fetch(`${API_BASE_URL}/getCamiaoList`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(filtros),
+    });
+
+    const data = await response.json();
+
+    if (data.returnCode === 200) {
+      return data.data;
+    } else {
+      throw new Error(data.returnMsg || "Erro ao listar camiões");
+    }
+  },
 };
 
 // Função para preparar dados do GPS para envio

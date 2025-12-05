@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   FiSearch,
   FiFilter,
@@ -23,7 +24,7 @@ import {
   FiShield,
 } from "react-icons/fi";
 import { CreateCamiaoData, NovoCamiaoModal } from "./modelNovoCamiao";
-import { criarNovoCamiao } from "./criarNovoCamiao";
+import { camiaoService, criarNovoCamiao } from "./criarNovoCamiao";
 import { toast } from "react-toastify";
 import { useState, useEffect } from "react";
 import { CamiaoDetailsModal } from "./CamiaoDetailsModal";
@@ -32,6 +33,7 @@ import {
   MotoristaAssociadoDetailsModal,
 } from "./MotoristaAssociadoDetailsModal";
 import { ManutencaoDetailsModal } from "./ManutencaoDetailsModal";
+import { EditCamiaoModal } from "./EditCamiaoModal";
 
 // Interfaces para Camiões
 export type StatusCamiao =
@@ -56,7 +58,7 @@ export type StatusGPS = "ativo" | "inativo" | "pendente" | "expirado";
 
 export interface FotoCamiao {
   url: string;
-  tipo: 'camião' | 'gps_instalacao';
+  tipo: "camião" | "gps_instalacao";
   descricao?: string;
   dataUpload: Date;
   nomeArquivo: string;
@@ -75,7 +77,6 @@ export interface Camiao {
   transportadoraId: number;
   motoristaId: number;
   codigoGPS: string;
-  
 
   // Tipo de GPS e Registro
   tipoGPS: {
@@ -398,75 +399,77 @@ function useCamioesFiltrados(
 
   // Buscar dados da API
   const fetchCamioes = async () => {
-  setIsDataLoading(true);
-  try {
-    // Preparar o corpo da requisição com TODOS os filtros
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const requestBody: any = {
-      curPage: 1,
-      pageSize: 100,
-      transportadoraId: idTransportadora, // FORÇAR o filtro por transportadora
-    };
+    setIsDataLoading(true);
+    try {
+      // Preparar o corpo da requisição com TODOS os filtros
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const requestBody: any = {
+        curPage: 1,
+        pageSize: 100,
+        transportadoraId: idTransportadora, // FORÇAR o filtro por transportadora
+      };
 
-    // Adicionar filtros apenas se não forem vazios ou "todos"
-    if (searchTerm) requestBody.matricula = searchTerm;
-    if (statusFilter !== "todos") requestBody.status = statusFilter;
-    if (categoriaFilter !== "todos") requestBody.categoriaInspecao = categoriaFilter;
-    
-    // FILTROS AVANÇADOS - incluir todos os campos
-    if (filtrosAvancados.tipoCamiao !== "todos") 
-      requestBody.tipoCamiao = filtrosAvancados.tipoCamiao;
-    if (filtrosAvancados.marca) 
-      requestBody.marca = filtrosAvancados.marca;
-    if (filtrosAvancados.anoMin) 
-      requestBody.anoMin = parseInt(filtrosAvancados.anoMin);
-    if (filtrosAvancados.anoMax) 
-      requestBody.anoMax = parseInt(filtrosAvancados.anoMax);
-    if (filtrosAvancados.tipoGPS !== "todos") 
-      requestBody.tipoGPS = filtrosAvancados.tipoGPS;
-    if (filtrosAvancados.gpsStatus !== "todos") 
-      requestBody.gpsStatus = filtrosAvancados.gpsStatus;
-    if (filtrosAvancados.transportadoraId) 
-      requestBody.transportadoraId = parseInt(filtrosAvancados.transportadoraId);
-    if (filtrosAvancados.motoristaId) 
-      requestBody.motoristaId = parseInt(filtrosAvancados.motoristaId);
+      // Adicionar filtros apenas se não forem vazios ou "todos"
+      if (searchTerm) requestBody.matricula = searchTerm;
+      if (statusFilter !== "todos") requestBody.status = statusFilter;
+      if (categoriaFilter !== "todos")
+        requestBody.categoriaInspecao = categoriaFilter;
 
-    const response = await fetch(`${API_BASE_URL}/getCamiaoList`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(requestBody),
-    });
+      // FILTROS AVANÇADOS - incluir todos os campos
+      if (filtrosAvancados.tipoCamiao !== "todos")
+        requestBody.tipoCamiao = filtrosAvancados.tipoCamiao;
+      if (filtrosAvancados.marca) requestBody.marca = filtrosAvancados.marca;
+      if (filtrosAvancados.anoMin)
+        requestBody.anoMin = parseInt(filtrosAvancados.anoMin);
+      if (filtrosAvancados.anoMax)
+        requestBody.anoMax = parseInt(filtrosAvancados.anoMax);
+      if (filtrosAvancados.tipoGPS !== "todos")
+        requestBody.tipoGPS = filtrosAvancados.tipoGPS;
+      if (filtrosAvancados.gpsStatus !== "todos")
+        requestBody.gpsStatus = filtrosAvancados.gpsStatus;
+      if (filtrosAvancados.transportadoraId)
+        requestBody.transportadoraId = parseInt(
+          filtrosAvancados.transportadoraId
+        );
+      if (filtrosAvancados.motoristaId)
+        requestBody.motoristaId = parseInt(filtrosAvancados.motoristaId);
 
-    const data = await response.json();
+      const response = await fetch(`${API_BASE_URL}/getCamiaoList`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      });
 
-    if (data.returnCode === 200) {
-      setCamioes(data.data.list);
-      aplicarFiltrosLocais(data.data.list);
-    } else {
+      const data = await response.json();
+
+      if (data.returnCode === 200) {
+        setCamioes(data.data.list);
+        aplicarFiltrosLocais(data.data.list);
+      } else {
+        setCamioes([]);
+        setFilteredCamioes([]);
+      }
+    } catch (error) {
+      console.error("Erro na requisição:", error);
       setCamioes([]);
       setFilteredCamioes([]);
+    } finally {
+      setIsDataLoading(false);
     }
-  } catch (error) {
-    console.error("Erro na requisição:", error);
-    setCamioes([]);
-    setFilteredCamioes([]);
-  } finally {
-    setIsDataLoading(false);
-  }
-};
-// Efeito para buscar dados quando filtros principais mudarem
-useEffect(() => {
-  fetchCamioes();
-}, [searchTerm, statusFilter, categoriaFilter, filtrosAvancados]); // ADICIONAR filtrosAvancados aqui
+  };
+  // Efeito para buscar dados quando filtros principais mudarem
+  useEffect(() => {
+    fetchCamioes();
+  }, [searchTerm, statusFilter, categoriaFilter, filtrosAvancados]); // ADICIONAR filtrosAvancados aqui
 
   // Aplicar filtros locais - apenas validação básica
-const aplicarFiltrosLocais = (camioesList: Camiao[]) => {
-  // Como a API já aplicou todos os filtros, apenas atualizamos a lista
-  // Isso evita duplicação de filtros e conflitos
-  setFilteredCamioes(camioesList);
-};
+  const aplicarFiltrosLocais = (camioesList: Camiao[]) => {
+    // Como a API já aplicou todos os filtros, apenas atualizamos a lista
+    // Isso evita duplicação de filtros e conflitos
+    setFilteredCamioes(camioesList);
+  };
 
   // Efeito para buscar dados iniciais
   useEffect(() => {
@@ -651,6 +654,10 @@ export function FiltrosCamioes({
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [selectedCamiao, setSelectedCamiao] = useState<Camiao | null>(null);
   const [showCamiaoDetailsModal, setShowCamiaoDetailsModal] = useState(false);
+  const [selectedCamiaoForEdit, setSelectedCamiaoForEdit] =
+    useState<Camiao | null>(null);
+  const [showEditCamiaoModal, setShowEditCamiaoModal] = useState(false);
+  const [isUpdatingCamiao, setIsUpdatingCamiao] = useState(false);
   const [selectedCamiaoManutencao, setSelectedCamiaoManutencao] =
     useState<Camiao | null>(null);
   const [showManutencaoModal, setShowManutencaoModal] = useState(false);
@@ -691,6 +698,12 @@ export function FiltrosCamioes({
     setSelectedCamiaoManutencao(camiao);
     setShowManutencaoModal(true);
   };
+  // Função para abrir o modal de edição
+  const handleEditCamiao = (camiao: Camiao) => {
+    setSelectedCamiaoForEdit(camiao);
+    setShowEditCamiaoModal(true);
+    setShowCamiaoDetailsModal(false); // Fechar modal de detalhes
+  };
 
   const handleVisualizarMotoristaAssociado = async (camiao: Camiao) => {
     try {
@@ -721,9 +734,7 @@ export function FiltrosCamioes({
   };
 
   // Debug para verificar métricas
-  useEffect(() => {
-    
-  }, [metrics, filteredCamioes]);
+  useEffect(() => {}, [metrics, filteredCamioes]);
 
   // Funções auxiliares
   const getStatusColor = (status: StatusCamiao) => {
@@ -940,6 +951,44 @@ export function FiltrosCamioes({
   const handleItemsPerPageChange = (newItemsPerPage: number) => {
     setItemsPerPage(newItemsPerPage);
     setCurrentPage(1); // Reset para a primeira página
+  };
+  const handleUpdateCamiao = async (
+    camiaoId: number,
+    dadosAtualizados: Partial<Camiao>
+  ) => {
+    setIsUpdatingCamiao(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/updateCamiao`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          camiaoId,
+          ...dadosAtualizados,
+          dataAtualizacao: new Date().toISOString(),
+          atualizadoPor: "usuario_atual",
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.returnCode === 200) {
+        toast.success("Camião atualizado com sucesso!");
+        refetch(); // Recarregar a lista de camiões
+        setShowEditCamiaoModal(false);
+        setSelectedCamiaoForEdit(null);
+        return data.data;
+      } else {
+        throw new Error(data.returnMsg || "Erro ao atualizar camião");
+      }
+    } catch (error) {
+      console.error("Erro ao atualizar camião:", error);
+      toast.error(`Erro: ${error}`);
+      throw error;
+    } finally {
+      setIsUpdatingCamiao(false);
+    }
   };
 
   return (
@@ -1690,10 +1739,7 @@ export function FiltrosCamioes({
         isOpen={showCamiaoDetailsModal}
         onClose={() => setShowCamiaoDetailsModal(false)}
         camiao={selectedCamiao}
-        onEdit={(camiao) => {
-          console.log("Editar camião:", camiao);
-          setShowCamiaoDetailsModal(false);
-        }}
+        onEdit={handleEditCamiao} // ← CORREÇÃO: Passar a função que recebe apenas o camião
         onAssociateMotorista={(camiaoId) => {
           console.log("Associar motorista ao camião:", camiaoId);
           setShowCamiaoDetailsModal(false);
@@ -1744,6 +1790,16 @@ export function FiltrosCamioes({
           console.log("Contactar motorista:", motorista);
           // Implementar lógica de contato
         }}
+      />
+      <EditCamiaoModal
+        isOpen={showEditCamiaoModal}
+        onClose={() => {
+          setShowEditCamiaoModal(false);
+          setSelectedCamiaoForEdit(null);
+        }}
+        camiao={selectedCamiaoForEdit}
+        onSave={handleUpdateCamiao} // ← CORREÇÃO: Passar a função que recebe id e dados
+        isLoading={isUpdatingCamiao}
       />
       <ManutencaoDetailsModal
         isOpen={showManutencaoModal}

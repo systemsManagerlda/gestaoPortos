@@ -32,12 +32,14 @@ import {
   TipoGPS,
   StatusGPS,
 } from "./camioes";
+import { EditCamiaoModal } from "./EditCamiaoModal";
 
+const API_BASE_URL = "https://desktop-api-4f850b3f9733.herokuapp.com";
 interface CamiaoDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   camiao: Camiao | null;
-  onEdit?: (camiao: Camiao) => void;
+  onEdit?: (camiao: Camiao) => void; // ← Recebe apenas o camião
   onAssociateMotorista?: (camiaoId: number) => void;
   onUpdateStatus?: (camiaoId: number, status: StatusCamiao) => void;
   onUpdateGPS?: (camiaoId: number) => void;
@@ -62,8 +64,58 @@ export function CamiaoDetailsModal({
   onUpdateGPS,
 }: CamiaoDetailsModalProps) {
   const [activeTab, setActiveTab] = useState("geral");
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   if (!isOpen || !camiao) return null;
+
+  // Função para lidar com a edição
+  const handleEditClick = () => {
+    setShowEditModal(true);
+  };
+
+  // Função para salvar as alterações
+  const handleSaveCamiao = async (
+    camiaoId: number,
+    dadosAtualizados: Partial<Camiao>
+  ) => {
+    setIsSaving(true);
+    try {
+      // Aqui você faria a chamada à API para atualizar o camião
+      const response = await fetch(`${API_BASE_URL}/updateCamiao`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          camiaoId,
+          ...dadosAtualizados,
+          dataAtualizacao: new Date().toISOString(),
+          atualizadoPor: "usuario_atual", // Adicione lógica para obter o usuário atual
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.returnCode === 200) {
+        // Fechar modais e atualizar dados
+        setShowEditModal(false);
+        onClose(); // Fechar modal de detalhes também
+        // Recarregar dados se necessário
+        if (onEdit) {
+          // Chame a função de callback para atualizar a lista
+          onEdit(data.data); // Supondo que a API retorne o camião atualizado
+        }
+      } else {
+        throw new Error(data.returnMsg || "Erro ao atualizar camião");
+      }
+    } catch (error) {
+      console.error("Erro ao atualizar camião:", error);
+      throw error;
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // Funções auxiliares para formatação e estilos
   const getStatusColor = (status: StatusCamiao) => {
@@ -1471,7 +1523,6 @@ export function CamiaoDetailsModal({
     );
 
     // Função para limpar URLs (remove aspas e espaços)
-    
 
     const handleUploadComplete = useCallback((novasFotos: FotoCamiao[]) => {
       const novasFotosCamiao = novasFotos
@@ -1703,7 +1754,11 @@ export function CamiaoDetailsModal({
             <div className="flex items-center space-x-2">
               {onEdit && (
                 <button
-                  onClick={() => onEdit(camiao)}
+                  onClick={() => {
+                    if (camiao) {
+                      onEdit(camiao); // ← Chama a função passando o camião completo
+                    }
+                  }}
                   className="flex items-center space-x-2 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   <FiTruck className="w-4 h-4" />
@@ -1801,6 +1856,13 @@ export function CamiaoDetailsModal({
           </div>
         </div>
       </div>
+      <EditCamiaoModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        camiao={camiao}
+        onSave={handleSaveCamiao}
+        isLoading={isSaving}
+      />
     </div>
   );
 }
