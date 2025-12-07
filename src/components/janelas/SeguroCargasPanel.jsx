@@ -1,6 +1,243 @@
-export const SeguroCargasPanel = ({ activeSeguroForm, setActiveSeguroForm }) => {
+import React, { useState, useEffect } from 'react';
+export const SeguroCargasPanel = ({ activeSeguroForm, setActiveSeguroForm, cargasData = [], camioesData = [] }) => {
+  const [formData, setFormData] = useState({
+    apolices: {},
+    sinistros: {},
+    coberturas: {},
+    seguradoras: {},
+    cargas: [],
+    camioes: [],
+    seguradorasList: []
+  });
+  
+  const [loading, setLoading] = useState(false);
+  const [selectedCarga, setSelectedCarga] = useState(null);
+  const [selectedCamiao, setSelectedCamiao] = useState(null);
+  
+  // Inicializar dados
+  useEffect(() => {
+    carregarDados();
+  }, []);
+  
+  const carregarDados = async () => {
+    setLoading(true);
+    try {
+      // Carregar cargas
+      const cargasResponse = await fetch('https://desktop-api-4f850b3f9733.herokuapp.com/getCargaList', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ curPage: 1, pageSize: 100 })
+      });
+      
+      const cargasData = await cargasResponse.json();
+      
+      // Carregar camiões
+      const camioesResponse = await fetch('https://desktop-api-4f850b3f9733.herokuapp.com/getCamiaoList', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ curPage: 1, pageSize: 100 })
+      });
+      
+      const camioesData = await camioesResponse.json();
+      
+      setFormData(prev => ({
+        ...prev,
+        cargas: cargasData.data?.list || [],
+        camioes: camioesData.data?.list || [],
+        seguradorasList: [
+          { id: 1, nome: 'Hollard Moçambique' },
+          { id: 2, nome: 'Global Alliance' },
+          { id: 3, nome: 'EMOSE' },
+          { id: 4, nome: 'Milmoc' }
+        ]
+      }));
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Calcular prêmio do seguro automaticamente
+  const calcularPremioSeguro = (cargaId) => {
+    const carga = formData.cargas.find(c => c.codigo === cargaId);
+    if (!carga) return 0;
+    
+    // Usar o virtual do schema para cálculo
+    const valorMercadoria = carga.valorMercadoria || 0;
+    const categoria = carga.categoriaSeguro || 'Carga Geral';
+    const abrangencia = carga.abrangenciaSeguro || 'Nacional';
+    
+    // Tabela de taxas simplificada
+    const taxas = {
+      'Nacional': {
+        'Produtos Alimentares': 0.35,
+        'Eletrónicos': 0.50,
+        'Materiais Perigosos': 1.50,
+        'Carga Geral': 0.45,
+        'Carga Consolidada': 0.45
+      },
+      'Regional SADC': {
+        'Carga Geral': 0.75
+      },
+      'Internacional': {
+        'Carga Consolidada': 1.25
+      }
+    };
+    
+    const taxa = taxas[abrangencia]?.[categoria] || 0.45;
+    const premio = valorMercadoria * taxa / 100;
+    return Math.max(5000, premio); // Valor base mínimo
+  };
+  
+  // Calcular seguro do veículo
+  const calcularSeguroVeiculo = (camiaoId) => {
+    const camiao = formData.camioes.find(c => c.camiaoId === camiaoId);
+    if (!camiao) return 0;
+    
+    const TAXAS_VEICULO = {
+      'Terceiros': 3.0,
+      'Contra todos os riscos': 5.5,
+      'Roubo + Furto': 2.2,
+      'Danos Próprios': 4.8,
+      'Responsabilidade Civil': 1.5
+    };
+    
+    const TAXAS_BASE = {
+      'Terceiros': 10000,
+      'Contra todos os riscos': 12500,
+      'Roubo + Furto': 10000,
+      'Danos Próprios': 11200,
+      'Responsabilidade Civil': 10000
+    };
+    
+    const tipo = camiao.veiculo?.seguroVeiculo?.tipo || 'Terceiros';
+    const valorVeiculo = camiao.veiculo?.seguroVeiculo?.valorVeiculo || 0;
+    const taxa = TAXAS_VEICULO[tipo] || 3.0;
+    const base = TAXAS_BASE[tipo] || 10000;
+    
+    const premio = valorVeiculo * taxa / 100;
+    return Math.max(base, premio);
+  };
+  
+  // Handler para mudanças nos formulários
+  const handleInputChange = (formType, field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [formType]: {
+        ...prev[formType],
+        [field]: value
+      }
+    }));
+  };
+  
+  // Handler para salvar apólice
+  const salvarApolice = async () => {
+    if (!formData.apolices.cargaId || !formData.apolices.seguradora) {
+      alert('Por favor, selecione uma carga e uma seguradora');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const carga = formData.cargas.find(c => c.codigo === formData.apolices.cargaId);
+      
+      const apoliceData = {
+        codigoCarga: formData.apolices.cargaId,
+        numeroApolice: formData.apolices.numeroApolice || `APOL-${Date.now()}`,
+        seguradora: formData.apolices.seguradora,
+        valorSegurado: carga?.valorMercadoria || 0,
+        premioCalculado: calcularPremioSeguro(formData.apolices.cargaId),
+        dataInicio: formData.apolices.dataInicio || new Date().toISOString().split('T')[0],
+        dataFim: formData.apolices.dataFim,
+        cobertura: formData.apolices.cobertura || ['Roubo e Furto', 'Acidentes'],
+        statusSeguro: 'ativo'
+      };
+      
+      // Atualizar carga com dados do seguro
+      const response = await fetch('https://desktop-api-4f850b3f9733.herokuapp.com/updateCarga', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          codigo: formData.apolices.cargaId,
+          seguro: apoliceData
+        })
+      });
+      
+      if (response.ok) {
+        alert('Apólice salva com sucesso!');
+        setFormData(prev => ({ ...prev, apolices: {} }));
+        carregarDados(); // Recarregar dados
+      }
+    } catch (error) {
+      console.error('Erro ao salvar apólice:', error);
+      alert('Erro ao salvar apólice');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Handler para registrar sinistro
+  const registrarSinistro = async () => {
+    if (!formData.sinistros.cargaId || !formData.sinistros.tipo) {
+      alert('Por favor, selecione uma carga e o tipo de sinistro');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const sinistroData = {
+        codigo: formData.sinistros.cargaId,
+        ocorrenciaData: {
+          tipo: formData.sinistros.tipo,
+          descricao: formData.sinistros.descricao,
+          severidade: formData.sinistros.severidade || 'média',
+          dataRegistro: new Date(),
+          custo: formData.sinistros.valorEstimado || 0,
+          status: 'pendente',
+          afetaSeguro: true
+        }
+      };
+      
+      const response = await fetch('https://desktop-api-4f850b3f9733.herokuapp.com/addOcorrenciaCarga', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sinistroData)
+      });
+      
+      if (response.ok) {
+        alert('Sinistro registrado com sucesso!');
+        setFormData(prev => ({ ...prev, sinistros: {} }));
+        carregarDados();
+      }
+    } catch (error) {
+      console.error('Erro ao registrar sinistro:', error);
+      alert('Erro ao registrar sinistro');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Estatísticas para gráficos
+  const estatisticasSeguro = {
+    totalCargasComSeguro: formData.cargas.filter(c => c.seguro?.statusSeguro === 'ativo').length,
+    totalCargasSemSeguro: formData.cargas.filter(c => !c.seguro?.statusSeguro || c.seguro.statusSeguro !== 'ativo').length,
+    totalSinistros: formData.cargas.reduce((total, carga) => total + (carga.seguro?.sinistros?.length || 0), 0),
+    totalValorSegurado: formData.cargas.reduce((total, carga) => total + (carga.seguro?.valorSegurado || 0), 0),
+    totalPremios: formData.cargas.reduce((total, carga) => total + (carga.seguro?.premioFinal || 0), 0)
+  };
+  
+  // Componente de Loading
+  if (loading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+  
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col text-gray-900">
       <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-white">
         <h2 className="text-2xl font-bold text-gray-900 flex items-center">
           <span className="bg-indigo-500 text-white p-2 rounded-lg mr-3">
@@ -9,63 +246,30 @@ export const SeguroCargasPanel = ({ activeSeguroForm, setActiveSeguroForm }) => 
           Seguro de Cargas - Gestão de Seguros e Apólices
         </h2>
         <p className="text-sm text-gray-600 mt-2">
-          Gestão de apólices, sinistros, coberturas e seguradoras
+          {formData.cargas.length} cargas cadastradas | {estatisticasSeguro.totalCargasComSeguro} com seguro ativo
         </p>
       </div>
 
       <div className="flex-1 p-6">
         {/* Menu de Navegação entre Formulários */}
-        <div className="flex space-x-4 mb-6 border-b border-gray-200 pb-4">
-          <button
-            onClick={() => setActiveSeguroForm("apolices")}
-            className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-              activeSeguroForm === "apolices"
-                ? "bg-blue-500 text-white shadow-md"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
-          >
-            📄 Apólices
-          </button>
-          <button
-            onClick={() => setActiveSeguroForm("sinistros")}
-            className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-              activeSeguroForm === "sinistros"
-                ? "bg-blue-500 text-white shadow-md"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
-          >
-            🚨 Sinistros
-          </button>
-          <button
-            onClick={() => setActiveSeguroForm("coberturas")}
-            className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-              activeSeguroForm === "coberturas"
-                ? "bg-blue-500 text-white shadow-md"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
-          >
-            🛡️ Coberturas
-          </button>
-          <button
-            onClick={() => setActiveSeguroForm("seguradoras")}
-            className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-              activeSeguroForm === "seguradoras"
-                ? "bg-blue-500 text-white shadow-md"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
-          >
-            🏢 Seguradoras
-          </button>
-          <button
-            onClick={() => setActiveSeguroForm("graficos")}
-            className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-              activeSeguroForm === "graficos"
-                ? "bg-blue-500 text-white shadow-md"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
-          >
-            📈 Gráficos
-          </button>
+        <div className="flex space-x-4 mb-6 border-b border-gray-200 pb-4 overflow-x-auto">
+          {['apolices', 'sinistros', 'coberturas', 'seguradoras', 'graficos'].map((form) => (
+            <button
+              key={form}
+              onClick={() => setActiveSeguroForm(form)}
+              className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 whitespace-nowrap ${
+                activeSeguroForm === form
+                  ? "bg-blue-500 text-white shadow-md"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              {form === 'apolices' && '📄 Apólices'}
+              {form === 'sinistros' && '🚨 Sinistros'}
+              {form === 'coberturas' && '🛡️ Coberturas'}
+              {form === 'seguradoras' && '🏢 Seguradoras'}
+              {form === 'graficos' && '📈 Gráficos'}
+            </button>
+          ))}
         </div>
 
         {/* Formulário de Apólices */}
@@ -80,161 +284,151 @@ export const SeguroCargasPanel = ({ activeSeguroForm, setActiveSeguroForm }) => 
               </h3>
             </div>
             <div className="p-6">
-              <form className="space-y-6">
+              <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Número da Apólice *
+                      Selecione a Carga *
                     </label>
-                    <input
-                      type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                      placeholder="Número da apólice"
-                    />
+                    <select 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-950"
+                      value={formData.apolices.cargaId || ''}
+                      onChange={(e) => handleInputChange('apolices', 'cargaId', e.target.value)}
+                    >
+                      <option value="">Selecione uma carga</option>
+                      {formData.cargas.map(carga => (
+                        <option key={carga.codigo} value={carga.codigo}>
+                          {carga.codigo} - {carga.descricao} (MT {carga.valorMercadoria?.toLocaleString() || 0})
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Seguradora *
                     </label>
-                    <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-950">
-                      <option value="">Selecione</option>
-                      <option value="hollard">Hollard Moçambique</option>
-                      <option value="global">Global Alliance</option>
-                      <option value="emose">EMOSE</option>
-                      <option value="milmoc">Milmoc</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Data de Emissão *
-                    </label>
-                    <input
-                      type="date"
+                    <select 
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-950"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Data de Início *
-                    </label>
-                    <input
-                      type="date"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-950"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Data de Término *
-                    </label>
-                    <input
-                      type="date"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-950"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Cliente/Contratante *
-                    </label>
-                    <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-950">
+                      value={formData.apolices.seguradora || ''}
+                      onChange={(e) => handleInputChange('apolices', 'seguradora', e.target.value)}
+                    >
                       <option value="">Selecione</option>
-                      <option value="1">Cliente A</option>
-                      <option value="2">Cliente B</option>
-                      <option value="3">Cliente C</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Valor Segurado (MT) *
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                      placeholder="MT 0,00"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Prémio (MT) *
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                      placeholder="MT 0,00"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Tipo de Cobertura *
-                    </label>
-                    <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-950">
-                      <option value="">Selecione</option>
-                      <option value="completa">Cobertura Completa</option>
-                      <option value="basica">Cobertura Básica</option>
-                      <option value="roubo">Roubo e Furto</option>
-                      <option value="acidentes">Acidentes</option>
+                      {formData.seguradorasList.map(seg => (
+                        <option key={seg.id} value={seg.nome}>{seg.nome}</option>
+                      ))}
                     </select>
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Descrição da Carga
-                  </label>
-                  <textarea
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="Descreva a carga segurada..."
-                  ></textarea>
-                </div>
+                {formData.apolices.cargaId && (
+                  <>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <h4 className="font-medium text-gray-900 mb-2">Detalhes da Carga Selecionada</h4>
+                      {(() => {
+                        const carga = formData.cargas.find(c => c.codigo === formData.apolices.cargaId);
+                        if (!carga) return null;
+                        
+                        return (
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div>
+                              <span className="text-gray-600">Valor da Mercadoria:</span>
+                              <p className="font-semibold">MT {carga.valorMercadoria?.toLocaleString() || 0}</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Categoria:</span>
+                              <p className="font-semibold">{carga.categoriaSeguro}</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Abrangência:</span>
+                              <p className="font-semibold">{carga.abrangenciaSeguro}</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Prêmio Estimado:</span>
+                              <p className="font-semibold text-green-600">
+                                MT {calcularPremioSeguro(formData.apolices.cargaId)?.toLocaleString()}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Rota de Transporte
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                      placeholder="Ex: Maputo - Beira"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Estado da Apólice
-                    </label>
-                    <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-950">
-                      <option value="ativa">Ativa</option>
-                      <option value="vencida">Vencida</option>
-                      <option value="cancelada">Cancelada</option>
-                      <option value="suspensa">Suspensa</option>
-                    </select>
-                  </div>
-                </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Número da Apólice *
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                          placeholder="Número da apólice"
+                          value={formData.apolices.numeroApolice || ''}
+                          onChange={(e) => handleInputChange('apolices', 'numeroApolice', e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Tipo de Cobertura *
+                        </label>
+                        <select 
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-950"
+                          value={formData.apolices.cobertura || ''}
+                          onChange={(e) => handleInputChange('apolices', 'cobertura', e.target.value)}
+                        >
+                          <option value="">Selecione</option>
+                          <option value="completa">Cobertura Completa</option>
+                          <option value="roubo">Roubo e Furto</option>
+                          <option value="acidentes">Acidentes</option>
+                          <option value="natural">Desastres Naturais</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Data de Início *
+                        </label>
+                        <input
+                          type="date"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-950"
+                          value={formData.apolices.dataInicio || ''}
+                          onChange={(e) => handleInputChange('apolices', 'dataInicio', e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Data de Término *
+                        </label>
+                        <input
+                          type="date"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-950"
+                          value={formData.apolices.dataFim || ''}
+                          onChange={(e) => handleInputChange('apolices', 'dataFim', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
                   <button
                     type="button"
                     className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
+                    onClick={() => setFormData(prev => ({ ...prev, apolices: {} }))}
                   >
                     Cancelar
                   </button>
                   <button
-                    type="submit"
-                    className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-indigo-600 font-medium"
+                    type="button"
+                    className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-indigo-600 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={salvarApolice}
+                    disabled={!formData.apolices.cargaId || !formData.apolices.seguradora}
                   >
                     Salvar Apólice
                   </button>
                 </div>
-              </form>
+              </div>
             </div>
           </div>
         )}
@@ -251,17 +445,26 @@ export const SeguroCargasPanel = ({ activeSeguroForm, setActiveSeguroForm }) => 
               </h3>
             </div>
             <div className="p-6">
-              <form className="space-y-6">
+              <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Apólice *
+                      Selecione a Carga *
                     </label>
-                    <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-gray-950">
-                      <option value="">Selecione</option>
-                      <option value="1">APL-2024-001</option>
-                      <option value="2">APL-2024-002</option>
-                      <option value="3">APL-2024-003</option>
+                    <select 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-gray-950"
+                      value={formData.sinistros.cargaId || ''}
+                      onChange={(e) => handleInputChange('sinistros', 'cargaId', e.target.value)}
+                    >
+                      <option value="">Selecione uma carga</option>
+                      {formData.cargas
+                        .filter(c => c.seguro?.statusSeguro === 'ativo')
+                        .map(carga => (
+                          <option key={carga.codigo} value={carga.codigo}>
+                            {carga.codigo} - Apólice: {carga.seguro?.apolice}
+                          </option>
+                        ))
+                      }
                     </select>
                   </div>
                   <div>
@@ -271,126 +474,126 @@ export const SeguroCargasPanel = ({ activeSeguroForm, setActiveSeguroForm }) => 
                     <input
                       type="date"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-gray-950"
+                      value={formData.sinistros.dataSinistro || ''}
+                      onChange={(e) => handleInputChange('sinistros', 'dataSinistro', e.target.value)}
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Tipo de Sinistro *
-                    </label>
-                    <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-gray-950">
-                      <option value="">Selecione</option>
-                      <option value="acidente">Acidente</option>
-                      <option value="roubo">Roubo</option>
-                      <option value="avaria">Avaria</option>
-                      <option value="incendio">Incêndio</option>
-                      <option value="furto">Furto</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Valor Estimado (MT) *
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                      placeholder="MT 0,00"
-                    />
-                  </div>
-                </div>
+                {formData.sinistros.cargaId && (
+                  <>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <h4 className="font-medium text-gray-900 mb-2">Informações do Seguro</h4>
+                      {(() => {
+                        const carga = formData.cargas.find(c => c.codigo === formData.sinistros.cargaId);
+                        if (!carga?.seguro) return null;
+                        
+                        return (
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div>
+                              <span className="text-gray-600">Apólice:</span>
+                              <p className="font-semibold">{carga.seguro.apolice}</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Seguradora:</span>
+                              <p className="font-semibold">{carga.seguro.seguradora}</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Valor Segurado:</span>
+                              <p className="font-semibold">MT {carga.seguro.valorSegurado?.toLocaleString()}</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Prêmio Pago:</span>
+                              <p className="font-semibold">MT {carga.seguro.premioFinal?.toLocaleString()}</p>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Local do Sinistro *
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                    placeholder="Endereço completo do local"
-                  />
-                </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Tipo de Sinistro *
+                        </label>
+                        <select 
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-gray-950"
+                          value={formData.sinistros.tipo || ''}
+                          onChange={(e) => handleInputChange('sinistros', 'tipo', e.target.value)}
+                        >
+                          <option value="">Selecione</option>
+                          <option value="acidente">Acidente</option>
+                          <option value="roubo">Roubo</option>
+                          <option value="avaria">Avaria</option>
+                          <option value="incendio">Incêndio</option>
+                          <option value="furto">Furto</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Valor Estimado (MT) *
+                        </label>
+                        <input
+                          type="number"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                          placeholder="MT 0,00"
+                          value={formData.sinistros.valorEstimado || ''}
+                          onChange={(e) => handleInputChange('sinistros', 'valorEstimado', e.target.value)}
+                        />
+                      </div>
+                    </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Descrição do Sinistro *
-                  </label>
-                  <textarea
-                    rows={4}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                    placeholder="Descreva detalhadamente o ocorrido..."
-                  ></textarea>
-                </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Descrição do Sinistro *
+                      </label>
+                      <textarea
+                        rows={4}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                        placeholder="Descreva detalhadamente o ocorrido..."
+                        value={formData.sinistros.descricao || ''}
+                        onChange={(e) => handleInputChange('sinistros', 'descricao', e.target.value)}
+                      ></textarea>
+                    </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Estado do Processo
-                    </label>
-                    <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-gray-950">
-                      <option value="registrado">Registrado</option>
-                      <option value="em_analise">Em Análise</option>
-                      <option value="aprovado">Aprovado</option>
-                      <option value="indeminizado">Indeminizado</option>
-                      <option value="recusado">Recusado</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Valor Indenizado (MT)
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                      placeholder="MT 0,00"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Documentos do Sinistro
-                    </label>
-                    <input
-                      type="file"
-                      multiple
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-gray-950"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Peritos Designados
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                      placeholder="Nome dos peritos"
-                    />
-                  </div>
-                </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Local do Sinistro *
+                      </label>
+                      <input
+                        type="text"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                        placeholder="Endereço completo do local"
+                        value={formData.sinistros.local || ''}
+                        onChange={(e) => handleInputChange('sinistros', 'local', e.target.value)}
+                      />
+                    </div>
+                  </>
+                )}
 
                 <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
                   <button
                     type="button"
                     className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
+                    onClick={() => setFormData(prev => ({ ...prev, sinistros: {} }))}
                   >
                     Cancelar
                   </button>
                   <button
-                    type="submit"
-                    className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-red-600 font-medium"
+                    type="button"
+                    className="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={registrarSinistro}
+                    disabled={!formData.sinistros.cargaId || !formData.sinistros.tipo}
                   >
                     Registrar Sinistro
                   </button>
                 </div>
-              </form>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Formulário de Coberturas */}
+        {/* Formulário de Coberturas (mantido similar) */}
         {activeSeguroForm === "coberturas" && (
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <div className="p-4 border-b border-gray-200 bg-green-50">
@@ -400,313 +603,105 @@ export const SeguroCargasPanel = ({ activeSeguroForm, setActiveSeguroForm }) => 
                 </span>
                 Gestão de Coberturas
               </h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Coberturas aplicáveis baseadas nas categorias de carga
+              </p>
             </div>
             <div className="p-6">
-              <form className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Nome da Cobertura *
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                      placeholder="Nome da cobertura"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Código da Cobertura *
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                      placeholder="Código único"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Descrição da Cobertura
-                  </label>
-                  <textarea
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                    placeholder="Descreva os detalhes desta cobertura..."
-                  ></textarea>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Prémio Base (%) *
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                      placeholder="0.00%"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Franquia Mínima (MT)
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                      placeholder="MT 0,00"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Limite Máximo (MT)
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                      placeholder="MT 0,00"
-                    />
+              <div className="space-y-6">
+                <div className="bg-gray-50 p-4 rounded-lg mb-6">
+                  <h4 className="font-medium text-gray-900 mb-3">Categorias de Carga e Taxas</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-white p-3 rounded border">
+                      <h5 className="font-semibold text-gray-900">Nacional</h5>
+                      <div className="text-sm mt-2 space-y-1">
+                        <div className="flex justify-between">
+                          <span>Produtos Alimentares</span>
+                          <span className="font-semibold">0.35%</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Eletrónicos</span>
+                          <span className="font-semibold">0.50%</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Materiais Perigosos</span>
+                          <span className="font-semibold">1.50%</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white p-3 rounded border">
+                      <h5 className="font-semibold text-gray-900">Regional SADC</h5>
+                      <div className="text-sm mt-2">
+                        <div className="flex justify-between">
+                          <span>Carga Geral</span>
+                          <span className="font-semibold">0.75%</span>
+                        </div>
+                        <p className="text-gray-500 text-xs mt-2">Valor base: MT 5.000</p>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white p-3 rounded border">
+                      <h5 className="font-semibold text-gray-900">Internacional</h5>
+                      <div className="text-sm mt-2">
+                        <div className="flex justify-between">
+                          <span>Carga Consolidada</span>
+                          <span className="font-semibold">1.25%</span>
+                        </div>
+                        <p className="text-gray-500 text-xs mt-2">Valor base: MT 5.000</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Tipo de Risco
-                    </label>
-                    <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-950">
-                      <option value="">Selecione</option>
-                      <option value="baixo">Baixo Risco</option>
-                      <option value="medio">Médio Risco</option>
-                      <option value="alto">Alto Risco</option>
-                    </select>
+                {/* Formulário de cobertura específica (simplificado) */}
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Nome da Cobertura *
+                      </label>
+                      <input
+                        type="text"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                        placeholder="Ex: Cobertura Completa"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Categoria Aplicável
+                      </label>
+                      <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-950">
+                        <option value="">Todas as categorias</option>
+                        <option value="alimentar">Produtos Alimentares</option>
+                        <option value="eletronicos">Eletrónicos</option>
+                        <option value="perigosos">Materiais Perigosos</option>
+                        <option value="geral">Carga Geral</option>
+                      </select>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Categoria
-                    </label>
-                    <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-950">
-                      <option value="">Selecione</option>
-                      <option value="transporte">Transporte</option>
-                      <option value="roubo">Roubo/Furto</option>
-                      <option value="acidente">Acidentes</option>
-                      <option value="natural">Desastres Naturais</option>
-                    </select>
+                  
+                  <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                    <button
+                      type="button"
+                      className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 font-medium"
+                    >
+                      Salvar Cobertura
+                    </button>
                   </div>
                 </div>
-
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                  />
-                  <label className="ml-2 block text-sm text-gray-900">
-                    Cobertura Ativa
-                  </label>
-                </div>
-
-                <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-                  <button
-                    type="button"
-                    className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-green-600 font-medium"
-                  >
-                    Salvar Cobertura
-                  </button>
-                </div>
-              </form>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Formulário de Seguradoras */}
-        {activeSeguroForm === "seguradoras" && (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-            <div className="p-4 border-b border-gray-200 bg-blue-50">
-              <h3 className="font-semibold text-gray-900 flex items-center">
-                <span className="bg-blue-500 text-white p-2 rounded-lg mr-2">
-                  🏢
-                </span>
-                Cadastro de Seguradoras
-              </h3>
-            </div>
-            <div className="p-6">
-              <form className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Nome da Seguradora *
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Nome completo"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      NUIT *
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="000000000"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Telefone *
-                    </label>
-                    <input
-                      type="tel"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="+258 82 123 4567"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Email *
-                    </label>
-                    <input
-                      type="email"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="email@seguradora.co.mz"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Endereço
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Endereço completo"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Cidade
-                    </label>
-                    <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-950">
-                      <option value="">Selecione</option>
-                      <option value="maputo">Maputo</option>
-                      <option value="matola">Matola</option>
-                      <option value="beira">Beira</option>
-                      <option value="nampula">Nampula</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Website
-                    </label>
-                    <input
-                      type="url"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="https://www.exemplo.co.mz"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Contacto de Emergência
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Nome do contacto"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Telefone de Emergência
-                    </label>
-                    <input
-                      type="tel"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="+258 82 123 4567"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Especialidades
-                  </label>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                      />
-                      <label className="ml-2 block text-sm text-gray-900">
-                        Cargas
-                      </label>
-                    </div>
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                      />
-                      <label className="ml-2 block text-sm text-gray-900">
-                        Veículos
-                      </label>
-                    </div>
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                      />
-                      <label className="ml-2 block text-sm text-gray-900">
-                        Vida
-                      </label>
-                    </div>
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                      />
-                      <label className="ml-2 block text-sm text-gray-900">
-                        Saúde
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-                  <button
-                    type="button"
-                    className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-medium"
-                  >
-                    Salvar Seguradora
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* Gráficos */}
+        {/* Gráficos e Estatísticas */}
         {activeSeguroForm === "graficos" && (
           <div className="space-y-6">
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
@@ -719,23 +714,50 @@ export const SeguroCargasPanel = ({ activeSeguroForm, setActiveSeguroForm }) => 
                 </h3>
               </div>
               <div className="p-6">
-                {/* Grid de Gráficos Principal */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 text-gray-950">
-                  {/* Gráfico de Apólices por Status */}
+                {/* Métricas Rápidas */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-200">
+                    <p className="text-sm text-indigo-600 font-medium">Cargas com Seguro</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {estatisticasSeguro.totalCargasComSeguro}
+                    </p>
+                  </div>
+                  <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                    <p className="text-sm text-green-600 font-medium">Valor Total Segurado</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {estatisticasSeguro.totalValorSegurado.toLocaleString()} MT
+                    </p>
+                  </div>
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <p className="text-sm text-blue-600 font-medium">Total Sinistros</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {estatisticasSeguro.totalSinistros}
+                    </p>
+                  </div>
+                  <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                    <p className="text-sm text-purple-600 font-medium">Prêmios Arrecadados</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {estatisticasSeguro.totalPremios.toLocaleString()} MT
+                    </p>
+                  </div>
+                </div>
+
+                {/* Grid de Gráficos */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Gráfico de Cargas por Status de Seguro */}
                   <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
-                    <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
-                      <span className="text-indigo-500 mr-2">📊</span>
-                      Apólices por Status
-                    </h4>
-                    <div className="h-64 flex items-center justify-center">
+                    <h4 className="font-semibold text-gray-900 mb-4">Status dos Seguros</h4>
+                    <div className="h-48 flex items-center justify-center">
                       <div className="text-center w-full">
                         <div className="flex justify-center mb-4">
                           <div className="relative w-32 h-32">
                             <div
                               className="w-full h-full rounded-full"
                               style={{
-                                background:
-                                  "conic-gradient(#10b981 0% 60%, #3b82f6 60% 80%, #f59e0b 80% 90%, #ef4444 90% 100%)",
+                                background: `conic-gradient(
+                                  #10b981 0% ${(estatisticasSeguro.totalCargasComSeguro / formData.cargas.length) * 100}%,
+                                  #ef4444 ${(estatisticasSeguro.totalCargasComSeguro / formData.cargas.length) * 100}% 100%
+                                )`,
                               }}
                             ></div>
                           </div>
@@ -743,370 +765,100 @@ export const SeguroCargasPanel = ({ activeSeguroForm, setActiveSeguroForm }) => 
                         <div className="grid grid-cols-2 gap-2 text-sm">
                           <div className="flex items-center">
                             <div className="w-3 h-3 bg-green-500 rounded mr-2"></div>
-                            <span>Ativas (60%)</span>
-                          </div>
-                          <div className="flex items-center">
-                            <div className="w-3 h-3 bg-blue-500 rounded mr-2"></div>
-                            <span>Em Análise (20%)</span>
-                          </div>
-                          <div className="flex items-center">
-                            <div className="w-3 h-3 bg-yellow-500 rounded mr-2"></div>
-                            <span>Vencidas (10%)</span>
+                            <span>Com Seguro ({estatisticasSeguro.totalCargasComSeguro})</span>
                           </div>
                           <div className="flex items-center">
                             <div className="w-3 h-3 bg-red-500 rounded mr-2"></div>
-                            <span>Canceladas (10%)</span>
+                            <span>Sem Seguro ({estatisticasSeguro.totalCargasSemSeguro})</span>
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Gráfico de Sinistros por Tipo - Barras Empilhadas */}
+                  {/* Gráfico de Sinistros por Tipo */}
                   <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
-                    <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
-                      <span className="text-red-500 mr-2">🚨</span>
-                      Sinistros por Tipo (Últimos 6 Meses)
-                    </h4>
-                    <div className="h-64 flex items-end justify-between space-x-2">
-                      {[
-                        {
-                          month: "Jan",
-                          acidentes: 12,
-                          roubos: 8,
-                          avarias: 5,
-                        },
-                        {
-                          month: "Fev",
-                          acidentes: 8,
-                          roubos: 6,
-                          avarias: 3,
-                        },
-                        {
-                          month: "Mar",
-                          acidentes: 15,
-                          roubos: 10,
-                          avarias: 7,
-                        },
-                        {
-                          month: "Abr",
-                          acidentes: 10,
-                          roubos: 7,
-                          avarias: 4,
-                        },
-                        {
-                          month: "Mai",
-                          acidentes: 18,
-                          roubos: 12,
-                          avarias: 8,
-                        },
-                        {
-                          month: "Jun",
-                          acidentes: 14,
-                          roubos: 9,
-                          avarias: 6,
-                        },
-                      ].map((item, index) => {
-                        const total =
-                          item.acidentes + item.roubos + item.avarias;
+                    <h4 className="font-semibold text-gray-900 mb-4">Sinistros por Tipo</h4>
+                    <div className="h-48 space-y-3">
+                      {['Acidente', 'Roubo', 'Avaria', 'Incêndio', 'Furto'].map((tipo, index) => {
+                        const count = formData.cargas.reduce((total, carga) => {
+                          return total + (carga.seguro?.sinistros?.filter(s => s.descricao?.includes(tipo)).length || 0);
+                        }, 0);
+                        
                         return (
-                          <div
-                            key={index}
-                            className="flex flex-col items-center flex-1 h-full"
-                          >
-                            <div className="flex flex-col justify-end h-full w-3/4 rounded-t-lg overflow-hidden">
-                              {/* Empilhando Acidentes, Roubos e Avarias */}
+                          <div key={index} className="space-y-1">
+                            <div className="flex justify-between text-sm">
+                              <span>{tipo}</span>
+                              <span className="font-medium">{count}</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2">
                               <div
-                                className="bg-red-500 w-full transition-all hover:opacity-80"
-                                style={{
-                                  height: `${(item.acidentes / total) * 100}%`,
-                                }}
-                                title={`Acidentes: ${item.acidentes}`}
-                              ></div>
-                              <div
-                                className="bg-orange-500 w-full transition-all hover:opacity-80"
-                                style={{
-                                  height: `${(item.roubos / total) * 100}%`,
-                                }}
-                                title={`Roubos: ${item.roubos}`}
-                              ></div>
-                              <div
-                                className="bg-yellow-500 w-full transition-all hover:opacity-80"
-                                style={{
-                                  height: `${(item.avarias / total) * 100}%`,
-                                }}
-                                title={`Avarias: ${item.avarias}`}
+                                className="h-2 rounded-full bg-red-500"
+                                style={{ width: `${(count / Math.max(estatisticasSeguro.totalSinistros, 1)) * 100}%` }}
                               ></div>
                             </div>
-                            <span className="text-xs mt-2 font-medium">
-                              {item.month}
-                            </span>
                           </div>
                         );
                       })}
                     </div>
-
-                    {/* Legenda */}
-                    <div className="flex justify-center space-x-4 mt-4 text-xs">
-                      <div className="flex items-center">
-                        <div className="w-3 h-3 bg-red-500 rounded mr-1"></div>
-                        <span>Acidentes</span>
-                      </div>
-                      <div className="flex items-center">
-                        <div className="w-3 h-3 bg-orange-500 rounded mr-1"></div>
-                        <span>Roubos</span>
-                      </div>
-                      <div className="flex items-center">
-                        <div className="w-3 h-3 bg-yellow-500 rounded mr-1"></div>
-                        <span>Avarias</span>
-                      </div>
-                    </div>
                   </div>
                 </div>
 
-                {/* Segunda Linha de Gráficos */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 text-gray-950">
-                  {/* Gráfico de Valor Segurado por Seguradora */}
-                  <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
-                    <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
-                      <span className="text-green-500 mr-2">💰</span>
-                      Valor Segurado por Seguradora
-                    </h4>
-                    <div className="h-48 space-y-3">
-                      {[
-                        {
-                          seguradora: "Hollard",
-                          valor: 45,
-                          color: "bg-blue-500",
-                          width: "90%",
-                        },
-                        {
-                          seguradora: "Global Alliance",
-                          valor: 32,
-                          color: "bg-green-500",
-                          width: "64%",
-                        },
-                        {
-                          seguradora: "EMOSE",
-                          valor: 28,
-                          color: "bg-purple-500",
-                          width: "56%",
-                        },
-                        {
-                          seguradora: "Milmoc",
-                          valor: 15,
-                          color: "bg-orange-500",
-                          width: "30%",
-                        },
-                      ].map((item, index) => (
-                        <div key={index} className="space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span className="font-medium">
-                              {item.seguradora}
-                            </span>
-                            <span className="text-gray-600">
-                              {item.valor}M MT
-                            </span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-3">
-                            <div
-                              className={`h-3 rounded-full ${item.color}`}
-                              style={{ width: item.width }}
-                            ></div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Gráfico de Coberturas Mais Utilizadas */}
-                  <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
-                    <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
-                      <span className="text-blue-500 mr-2">🛡️</span>
-                      Coberturas Mais Utilizadas
-                    </h4>
-                    <div className="h-48 space-y-3">
-                      {[
-                        {
-                          cobertura: "Cobertura Completa",
-                          percentual: 65,
-                          color: "bg-indigo-500",
-                        },
-                        {
-                          cobertura: "Roubo e Furto",
-                          percentual: 45,
-                          color: "bg-blue-500",
-                        },
-                        {
-                          cobertura: "Acidentes",
-                          percentual: 38,
-                          color: "bg-green-500",
-                        },
-                        {
-                          cobertura: "Desastres Naturais",
-                          percentual: 22,
-                          color: "bg-purple-500",
-                        },
-                      ].map((item, index) => (
-                        <div key={index} className="space-y-1">
-                          <div className="flex justify-between text-sm">
-                            <span>{item.cobertura}</span>
-                            <span className="font-medium">
-                              {item.percentual}%
-                            </span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div
-                              className={`h-2 rounded-full ${item.color}`}
-                              style={{ width: `${item.percentual}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Gráfico de Eficiência no Processamento */}
-                  <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
-                    <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
-                      <span className="text-purple-500 mr-2">⚡</span>
-                      Tempo Médio de Processamento
-                    </h4>
-                    <div className="h-48 space-y-4">
-                      {[
-                        {
-                          processo: "Registro Sinistro",
-                          dias: 2,
-                          color: "bg-green-500",
-                        },
-                        {
-                          processo: "Análise Técnica",
-                          dias: 7,
-                          color: "bg-yellow-500",
-                        },
-                        {
-                          processo: "Aprovação",
-                          dias: 3,
-                          color: "bg-blue-500",
-                        },
-                        {
-                          processo: "Pagamento",
-                          dias: 5,
-                          color: "bg-purple-500",
-                        },
-                      ].map((item, index) => (
-                        <div key={index} className="space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span>{item.processo}</span>
-                            <span className="font-medium">
-                              {item.dias} dias
-                            </span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-3">
-                            <div
-                              className={`h-3 rounded-full ${item.color}`}
-                              style={{
-                                width: `${(item.dias / 10) * 100}%`,
-                              }}
-                            ></div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Métricas Rápidas */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                  <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-200">
-                    <p className="text-sm text-indigo-600 font-medium">
-                      Apólices Ativas
-                    </p>
-                    <p className="text-2xl font-bold text-gray-900">48</p>
-                  </div>
-                  <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                    <p className="text-sm text-green-600 font-medium">
-                      Sinistros/Mês
-                    </p>
-                    <p className="text-2xl font-bold text-gray-900">12</p>
-                  </div>
-                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                    <p className="text-sm text-blue-600 font-medium">
-                      Valor Segurado
-                    </p>
-                    <p className="text-2xl font-bold text-gray-900">
-                      120M MT
-                    </p>
-                  </div>
-                  <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-                    <p className="text-sm text-purple-600 font-medium">
-                      Taxa de Sinistros
-                    </p>
-                    <p className="text-2xl font-bold text-gray-900">3.2%</p>
-                  </div>
-                </div>
-
-                {/* Filtros */}
-                <div className="mt-8 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <h4 className="font-medium text-gray-900 mb-4">
-                    Filtros do Dashboard
-                  </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Período
-                      </label>
-                      <select className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-950">
-                        <option>Últimos 30 dias</option>
-                        <option>Este Mês</option>
-                        <option>Últimos 3 Meses</option>
-                        <option>Este Ano</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Seguradora
-                      </label>
-                      <select className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-950">
-                        <option>Todas</option>
-                        <option>Hollard</option>
-                        <option>Global Alliance</option>
-                        <option>EMOSE</option>
-                        <option>Milmoc</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Tipo de Cobertura
-                      </label>
-                      <select className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-950">
-                        <option>Todas</option>
-                        <option>Cobertura Completa</option>
-                        <option>Roubo e Furto</option>
-                        <option>Acidentes</option>
-                        <option>Desastres Naturais</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Status
-                      </label>
-                      <select className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-950">
-                        <option>Todos</option>
-                        <option>Ativo</option>
-                        <option>Vencido</option>
-                        <option>Cancelado</option>
-                        <option>Em Análise</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="flex justify-end space-x-3 mt-4">
-                    <button className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium">
-                      Limpar Filtros
-                    </button>
-                    <button className="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 font-medium">
-                      Aplicar Filtros
-                    </button>
+                {/* Lista de Cargas com Seguro Recente */}
+                <div className="mt-8">
+                  <h4 className="font-semibold text-gray-900 mb-4">Cargas Recentes com Seguro</h4>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Código
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Descrição
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Seguradora
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Prêmio
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Status
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {formData.cargas
+                          .filter(c => c.seguro?.statusSeguro === 'ativo')
+                          .slice(0, 5)
+                          .map(carga => (
+                            <tr key={carga.codigo}>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                {carga.codigo}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {carga.descricao?.substring(0, 30)}...
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {carga.seguro?.seguradora}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                MT {carga.seguro?.premioFinal?.toLocaleString()}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                  carga.seguro?.statusSeguro === 'ativo' 
+                                    ? 'bg-green-100 text-green-800'
+                                    : 'bg-red-100 text-red-800'
+                                }`}>
+                                  {carga.seguro?.statusSeguro}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               </div>
