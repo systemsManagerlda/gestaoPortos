@@ -1,15 +1,299 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+
+const API_BASE_URL = "https://desktop-api-4f850b3f9733.herokuapp.com";
 
 const CargaCarregada = () => {
   const [activeCarregadaForm, setActiveCarregadaForm] = useState("controle");
+  const [cargas, setCargas] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState(null);
+  const [selectedCarga, setSelectedCarga] = useState(null);
+  const [carregamentoData, setCarregamentoData] = useState({
+    caminhao: "",
+    motorista: "",
+    cargaId: "",
+    localCarregamento: "",
+    dataInicio: "",
+    dataTermino: "",
+    status: "agendado",
+    observacoes: "",
+  });
+
+  // Estados para filtros
+  const [filters, setFilters] = useState({
+    curPage: 1,
+    pageSize: 10,
+    status: "",
+    cliente: "",
+    codigo: "",
+    tipoPercurso: "",
+  });
+
+  useEffect(() => {
+    fetchCargasCarregadas();
+    fetchStats();
+  }, [filters.curPage, filters.status]);
+
+  const fetchCargasCarregadas = async () => {
+    try {
+      setLoading(true);
+
+      // Ajustar filtro para buscar cargas com status de carregadas/em trânsito
+      const filterData = {
+        curPage: filters.curPage,
+        pageSize: filters.pageSize,
+        status: filters.status || undefined,
+        cliente: filters.cliente || undefined,
+        codigo: filters.codigo || undefined,
+        tipoPercurso: filters.tipoPercurso || undefined,
+      };
+
+      const response = await axios.post(
+        `${API_BASE_URL}/getCargaList`,
+        filterData
+      );
+
+      if (response.data.returnCode === 200) {
+        // Filtrar cargas que estão carregadas ou em trânsito
+        const cargasCarregadas = response.data.data.list.filter((carga) =>
+          ["coletada", "em_transito", "em_entrega"].includes(carga.status)
+        );
+        setCargas(cargasCarregadas);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar cargas carregadas:", error);
+      // Em caso de erro, mostrar dados mock para demonstração
+      setCargas(getMockCargas());
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/getCargaStats`, {
+        dataInicio: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+          .toISOString()
+          .split("T")[0],
+        dataFim: new Date().toISOString().split("T")[0],
+      });
+
+      if (response.data.returnCode === 200) {
+        setStats(response.data.data);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar estatísticas:", error);
+      // Dados mock para demonstração
+      setStats(getMockStats());
+    }
+  };
+
+  const getMockCargas = () => {
+    return [
+      {
+        codigo: "CARGA-001",
+        status: "em_transito",
+        dataColeta: "2024-01-15T08:30:00Z",
+        dataEntregaPrevista: "2024-01-18T18:00:00Z",
+        tipoCarga: "Contentorizada",
+        descricao: "Cimento 25 ton",
+        pesoBruto: 25000,
+        origem: { cidade: "Maputo", local: "Porto de Maputo" },
+        destino: { cidade: "Nampula", local: "Depósito Central" },
+        cliente: "Construma Lda",
+        veiculo: { matricula: "MB-1234-AB", modelo: "Volvo FH16" },
+        motorista: { nome: "João Maputo", telefone: "+258 84 123 4567" },
+      },
+      {
+        codigo: "CARGA-002",
+        status: "coletada",
+        dataColeta: "2024-01-15T10:15:00Z",
+        tipoCarga: "Frigorífica",
+        descricao: "Produtos Alimentares 8 ton",
+        pesoBruto: 8000,
+        origem: { cidade: "Maputo", local: "Porto de Maputo" },
+        destino: { cidade: "Matola", local: "Centro Distribuição" },
+        cliente: "Supermercados Moçambique",
+        veiculo: { matricula: "MB-5678-CD", modelo: "Mercedes Actros" },
+        motorista: { nome: "Carlos Beira", telefone: "+258 84 234 5678" },
+      },
+      {
+        codigo: "CARGA-003",
+        status: "em_transito",
+        dataColeta: "2024-01-14T16:00:00Z",
+        dataEntregaPrevista: "2024-01-15T14:00:00Z",
+        tipoCarga: "Carga Geral",
+        descricao: "Material Construção 18 ton",
+        pesoBruto: 18000,
+        origem: { cidade: "Beira", local: "Porto da Beira" },
+        destino: { cidade: "Chimoio", local: "Obra Centro" },
+        cliente: "Construções Moçambique",
+        veiculo: { matricula: "MB-9012-EF", modelo: "Scania R500" },
+        motorista: { nome: "António Nampula", telefone: "+258 84 345 6789" },
+      },
+    ];
+  };
+
+  const getMockStats = () => {
+    return {
+      totalCargas: 24,
+      cargasEntregues: 18,
+      cargasTransito: 4,
+      cargasAtrasadas: 2,
+      valorTotalFretes: 1200000,
+      pesoTotalTransportado: 240000,
+      distanciaTotal: 4800,
+    };
+  };
+
+  const handleUpdateStatus = async (codigo, novoStatus) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/updateCargaStatus`, {
+        codigo,
+        status: novoStatus,
+        observacao: "Status atualizado via interface",
+        local: "Base de Controle",
+      });
+
+      if (response.data.returnCode === 200) {
+        fetchCargasCarregadas();
+        alert("Status atualizado com sucesso!");
+      }
+    } catch (error) {
+      console.error("Erro ao atualizar status:", error);
+      alert("Erro ao atualizar status");
+    }
+  };
+
+  const handleCarregamentoSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      // Primeiro, atualizar a carga para status de coletada
+      const statusResponse = await axios.post(
+        `${API_BASE_URL}/updateCargaStatus`,
+        {
+          codigo: carregamentoData.cargaId,
+          status: "coletada",
+          observacao: `Carregamento realizado em ${carregamentoData.localCarregamento}`,
+          local: carregamentoData.localCarregamento,
+        }
+      );
+
+      if (statusResponse.data.returnCode === 200) {
+        // Depois, atualizar os dados do veículo e motorista
+        const updateResponse = await axios.post(`${API_BASE_URL}/updateCarga`, {
+          codigo: carregamentoData.cargaId,
+          veiculo: {
+            matricula: carregamentoData.caminhao,
+            modelo: carregamentoData.caminhao,
+          },
+          motorista: {
+            nome: carregamentoData.motorista,
+          },
+          dataColeta: carregamentoData.dataInicio,
+        });
+
+        if (updateResponse.data.returnCode === 200) {
+          alert("Carregamento registrado com sucesso!");
+          setCarregamentoData({
+            caminhao: "",
+            motorista: "",
+            cargaId: "",
+            localCarregamento: "",
+            dataInicio: "",
+            dataTermino: "",
+            status: "agendado",
+            observacoes: "",
+          });
+          fetchCargasCarregadas();
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao registrar carregamento:", error);
+      alert("Erro ao registrar carregamento");
+    }
+  };
+
+  const getStatusBadge = (status) => {
+    const statusMap = {
+      planeada: { color: "bg-gray-500", text: "Planeada", label: "PLANEADA" },
+      aguardando_coleta: {
+        color: "bg-yellow-500",
+        text: "Aguardando",
+        label: "AGUARDANDO",
+      },
+      coletada: { color: "bg-blue-500", text: "Coletada", label: "COLETADA" },
+      em_transito: {
+        color: "bg-green-500",
+        text: "Em Trânsito",
+        label: "EM TRÂNSITO",
+      },
+      em_entrega: {
+        color: "bg-purple-500",
+        text: "Em Entrega",
+        label: "EM ENTREGA",
+      },
+      entregue: { color: "bg-teal-500", text: "Entregue", label: "ENTREGUE" },
+      atrasado: { color: "bg-red-500", text: "Atrasado", label: "ATRASADO" },
+    };
+
+    const config = statusMap[status] || {
+      color: "bg-gray-500",
+      text: "Desconhecido",
+      label: "DESCONHECIDO",
+    };
+
+    return (
+      <span
+        className={`${config.color} text-white px-2 py-1 rounded text-sm font-medium`}
+      >
+        {config.label}
+      </span>
+    );
+  };
+
+  const getStatusText = (status) => {
+    const statusText = {
+      planeada: "Planeada",
+      aguardando_coleta: "Aguardando Coleta",
+      coletada: "Carregando",
+      em_transito: "Em Trânsito",
+      em_entrega: "Em Entrega",
+      entregue: "Entregue",
+      encerrada: "Encerrada",
+      armazenada: "Armazenada",
+    };
+    return statusText[status] || status;
+  };
+
+  const calculateDeliveryStatus = (carga) => {
+    if (!carga.dataEntregaPrevista) return "no-prazo";
+
+    const entregaPrevista = new Date(carga.dataEntregaPrevista);
+    const agora = new Date();
+
+    if (carga.status === "entregue") return "entregue";
+    if (entregaPrevista < agora) return "atrasado";
+    if ((entregaPrevista - agora) / (1000 * 60 * 60) < 24) return "proximo";
+    return "no-prazo";
+  };
+
+  const getDeliveryStatusText = (status) => {
+    const statusMap = {
+      "no-prazo": { text: "No prazo", color: "text-green-600" },
+      proximo: { text: "Próximo do prazo", color: "text-yellow-600" },
+      atrasado: { text: "Atrasado", color: "text-red-600" },
+      entregue: { text: "Entregue", color: "text-teal-600" },
+    };
+    return statusMap[status] || statusMap["no-prazo"];
+  };
 
   return (
     <div className="h-full flex flex-col">
       <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-white">
         <h2 className="text-2xl font-bold text-gray-900 flex items-center">
-          <span className="bg-blue-500 text-white p-2 rounded-lg mr-3">
-            🚛
-          </span>
+          <span className="bg-blue-500 text-white p-2 rounded-lg mr-3">🚛</span>
           Carga Carregada - Controle de Cargas Carregadas
         </h2>
         <p className="text-sm text-gray-600 mt-2">
@@ -41,16 +325,6 @@ const CargaCarregada = () => {
             ⬆️ Carregamento
           </button>
           <button
-            onClick={() => setActiveCarregadaForm("documentos")}
-            className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-              activeCarregadaForm === "documentos"
-                ? "bg-blue-500 text-white shadow-md"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
-          >
-            📑 Documentos
-          </button>
-          <button
             onClick={() => setActiveCarregadaForm("graficos")}
             className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
               activeCarregadaForm === "graficos"
@@ -59,16 +333,6 @@ const CargaCarregada = () => {
             }`}
           >
             📈 Gráficos
-          </button>
-          <button
-            onClick={() => setActiveCarregadaForm("relatorios")}
-            className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-              activeCarregadaForm === "relatorios"
-                ? "bg-blue-500 text-white shadow-md"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
-          >
-            📈 Relatórios
           </button>
         </div>
 
@@ -83,7 +347,9 @@ const CargaCarregada = () => {
                     <p className="text-sm font-medium text-gray-600">
                       Total Carregadas
                     </p>
-                    <p className="text-2xl font-bold text-gray-900">24</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {loading ? "..." : cargas.length}
+                    </p>
                   </div>
                   <div className="bg-blue-100 p-3 rounded-lg">
                     <span className="text-blue-600 text-xl">🚛</span>
@@ -91,7 +357,9 @@ const CargaCarregada = () => {
                 </div>
                 <div className="mt-2">
                   <span className="text-blue-600 text-sm font-medium">
-                    +5 hoje
+                    {stats
+                      ? `${stats.cargasTransito} em trânsito`
+                      : "Carregando..."}
                   </span>
                 </div>
               </div>
@@ -102,7 +370,12 @@ const CargaCarregada = () => {
                     <p className="text-sm font-medium text-gray-600">
                       Em Trânsito
                     </p>
-                    <p className="text-2xl font-bold text-gray-900">18</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {loading
+                        ? "..."
+                        : cargas.filter((c) => c.status === "em_transito")
+                            .length}
+                    </p>
                   </div>
                   <div className="bg-blue-100 p-3 rounded-lg">
                     <span className="text-blue-600 text-xl">🛣️</span>
@@ -110,7 +383,11 @@ const CargaCarregada = () => {
                 </div>
                 <div className="mt-2">
                   <span className="text-blue-600 text-sm font-medium">
-                    72% da frota
+                    {stats
+                      ? `${Math.round(
+                          (stats.cargasTransito / stats.totalCargas) * 100
+                        )}% da frota`
+                      : "..."}
                   </span>
                 </div>
               </div>
@@ -121,7 +398,12 @@ const CargaCarregada = () => {
                     <p className="text-sm font-medium text-gray-600">
                       Para Carregar
                     </p>
-                    <p className="text-2xl font-bold text-gray-900">6</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {loading
+                        ? "..."
+                        : cargas.filter((c) => c.status === "aguardando_coleta")
+                            .length}
+                    </p>
                   </div>
                   <div className="bg-blue-100 p-3 rounded-lg">
                     <span className="text-blue-600 text-xl">⏳</span>
@@ -129,7 +411,8 @@ const CargaCarregada = () => {
                 </div>
                 <div className="mt-2">
                   <span className="text-blue-600 text-sm font-medium">
-                    3 urgentes
+                    {cargas.filter((c) => c.prioridade === "urgente").length}{" "}
+                    urgentes
                   </span>
                 </div>
               </div>
@@ -140,7 +423,13 @@ const CargaCarregada = () => {
                     <p className="text-sm font-medium text-gray-600">
                       Atrasados
                     </p>
-                    <p className="text-2xl font-bold text-gray-900">2</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {loading
+                        ? "..."
+                        : cargas.filter(
+                            (c) => calculateDeliveryStatus(c) === "atrasado"
+                          ).length}
+                    </p>
                   </div>
                   <div className="bg-blue-100 p-3 rounded-lg">
                     <span className="text-blue-600 text-xl">⚠️</span>
@@ -148,183 +437,163 @@ const CargaCarregada = () => {
                 </div>
                 <div className="mt-2">
                   <span className="text-blue-600 text-sm font-medium">
-                    Necessita acção
+                    Necessita ação
                   </span>
                 </div>
               </div>
             </div>
 
             {/* Grid Principal */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 text-gray-900">
               {/* Lista de Cargas Carregadas */}
               <div className="lg:col-span-2">
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-                  <div className="p-4 border-b border-gray-200 bg-blue-50">
+                  <div className="p-4 border-b border-gray-200 bg-blue-50 flex justify-between items-center">
                     <h3 className="font-semibold text-gray-900 flex items-center">
                       <span className="bg-blue-500 text-white p-2 rounded-lg mr-2">
                         📊
                       </span>
                       Cargas Carregadas - Controle em Tempo Real
                     </h3>
+                    <div className="flex space-x-2">
+                      <select
+                        className="px-3 py-1 border border-gray-300 rounded-lg text-sm"
+                        value={filters.status}
+                        onChange={(e) =>
+                          setFilters({ ...filters, status: e.target.value })
+                        }
+                      >
+                        <option value="">Todos Status</option>
+                        <option value="coletada">Carregando</option>
+                        <option value="em_transito">Em Trânsito</option>
+                        <option value="em_entrega">Em Entrega</option>
+                        <option value="entregue">Entregue</option>
+                      </select>
+                      <button
+                        onClick={fetchCargasCarregadas}
+                        className="px-3 py-1 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600"
+                      >
+                        Atualizar
+                      </button>
+                    </div>
                   </div>
                   <div className="p-6">
-                    <div className="space-y-4">
-                      {/* Carga 1 */}
-                      <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-3 mb-2">
-                              <span className="bg-blue-500 text-white px-2 py-1 rounded text-sm font-medium">
-                                CRG-001
-                              </span>
-                              <span className="bg-blue-500 text-white px-2 py-1 rounded text-sm font-medium">
-                                EM TRÂNSITO
-                              </span>
-                              <span className="text-sm text-gray-600">
-                                🕒 Carregado: Hoje 08:30
-                              </span>
-                            </div>
-                            <p className="font-medium text-gray-900">
-                              MB-1234-AB • Maputo → Nampula
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              Cimento • 25 ton • Contentor 40ft
-                            </p>
-                            <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
-                              <span>👨‍💼 João Maputo</span>
-                              <span>📞 +258 84 123 4567</span>
-                              <span>📍 EN1 - Xai-Xai</span>
-                              <span>⏰ Previsão: 18/01 18:00</span>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-sm font-medium text-blue-600">
-                              No prazo
-                            </p>
-                            <button className="mt-2 px-3 py-1 bg-gray-500 text-white rounded text-sm hover:bg-gray-600">
-                              Detalhes
-                            </button>
-                          </div>
-                        </div>
+                    {loading ? (
+                      <div className="text-center py-8">
+                        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                        <p className="text-gray-600 mt-2">
+                          Carregando cargas...
+                        </p>
                       </div>
-
-                      {/* Carga 2 */}
-                      <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-3 mb-2">
-                              <span className="bg-blue-500 text-white px-2 py-1 rounded text-sm font-medium">
-                                CRG-015
-                              </span>
-                              <span className="bg-blue-500 text-white px-2 py-1 rounded text-sm font-medium">
-                                CARREGANDO
-                              </span>
-                              <span className="text-sm text-gray-600">
-                                🕒 Início: Hoje 10:15
-                              </span>
-                            </div>
-                            <p className="font-medium text-gray-900">
-                              MB-5678-CD • Porto Maputo → Matola
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              Produtos Alimentares • 8 ton • Fracionada
-                            </p>
-                            <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
-                              <span>👨‍💼 Carlos Beira</span>
-                              <span>📞 +258 84 234 5678</span>
-                              <span>📍 Porto Maputo - Cais 3</span>
-                              <span>📦 65% carregado</span>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-sm font-medium text-blue-600">
-                              Em andamento
-                            </p>
-                            <button className="mt-2 px-3 py-1 bg-gray-500 text-white rounded text-sm hover:bg-gray-600">
-                              Acompanhar
-                            </button>
-                          </div>
-                        </div>
+                    ) : cargas.length === 0 ? (
+                      <div className="text-center py-8">
+                        <p className="text-gray-600">
+                          Nenhuma carga carregada encontrada
+                        </p>
                       </div>
-
-                      {/* Carga 3 */}
-                      <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-3 mb-2">
-                              <span className="bg-blue-500 text-white px-2 py-1 rounded text-sm font-medium">
-                                CRG-028
-                              </span>
-                              <span className="bg-blue-500 text-white px-2 py-1 rounded text-sm font-medium">
-                                ATRASADO
-                              </span>
-                              <span className="text-sm text-gray-600">
-                                🕒 Carregado: Ontem 16:00
-                              </span>
-                            </div>
-                            <p className="font-medium text-gray-900">
-                              MB-9012-EF • Beira → Chimoio
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              Material Construção • 18 ton • Carga Geral
-                            </p>
-                            <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
-                              <span>👨‍💼 António Nampula</span>
-                              <span>📞 +258 84 345 6789</span>
-                              <span>📍 EN6 - Inchope</span>
-                              <span>⏰ +3 horas de atraso</span>
+                    ) : (
+                      <div className="space-y-4">
+                        {cargas.map((carga, index) => (
+                          <div
+                            key={index}
+                            className="p-4 bg-blue-50 rounded-lg border border-blue-200"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center space-x-3 mb-2">
+                                  <span className="bg-blue-500 text-white px-2 py-1 rounded text-sm font-medium">
+                                    {carga.codigo}
+                                  </span>
+                                  {getStatusBadge(carga.status)}
+                                  <span className="text-sm text-gray-600">
+                                    🕒{" "}
+                                    {carga.dataColeta
+                                      ? new Date(
+                                          carga.dataColeta
+                                        ).toLocaleString("pt-PT")
+                                      : "Sem data"}
+                                  </span>
+                                </div>
+                                <p className="font-medium text-gray-900">
+                                  {carga.veiculo?.matricula || "Sem veículo"} •{" "}
+                                  {carga.origem?.cidade} →{" "}
+                                  {carga.destino?.cidade}
+                                </p>
+                                <p className="text-sm text-gray-600">
+                                  {carga.tipoCarga} •{" "}
+                                  {carga.pesoBruto
+                                    ? `${(carga.pesoBruto / 1000).toFixed(
+                                        1
+                                      )} ton`
+                                    : "Peso não informado"}{" "}
+                                  • {carga.descricao}
+                                </p>
+                                <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
+                                  <span>
+                                    👨‍💼{" "}
+                                    {carga.motorista?.nome ||
+                                      "Motorista não definido"}
+                                  </span>
+                                  <span>
+                                    📞{" "}
+                                    {carga.motorista?.telefone ||
+                                      "Sem telefone"}
+                                  </span>
+                                  {carga.dataEntregaPrevista && (
+                                    <span>
+                                      ⏰ Previsão:{" "}
+                                      {new Date(
+                                        carga.dataEntregaPrevista
+                                      ).toLocaleDateString("pt-PT")}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <p
+                                  className={`text-sm font-medium ${
+                                    calculateDeliveryStatus(carga) ===
+                                    "atrasado"
+                                      ? "text-red-600"
+                                      : calculateDeliveryStatus(carga) ===
+                                        "entregue"
+                                      ? "text-teal-600"
+                                      : "text-green-600"
+                                  }`}
+                                >
+                                  {
+                                    getDeliveryStatusText(
+                                      calculateDeliveryStatus(carga)
+                                    ).text
+                                  }
+                                </p>
+                                <div className="flex space-x-2 mt-2">
+                                  <button
+                                    onClick={() => setSelectedCarga(carga)}
+                                    className="px-3 py-1 bg-gray-500 text-white rounded text-sm hover:bg-gray-600"
+                                  >
+                                    Detalhes
+                                  </button>
+                                  {carga.status === "coletada" && (
+                                    <button
+                                      onClick={() =>
+                                        handleUpdateStatus(
+                                          carga.codigo,
+                                          "em_transito"
+                                        )
+                                      }
+                                      className="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600"
+                                    >
+                                      Iniciar Viagem
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className="text-sm font-medium text-blue-600">
-                              Atrasado
-                            </p>
-                            <button className="mt-2 px-3 py-1 bg-gray-500 text-white rounded text-sm hover:bg-gray-600">
-                              Resolver
-                            </button>
-                          </div>
-                        </div>
+                        ))}
                       </div>
-
-                      {/* Carga 4 */}
-                      <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-3 mb-2">
-                              <span className="bg-blue-500 text-white px-2 py-1 rounded text-sm font-medium">
-                                CRG-042
-                              </span>
-                              <span className="bg-blue-500 text-white px-2 py-1 rounded text-sm font-medium">
-                                ENTREGUE
-                              </span>
-                              <span className="text-sm text-gray-600">
-                                🕒 Entregue: Hoje 09:45
-                              </span>
-                            </div>
-                            <p className="font-medium text-gray-900">
-                              MB-3456-GH • Maputo → Marracuene
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              Produtos Diversos • 5 ton • Local
-                            </p>
-                            <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
-                              <span>👨‍💼 Pedro Matola</span>
-                              <span>📞 +258 84 456 7890</span>
-                              <span>✅ Cliente confirmou</span>
-                              <span>⭐ Avaliação: 5/5</span>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-sm font-medium text-blue-600">
-                              Concluído
-                            </p>
-                            <button className="mt-2 px-3 py-1 bg-gray-500 text-white rounded text-sm hover:bg-gray-600">
-                              Comprovante
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -336,52 +605,80 @@ const CargaCarregada = () => {
                     Filtros Rápidos
                   </h4>
                   <div className="space-y-3">
-                    <button className="w-full text-left p-3 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 text-sm text-gray-950">
+                    <button
+                      onClick={() =>
+                        setFilters({ ...filters, status: "em_transito" })
+                      }
+                      className="w-full text-left p-3 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 text-sm text-gray-950"
+                    >
                       🟢 Em Trânsito
                     </button>
-                    <button className="w-full text-left p-3 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 text-sm text-gray-950">
+                    <button
+                      onClick={() =>
+                        setFilters({ ...filters, status: "coletada" })
+                      }
+                      className="w-full text-left p-3 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 text-sm text-gray-950"
+                    >
                       🟡 Carregando
                     </button>
-                    <button className="w-full text-left p-3 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 text-sm text-gray-950">
+                    <button
+                      onClick={() => {
+                        const cargasAtrasadas = cargas.filter(
+                          (c) => calculateDeliveryStatus(c) === "atrasado"
+                        );
+                        // Aqui você pode implementar uma visualização específica
+                      }}
+                      className="w-full text-left p-3 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 text-sm text-gray-950"
+                    >
                       🔴 Atrasados
                     </button>
-                    <button className="w-full text-left p-3 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 text-sm text-gray-950">
+                    <button
+                      onClick={() =>
+                        setFilters({ ...filters, status: "entregue" })
+                      }
+                      className="w-full text-left p-3 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 text-sm text-gray-950"
+                    >
                       🔵 Entregues Hoje
                     </button>
                   </div>
                 </div>
 
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-                  <h4 className="font-semibold text-gray-900 mb-4">
-                    Próximas Ações
-                  </h4>
-                  <div className="space-y-3">
-                    <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                      <p className="text-sm font-medium text-gray-900">
-                        Iniciar Carregamento
-                      </p>
-                      <p className="text-xs text-gray-600">
-                        MB-7890-IJ • 10:30
-                      </p>
-                    </div>
-                    <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                      <p className="text-sm font-medium text-gray-900">
-                        Resolver Atraso
-                      </p>
-                      <p className="text-xs text-gray-600">
-                        CRG-028 • +3 horas
-                      </p>
-                    </div>
-                    <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                      <p className="text-sm font-medium text-gray-900">
-                        Emitir Comprovante
-                      </p>
-                      <p className="text-xs text-gray-600">
-                        CRG-042 • Entregue
-                      </p>
+                {selectedCarga && (
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                    <h4 className="font-semibold text-gray-900 mb-4">
+                      Detalhes da Carga
+                    </h4>
+                    <div className="space-y-3 text-gray-900">
+                      <div>
+                        <p className="text-sm text-gray-600">Código:</p>
+                        <p className="font-medium">{selectedCarga.codigo}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Status:</p>
+                        <p className="font-medium">
+                          {getStatusText(selectedCarga.status)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Cliente:</p>
+                        <p className="font-medium">{selectedCarga.cliente}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Rota:</p>
+                        <p className="font-medium">
+                          {selectedCarga.origem?.cidade} →{" "}
+                          {selectedCarga.destino?.cidade}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Motorista:</p>
+                        <p className="font-medium">
+                          {selectedCarga.motorista?.nome || "Não definido"}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           </div>
@@ -401,13 +698,26 @@ const CargaCarregada = () => {
                   </h3>
                 </div>
                 <div className="p-6">
-                  <form className="space-y-6">
+                  <form
+                    onSubmit={handleCarregamentoSubmit}
+                    className="space-y-6"
+                  >
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Caminhão *
                         </label>
-                        <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-950">
+                        <select
+                          required
+                          value={carregamentoData.caminhao}
+                          onChange={(e) =>
+                            setCarregamentoData({
+                              ...carregamentoData,
+                              caminhao: e.target.value,
+                            })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-950"
+                        >
                           <option value="">Selecione o caminhão</option>
                           <option value="MB-1234-AB">MB-1234-AB</option>
                           <option value="MB-5678-CD">MB-5678-CD</option>
@@ -419,12 +729,24 @@ const CargaCarregada = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Motorista *
                         </label>
-                        <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-950">
+                        <select
+                          required
+                          value={carregamentoData.motorista}
+                          onChange={(e) =>
+                            setCarregamentoData({
+                              ...carregamentoData,
+                              motorista: e.target.value,
+                            })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-950"
+                        >
                           <option value="">Selecione o motorista</option>
-                          <option value="1">João Maputo</option>
-                          <option value="2">Carlos Beira</option>
-                          <option value="3">António Nampula</option>
-                          <option value="4">Pedro Matola</option>
+                          <option value="João Maputo">João Maputo</option>
+                          <option value="Carlos Beira">Carlos Beira</option>
+                          <option value="António Nampula">
+                            António Nampula
+                          </option>
+                          <option value="Pedro Matola">Pedro Matola</option>
                         </select>
                       </div>
                     </div>
@@ -434,20 +756,33 @@ const CargaCarregada = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Carga a Ser Carregada *
                         </label>
-                        <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-950">
+                        <select
+                          required
+                          value={carregamentoData.cargaId}
+                          onChange={(e) => {
+                            const carga = cargas.find(
+                              (c) => c.codigo === e.target.value
+                            );
+                            setCarregamentoData({
+                              ...carregamentoData,
+                              cargaId: e.target.value,
+                            });
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-950"
+                        >
                           <option value="">Selecione a carga</option>
-                          <option value="CRG-001">
-                            CRG-001 - Maputo → Nampula
-                          </option>
-                          <option value="CRG-015">
-                            CRG-015 - Porto → Matola
-                          </option>
-                          <option value="CRG-028">
-                            CRG-028 - Beira → Chimoio
-                          </option>
-                          <option value="CRG-042">
-                            CRG-042 - Maputo → Marracuene
-                          </option>
+                          {cargas
+                            .filter(
+                              (carga) =>
+                                carga.status === "aguardando_coleta" ||
+                                !carga.status
+                            )
+                            .map((carga) => (
+                              <option key={carga.codigo} value={carga.codigo}>
+                                {carga.codigo} - {carga.origem?.cidade} →{" "}
+                                {carga.destino?.cidade}
+                              </option>
+                            ))}
                         </select>
                       </div>
                       <div>
@@ -456,6 +791,14 @@ const CargaCarregada = () => {
                         </label>
                         <input
                           type="text"
+                          required
+                          value={carregamentoData.localCarregamento}
+                          onChange={(e) =>
+                            setCarregamentoData({
+                              ...carregamentoData,
+                              localCarregamento: e.target.value,
+                            })
+                          }
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-950"
                           placeholder="Ex: Porto Maputo - Cais 3"
                         />
@@ -469,6 +812,14 @@ const CargaCarregada = () => {
                         </label>
                         <input
                           type="datetime-local"
+                          required
+                          value={carregamentoData.dataInicio}
+                          onChange={(e) =>
+                            setCarregamentoData({
+                              ...carregamentoData,
+                              dataInicio: e.target.value,
+                            })
+                          }
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-950"
                         />
                       </div>
@@ -478,6 +829,13 @@ const CargaCarregada = () => {
                         </label>
                         <input
                           type="datetime-local"
+                          value={carregamentoData.dataTermino}
+                          onChange={(e) =>
+                            setCarregamentoData({
+                              ...carregamentoData,
+                              dataTermino: e.target.value,
+                            })
+                          }
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-950"
                         />
                       </div>
@@ -485,56 +843,21 @@ const CargaCarregada = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Status do Carregamento
                         </label>
-                        <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-950">
+                        <select
+                          value={carregamentoData.status}
+                          onChange={(e) =>
+                            setCarregamentoData({
+                              ...carregamentoData,
+                              status: e.target.value,
+                            })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-950"
+                        >
                           <option value="agendado">Agendado</option>
                           <option value="em_andamento">Em Andamento</option>
                           <option value="concluido">Concluído</option>
                           <option value="suspenso">Suspenso</option>
                         </select>
-                      </div>
-                    </div>
-
-                    <div className="border-t border-gray-200 pt-6">
-                      <h4 className="font-semibold text-gray-900 mb-4">
-                        Verificação de Carga
-                      </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="flex items-center">
-                          <input type="checkbox" className="mr-3" />
-                          <label className="text-sm text-gray-700">
-                            Peso conferido
-                          </label>
-                        </div>
-                        <div className="flex items-center">
-                          <input type="checkbox" className="mr-3" />
-                          <label className="text-sm text-gray-700">
-                            Embalagem íntegra
-                          </label>
-                        </div>
-                        <div className="flex items-center">
-                          <input type="checkbox" className="mr-3" />
-                          <label className="text-sm text-gray-700">
-                            Documentação OK
-                          </label>
-                        </div>
-                        <div className="flex items-center">
-                          <input type="checkbox" className="mr-3" />
-                          <label className="text-sm text-gray-700">
-                            Lacres aplicados
-                          </label>
-                        </div>
-                        <div className="flex items-center">
-                          <input type="checkbox" className="mr-3" />
-                          <label className="text-sm text-gray-700">
-                            Amarração correta
-                          </label>
-                        </div>
-                        <div className="flex items-center">
-                          <input type="checkbox" className="mr-3" />
-                          <label className="text-sm text-gray-700">
-                            Temperatura controlada
-                          </label>
-                        </div>
                       </div>
                     </div>
 
@@ -544,6 +867,13 @@ const CargaCarregada = () => {
                       </label>
                       <textarea
                         rows={3}
+                        value={carregamentoData.observacoes}
+                        onChange={(e) =>
+                          setCarregamentoData({
+                            ...carregamentoData,
+                            observacoes: e.target.value,
+                          })
+                        }
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-950"
                         placeholder="Observações sobre o carregamento..."
                       />
@@ -552,6 +882,18 @@ const CargaCarregada = () => {
                     <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
                       <button
                         type="button"
+                        onClick={() =>
+                          setCarregamentoData({
+                            caminhao: "",
+                            motorista: "",
+                            cargaId: "",
+                            localCarregamento: "",
+                            dataInicio: "",
+                            dataTermino: "",
+                            status: "agendado",
+                            observacoes: "",
+                          })
+                        }
                         className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
                       >
                         Cancelar
@@ -572,226 +914,32 @@ const CargaCarregada = () => {
             <div className="space-y-6">
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
                 <h4 className="font-semibold text-gray-900 mb-4">
-                  Informações da Carga
-                </h4>
-                <div className="space-y-3 text-sm">
-                  <div>
-                    <span className="text-gray-600">Origem → Destino:</span>
-                    <p className="font-medium text-gray-950">
-                      Maputo → Nampula
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Tipo de Carga:</span>
-                    <p className="font-medium text-gray-950">
-                      Cimento • 25 ton
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Embalagem:</span>
-                    <p className="font-medium text-gray-950">
-                      Contentor 40ft
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Cliente:</span>
-                    <p className="font-medium text-gray-950">
-                      Construma Lda
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Valor do Frete:</span>
-                    <p className="font-medium text-gray-950">MT 45.000</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-                <h4 className="font-semibold text-gray-900 mb-4">
                   Próximos Carregamentos
                 </h4>
                 <div className="space-y-3">
-                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <p className="text-sm font-medium text-gray-950">
-                      MB-7890-IJ
-                    </p>
-                    <p className="text-xs text-gray-600">
-                      10:30 • Porto Maputo
-                    </p>
-                    <p className="text-xs text-blue-600 font-medium">
-                      Produtos Perecíveis
-                    </p>
-                  </div>
-                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <p className="text-sm font-medium text-gray-950">
-                      MB-2468-KL
-                    </p>
-                    <p className="text-xs text-gray-600">14:00 • Matola</p>
-                    <p className="text-xs text-blue-600 font-medium">
-                      Material Construção
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Documentos do Carregamento */}
-        {activeCarregadaForm === "documentos" && (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-            <div className="p-4 border-b border-gray-200 bg-green-50">
-              <h3 className="font-semibold text-gray-900 flex items-center">
-                <span className="bg-green-500 text-white p-2 rounded-lg mr-2">
-                  📑
-                </span>
-                Gestão de Documentos do Carregamento
-              </h3>
-            </div>
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Carga Carregada
-                  </label>
-                  <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-950">
-                    <option value="">Selecione a carga</option>
-                    <option value="CRG-001">CRG-001 - MB-1234-AB</option>
-                    <option value="CRG-015">CRG-015 - MB-5678-CD</option>
-                    <option value="CRG-028">CRG-028 - MB-9012-EF</option>
-                    <option value="CRG-042">CRG-042 - MB-3456-GH</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Tipo de Documento
-                  </label>
-                  <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-950">
-                    <option value="todos">Todos os Documentos</option>
-                    <option value="conhecimento">
-                      Conhecimento de Carga
-                    </option>
-                    <option value="fatura">Fatura Comercial</option>
-                    <option value="checklist">
-                      Checklist de Carregamento
-                    </option>
-                    <option value="fotos">Fotos da Carga</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Lista de Documentos */}
-              <div className="space-y-4">
-                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <span className="bg-blue-500 text-white p-2 rounded-lg">
-                        📄
-                      </span>
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          Conhecimento de Carga - CRG-001
+                  {cargas
+                    .filter((carga) => carga.status === "aguardando_coleta")
+                    .slice(0, 3)
+                    .map((carga, index) => (
+                      <div
+                        key={index}
+                        className="p-3 bg-blue-50 rounded-lg border border-blue-200"
+                      >
+                        <p className="text-sm font-medium text-gray-950">
+                          {carga.codigo}
                         </p>
-                        <p className="text-sm text-gray-600">
-                          BL-2024-001 • Emitido: 15/01/2024 08:45
+                        <p className="text-xs text-gray-600">
+                          {carga.origem?.cidade} → {carga.destino?.cidade}
+                        </p>
+                        <p className="text-xs text-blue-600 font-medium">
+                          {carga.tipoCarga} •{" "}
+                          {carga.pesoBruto
+                            ? `${(carga.pesoBruto / 1000).toFixed(1)} ton`
+                            : ""}
                         </p>
                       </div>
-                    </div>
-                    <div className="flex space-x-2">
-                      <button className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600">
-                        Visualizar
-                      </button>
-                      <button className="px-3 py-1 bg-gray-500 text-white rounded text-sm hover:bg-gray-600">
-                        Download
-                      </button>
-                    </div>
-                  </div>
+                    ))}
                 </div>
-
-                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <span className="bg-blue-500 text-white p-2 rounded-lg">
-                        ✅
-                      </span>
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          Checklist de Carregamento - CRG-001
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          Completo • Assinado: João Maputo
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex space-x-2">
-                      <button className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600">
-                        Visualizar
-                      </button>
-                      <button className="px-3 py-1 bg-gray-500 text-white rounded text-sm hover:bg-gray-600">
-                        Download
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <span className="bg-blue-500 text-white p-2 rounded-lg">
-                        📷
-                      </span>
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          Fotos da Carga Carregada - CRG-001
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          8 fotos • Tiradas: 15/01/2024 09:20
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex space-x-2">
-                      <button className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600">
-                        Visualizar
-                      </button>
-                      <button className="px-3 py-1 bg-gray-500 text-white rounded text-sm hover:bg-gray-600">
-                        Download
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Upload de Novos Documentos */}
-              <div className="mt-8 border-t border-gray-200 pt-6">
-                <h4 className="font-semibold text-gray-900 mb-4">
-                  Adicionar Novo Documento
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Tipo de Documento
-                    </label>
-                    <select className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-950">
-                      <option>Conhecimento de Carga</option>
-                      <option>Factura Comercial</option>
-                      <option>Checklist</option>
-                      <option>Foto</option>
-                      <option>Outro</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Arquivo
-                    </label>
-                    <input
-                      type="file"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-950"
-                    />
-                  </div>
-                </div>
-                <button className="mt-4 px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-medium">
-                  Upload Documento
-                </button>
               </div>
             </div>
           </div>
@@ -819,514 +967,126 @@ const CargaCarregada = () => {
                       Status das Cargas Carregadas
                     </h4>
                     <div className="h-64 flex items-center justify-center">
-                      <div className="text-center w-full">
-                        <div className="flex justify-center mb-4">
-                          <div className="relative w-32 h-32">
-                            <div
-                              className="w-full h-full rounded-full"
-                              style={{
-                                background:
-                                  "conic-gradient(#10b981 0% 75%, #3b82f6 75% 88%, #f59e0b 88% 92%, #ef4444 92% 100%)",
-                              }}
-                            ></div>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2 text-sm">
-                          <div className="flex items-center">
-                            <div className="w-3 h-3 bg-green-500 rounded mr-2"></div>
-                            <span>Em Trânsito (75%)</span>
-                          </div>
-                          <div className="flex items-center">
-                            <div className="w-3 h-3 bg-blue-500 rounded mr-2"></div>
-                            <span>Carregando (13%)</span>
-                          </div>
-                          <div className="flex items-center">
-                            <div className="w-3 h-3 bg-yellow-500 rounded mr-2"></div>
-                            <span>Entregue (4%)</span>
-                          </div>
-                          <div className="flex items-center">
-                            <div className="w-3 h-3 bg-red-500 rounded mr-2"></div>
-                            <span>Atrasado (8%)</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Gráfico de Cargas Carregadas por Dia - Barras Empilhadas */}
-                  <div className="bg-gray-50 p-6 rounded-lg border border-gray-200 mt-6">
-                    <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
-                      <span className="text-green-500 mr-2">📦</span>
-                      Cargas Carregadas (Últimos 7 Dias)
-                    </h4>
-
-                    <div className="h-64 flex items-end justify-between space-x-2">
-                      {[
-                        { day: "Seg", carregadas: 12, entregues: 8 },
-                        { day: "Ter", carregadas: 15, entregues: 10 },
-                        { day: "Qua", carregadas: 18, entregues: 12 },
-                        { day: "Qui", carregadas: 14, entregues: 9 },
-                        { day: "Sex", carregadas: 20, entregues: 15 },
-                        { day: "Sáb", carregadas: 8, entregues: 6 },
-                        { day: "Dom", carregadas: 5, entregues: 4 },
-                      ].map((item, index) => {
-                        const total = item.carregadas + item.entregues;
-                        return (
-                          <div
-                            key={index}
-                            className="flex flex-col items-center flex-1 h-full"
-                          >
-                            <div className="flex flex-col justify-end h-full w-3/4 rounded-t-lg overflow-hidden">
-                              {/* Carregadas */}
+                      {stats ? (
+                        <div className="text-center w-full">
+                          <div className="flex justify-center mb-4">
+                            <div className="relative w-32 h-32">
                               <div
-                                className="bg-blue-400 w-full transition-all hover:opacity-80"
+                                className="w-full h-full rounded-full"
                                 style={{
-                                  height: `${
-                                    (item.carregadas / total) * 100
-                                  }%`,
+                                  background:
+                                    "conic-gradient(#10b981 0% 75%, #3b82f6 75% 88%, #f59e0b 88% 92%, #ef4444 92% 100%)",
                                 }}
-                                title={`Carregadas: ${item.carregadas}`}
-                              ></div>
-                              {/* Entregues */}
-                              <div
-                                className="bg-green-400 w-full transition-all hover:opacity-80"
-                                style={{
-                                  height: `${
-                                    (item.entregues / total) * 100
-                                  }%`,
-                                }}
-                                title={`Entregues: ${item.entregues}`}
                               ></div>
                             </div>
-                            <span className="text-xs mt-2 font-medium">
-                              {item.day}
-                            </span>
                           </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Legenda */}
-                    <div className="flex justify-center space-x-4 mt-4 text-xs">
-                      <div className="flex items-center">
-                        <div className="w-3 h-3 bg-blue-400 rounded mr-1"></div>
-                        <span>Carregadas</span>
-                      </div>
-                      <div className="flex items-center">
-                        <div className="w-3 h-3 bg-green-400 rounded mr-1"></div>
-                        <span>Entregues</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Segunda Linha de Gráficos */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                  {/* Gráfico de Eficiência por Caminhão */}
-                  <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
-                    <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
-                      <span className="text-purple-500 mr-2">🚛</span>
-                      Eficiência por Caminhão
-                    </h4>
-                    <div className="h-48 overflow-y-auto">
-                      <div className="space-y-4 pr-2">
-                        {[
-                          {
-                            caminhao: "MB-1234-AB",
-                            eficiencia: 94,
-                            cargas: 8,
-                            color: "bg-green-500",
-                            percentage: 94,
-                          },
-                          {
-                            caminhao: "MB-5678-CD",
-                            eficiencia: 87,
-                            cargas: 6,
-                            color: "bg-blue-500",
-                            percentage: 87,
-                          },
-                          {
-                            caminhao: "MB-9012-EF",
-                            eficiencia: 78,
-                            cargas: 5,
-                            color: "bg-yellow-500",
-                            percentage: 78,
-                          },
-                          {
-                            caminhao: "MB-3456-GH",
-                            eficiencia: 92,
-                            cargas: 7,
-                            color: "bg-purple-500",
-                            percentage: 92,
-                          },
-                        ].map((item, index) => (
-                          <div
-                            key={index}
-                            className="flex items-start space-x-3"
-                          >
-                            <div
-                              className={`w-3 h-3 rounded-full ${item.color} mt-1.5 flex-shrink-0`}
-                            ></div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex justify-between items-start mb-1">
-                                <span className="text-sm font-medium text-gray-900 break-words">
-                                  {item.caminhao}
-                                </span>
-                                <span className="text-sm font-bold text-gray-700 ml-2 whitespace-nowrap flex-shrink-0">
-                                  {item.eficiencia}%
-                                </span>
-                              </div>
-                              <div className="w-full bg-gray-200 rounded-full h-2">
-                                <div
-                                  className={`h-2 rounded-full ${item.color} transition-all duration-300`}
-                                  style={{ width: `${item.percentage}%` }}
-                                ></div>
-                              </div>
-                              <div className="text-xs text-gray-500 mt-1 flex justify-between">
-                                <span>{item.cargas} cargas</span>
-                                <span
-                                  className={
-                                    item.eficiencia >= 90
-                                      ? "text-green-600"
-                                      : item.eficiencia >= 80
-                                      ? "text-blue-600"
-                                      : "text-yellow-600"
-                                  }
-                                >
-                                  {item.eficiencia >= 90
-                                    ? "Excelente"
-                                    : item.eficiencia >= 80
-                                    ? "Bom"
-                                    : "Regular"}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Gráfico de Tipos de Carga Carregada */}
-                  <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
-                    <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
-                      <span className="text-orange-500 mr-2">📦</span>
-                      Tipos de Carga Carregada
-                    </h4>
-                    <div className="h-48 overflow-y-auto">
-                      <div className="space-y-4 pr-2">
-                        {[
-                          {
-                            tipo: "Contentor 40ft",
-                            quantidade: 12,
-                            color: "bg-blue-500",
-                            percentage: 35,
-                            icon: "📦",
-                          },
-                          {
-                            tipo: "Carga Fracionada",
-                            quantidade: 10,
-                            color: "bg-green-500",
-                            percentage: 29,
-                            icon: "📋",
-                          },
-                          {
-                            tipo: "Material Construção",
-                            quantidade: 8,
-                            color: "bg-orange-500",
-                            percentage: 24,
-                            icon: "🏗️",
-                          },
-                          {
-                            tipo: "Perecível",
-                            quantidade: 4,
-                            color: "bg-cyan-500",
-                            percentage: 12,
-                            icon: "❄️",
-                          },
-                        ].map((item, index) => (
-                          <div
-                            key={index}
-                            className="flex items-start space-x-3"
-                          >
-                            <span className="text-lg mt-0.5 flex-shrink-0">
-                              {item.icon}
-                            </span>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex justify-between items-start mb-1">
-                                <span className="text-sm font-medium text-gray-900 break-words">
-                                  {item.tipo}
-                                </span>
-                                <span className="text-sm text-gray-600 ml-2 whitespace-nowrap flex-shrink-0">
-                                  {item.quantidade}
-                                </span>
-                              </div>
-                              <div className="w-full bg-gray-200 rounded-full h-2">
-                                <div
-                                  className={`h-2 rounded-full ${item.color}`}
-                                  style={{ width: `${item.percentage}%` }}
-                                ></div>
-                              </div>
-                              <div className="text-xs text-gray-500 mt-1">
-                                {item.percentage}% do total
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Gráfico de Tempos de Carregamento */}
-                  <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
-                    <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
-                      <span className="text-cyan-500 mr-2">⏱️</span>
-                      Tempos Médios de Carregamento
-                    </h4>
-                    <div className="h-48 space-y-4">
-                      {[
-                        {
-                          tipo: "Contentor 40ft",
-                          tempo: 120,
-                          meta: 90,
-                          color: "bg-blue-500",
-                        },
-                        {
-                          tipo: "Carga Fracionada",
-                          tempo: 45,
-                          meta: 60,
-                          color: "bg-green-500",
-                        },
-                        {
-                          tipo: "Material Construção",
-                          tempo: 75,
-                          meta: 80,
-                          color: "bg-orange-500",
-                        },
-                        {
-                          tipo: "Perecível",
-                          tempo: 90,
-                          meta: 75,
-                          color: "bg-cyan-500",
-                        },
-                      ].map((item, index) => (
-                        <div key={index} className="space-y-2">
-                          <div className="flex justify-between items-center text-sm">
-                            <span className="font-medium">{item.tipo}</span>
-                            <div className="flex items-center space-x-2">
-                              <span className="font-bold text-gray-700">
-                                {item.tempo}min
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div className="flex items-center">
+                              <div className="w-3 h-3 bg-green-500 rounded mr-2"></div>
+                              <span>
+                                Em Trânsito (
+                                {Math.round(
+                                  (stats.cargasTransito / stats.totalCargas) *
+                                    100
+                                )}
+                                %)
                               </span>
-                              <span
-                                className={`text-xs ${
-                                  item.tempo <= item.meta
-                                    ? "text-green-600"
-                                    : "text-red-600"
-                                }`}
-                              >
-                                {item.tempo <= item.meta ? "✓" : "✗"} Meta:{" "}
-                                {item.meta}min
+                            </div>
+                            <div className="flex items-center">
+                              <div className="w-3 h-3 bg-blue-500 rounded mr-2"></div>
+                              <span>
+                                Para Carregar (
+                                {Math.round(
+                                  (cargas.filter(
+                                    (c) => c.status === "aguardando_coleta"
+                                  ).length /
+                                    cargas.length) *
+                                    100
+                                )}
+                                %)
+                              </span>
+                            </div>
+                            <div className="flex items-center">
+                              <div className="w-3 h-3 bg-yellow-500 rounded mr-2"></div>
+                              <span>
+                                Entregues (
+                                {Math.round(
+                                  (stats.cargasEntregues / stats.totalCargas) *
+                                    100
+                                )}
+                                %)
+                              </span>
+                            </div>
+                            <div className="flex items-center">
+                              <div className="w-3 h-3 bg-red-500 rounded mr-2"></div>
+                              <span>
+                                Atrasados (
+                                {Math.round(
+                                  (stats.cargasAtrasadas / stats.totalCargas) *
+                                    100
+                                )}
+                                %)
                               </span>
                             </div>
                           </div>
-                          <div className="w-full bg-gray-200 rounded-full h-3">
-                            <div
-                              className={`h-3 rounded-full ${item.color} transition-all duration-500`}
-                              style={{
-                                width: `${Math.min(
-                                  (item.tempo / 150) * 100,
-                                  100
-                                )}%`,
-                              }}
-                            ></div>
-                          </div>
                         </div>
-                      ))}
+                      ) : (
+                        <div className="text-center">
+                          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                          <p className="text-gray-600 mt-2">
+                            Carregando estatísticas...
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
-                </div>
 
-                {/* Métricas Rápidas */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                    <p className="text-sm text-blue-600 font-medium">
-                      Total Carregadas
-                    </p>
-                    <p className="text-2xl font-bold text-gray-900">24</p>
-                  </div>
-                  <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                    <p className="text-sm text-green-600 font-medium">
-                      Taxa Entrega
-                    </p>
-                    <p className="text-2xl font-bold text-gray-900">92%</p>
-                  </div>
-                  <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
-                    <p className="text-sm text-amber-600 font-medium">
-                      Tempo Médio
-                    </p>
-                    <p className="text-2xl font-bold text-gray-900">
-                      78min
-                    </p>
-                  </div>
-                  <div className="bg-cyan-50 p-4 rounded-lg border border-cyan-200">
-                    <p className="text-sm text-cyan-600 font-medium">
-                      Cargas/Dia
-                    </p>
-                    <p className="text-2xl font-bold text-gray-900">13</p>
-                  </div>
-                </div>
-
-                {/* Filtros */}
-                <div className="mt-8 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <h4 className="font-medium text-gray-900 mb-4">
-                    Filtros do Dashboard
-                  </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Período
-                      </label>
-                      <select className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-950">
-                        <option>Últimos 7 dias</option>
-                        <option>Este Mês</option>
-                        <option>Últimos 30 dias</option>
-                        <option>Este Ano</option>
-                      </select>
+                  {/* Métricas Rápidas */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                      <p className="text-sm text-blue-600 font-medium">
+                        Peso Total Transportado
+                      </p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {stats
+                          ? `${(stats.pesoTotalTransportado / 1000).toFixed(
+                              0
+                            )} ton`
+                          : "..."}
+                      </p>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Status
-                      </label>
-                      <select className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-950">
-                        <option>Todos</option>
-                        <option>Em Trânsito</option>
-                        <option>Carregando</option>
-                        <option>Entregue</option>
-                        <option>Atrasado</option>
-                      </select>
+                    <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                      <p className="text-sm text-green-600 font-medium">
+                        Distância Total
+                      </p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {stats ? `${stats.distanciaTotal} km` : "..."}
+                      </p>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Caminhão
-                      </label>
-                      <select className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-950">
-                        <option>Todos</option>
-                        <option>MB-1234-AB</option>
-                        <option>MB-5678-CD</option>
-                        <option>MB-9012-EF</option>
-                        <option>MB-3456-GH</option>
-                      </select>
+                    <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                      <p className="text-sm text-amber-600 font-medium">
+                        Valor Total Fretes
+                      </p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {stats
+                          ? `MT ${stats.valorTotalFretes.toLocaleString()}`
+                          : "..."}
+                      </p>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Tipo de Carga
-                      </label>
-                      <select className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-950">
-                        <option>Todos</option>
-                        <option>Contentor</option>
-                        <option>Fracionada</option>
-                        <option>Material Construção</option>
-                        <option>Perecível</option>
-                      </select>
+                    <div className="bg-cyan-50 p-4 rounded-lg border border-cyan-200">
+                      <p className="text-sm text-cyan-600 font-medium">
+                        Taxa de Entrega
+                      </p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {stats
+                          ? `${Math.round(
+                              (stats.cargasEntregues / stats.totalCargas) * 100
+                            )}%`
+                          : "..."}
+                      </p>
                     </div>
                   </div>
-                  <div className="flex justify-end space-x-3 mt-4">
-                    <button className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium">
-                      Limpar Filtros
-                    </button>
-                    <button className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-medium">
-                      Aplicar Filtros
-                    </button>
-                  </div>
                 </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Relatórios de Carregamento */}
-        {activeCarregadaForm === "relatorios" && (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-            <div className="p-4 border-b border-gray-200 bg-purple-50">
-              <h3 className="font-semibold text-gray-900 flex items-center">
-                <span className="bg-purple-500 text-white p-2 rounded-lg mr-2">
-                  📈
-                </span>
-                Relatórios de Cargas Carregadas
-              </h3>
-            </div>
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <div className="text-blue-600 text-lg mb-2">📊</div>
-                  <p className="font-medium text-gray-900">
-                    Relatório Diário
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    Carregamentos do dia
-                  </p>
-                </div>
-                <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                  <div className="text-green-600 text-lg mb-2">🚛</div>
-                  <p className="font-medium text-gray-900">Por Caminhão</p>
-                  <p className="text-sm text-gray-600">
-                    Desempenho por veículo
-                  </p>
-                </div>
-                <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
-                  <div className="text-orange-600 text-lg mb-2">⏱️</div>
-                  <p className="font-medium text-gray-900">Tempos</p>
-                  <p className="text-sm text-gray-600">
-                    Eficiência do carregamento
-                  </p>
-                </div>
-                <div className="p-4 bg-red-50 rounded-lg border border-red-200">
-                  <div className="text-red-600 text-lg mb-2">⚠️</div>
-                  <p className="font-medium text-gray-900">Incidentes</p>
-                  <p className="text-sm text-gray-600">
-                    Problemas e atrasos
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="font-medium text-gray-900 mb-4">
-                  Gerar Relatório Personalizado
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Tipo de Relatório
-                    </label>
-                    <select className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-950">
-                      <option>Relatório de Eficiência</option>
-                      <option>Carregamentos por Motorista</option>
-                      <option>Tempos Médios de Carregamento</option>
-                      <option>Incidentes e Atrasos</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Data Inicial
-                    </label>
-                    <input
-                      type="date"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-950"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Data Final
-                    </label>
-                    <input
-                      type="date"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-950"
-                    />
-                  </div>
-                </div>
-                <button className="mt-4 px-6 py-2 bg-teal-500 text-white rounded-lg hover:bg-purple-600 font-medium">
-                  Gerar Relatório
-                </button>
               </div>
             </div>
           </div>

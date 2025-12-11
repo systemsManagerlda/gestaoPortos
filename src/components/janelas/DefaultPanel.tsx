@@ -9,7 +9,6 @@ import {
 } from "@react-google-maps/api";
 
 // Interfaces e tipos necessários
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface GpsTrackingData {
   _id: string;
   nomeEmpresa: string;
@@ -100,10 +99,10 @@ interface FlespiPacket {
   parsed: {
     [key: string]: any;
   };
-  data?: string; // Campo para dados codificados em Base64
-  decodedData?: string; // Dados decodificados da base64
-  parsedData?: any; // Dados convertidos
-  timestamp?: any; // Timestamp convertido
+  data?: string;
+  decodedData?: string;
+  parsedData?: any;
+  timestamp?: any;
 }
 
 interface VeiculoFlespi {
@@ -155,9 +154,9 @@ interface DecodedGpsData {
   summary?: any;
 }
 
-// Constantes de configuração
+// Constantes de configuração (agora configuráveis via ambiente)
 const CONFIG = {
-  GOOGLE_MAPS_API_KEY: "AIzaSyB0VrZcC8WessPrcTbBW7ofTNq3qg5WwVI",
+  GOOGLE_MAPS_API_KEY: process.env.REACT_APP_GOOGLE_MAPS_API_KEY || "",
   MAP: {
     containerStyle: {
       width: "100%",
@@ -170,14 +169,14 @@ const CONFIG = {
     refreshInterval: 30000,
   },
   API: {
-    BASE_URL: "https://desktop-api-4f850b3f9733.herokuapp.com",
+    BASE_URL: process.env.REACT_APP_API_BASE_URL || "",
     ENDPOINTS: {
       FLESPI_PACKETS: "/flespi/packets",
       GET_EVENT_LIST: "/getEventList",
     },
     HEADERS: {
-      accessKeyId: "jUWlSv683sewVRdd",
-      accessSecret: "n08Qylt2I6pfItyxc6qm6hHhdviwvDJ2",
+      accessKeyId: process.env.REACT_APP_ACCESS_KEY_ID || "",
+      accessSecret: process.env.REACT_APP_ACCESS_SECRET || "",
     },
   },
 } as const;
@@ -514,7 +513,7 @@ class GpsUtils {
   }
 }
 
-// Serviço da API atualizado para usar sua nova rota
+// Serviço da API
 class ApiService {
   static async getFlespiPacket(channelId: string, identId: string) {
     try {
@@ -595,7 +594,7 @@ class ApiService {
   }
 }
 
-// Conversor de dados atualizado para usar sua nova rota
+// Conversor de dados
 class GpsDataConverter {
   // Converter dados da sua nova rota para VeiculoFlespi
   static converterFlespiPacketParaVeiculo(packetData: any): VeiculoFlespi | null {
@@ -751,7 +750,6 @@ class GpsDataConverter {
 
   private static extrairCoordenadasFormatadas(formatted: string): { latitude: number; longitude: number } | null {
     try {
-      // Formato esperado: "22°52.3241'S, 43°12.9876'W"
       const regex = /(\d+)°(\d+\.\d+)'([NS]),\s*(\d+)°(\d+\.\d+)'([EW])/;
       const match = formatted.match(regex);
       
@@ -792,7 +790,6 @@ class GpsDataConverter {
     if (params?.vehicle_name) return params.vehicle_name;
     if (params?.name) return params.name;
     
-    // Tentar extrair do summary se disponível
     if (params?.summary?.imei) {
       return `Veículo ${params.summary.imei.slice(-6)}`;
     }
@@ -912,51 +909,7 @@ class GpsDataConverter {
   }
 }
 
-// Dados mock para demonstração (fallback)
-const dadosMock: VeiculoMonitorado[] = [
-  {
-    id: "1",
-    dispositivo: "GPS-MZ-001",
-    veiculo: "Caminhão Truck - ADM456MP",
-    placa: "ADM456MP",
-    motorista: "Fernando Matola",
-    data: "2025-01-17",
-    horario: "14:30:25",
-    latitude: -25.915076,
-    longitude: 32.598496,
-    velocidade: 68,
-    endereco: "Maputo, Mozambique",
-    ignicao: true,
-    status: "movimento",
-    evento: "刷卡施封成功事件",
-    ultimaAtualizacao: "há 5 minutos",
-    direcao: 0,
-    hodometro: 0,
-    bateria: 85,
-  },
-  {
-    id: "2",
-    dispositivo: "755078869333",
-    veiculo: "MOZTGP508250521",
-    placa: "MOZ508",
-    motorista: "Motorista não identificado",
-    data: "2025-01-17",
-    horario: "13:15:42",
-    latitude: -25.915076,
-    longitude: 32.598496,
-    velocidade: 0,
-    endereco: "Maputo, Mozambique",
-    ignicao: false,
-    status: "selagem",
-    evento: "锁杆打开事件",
-    ultimaAtualizacao: "há 2 minutos",
-    direcao: 0,
-    hodometro: 0,
-    bateria: 49,
-  },
-];
-
-// Componente do Mapa (mantido igual)
+// Componente do Mapa
 interface MapaMonitoramentoProps {
   pontosMapa: PontoMapa[];
   pontoSelecionado: PontoMapa | null;
@@ -1358,7 +1311,7 @@ export const MainPanel = () => {
   );
 };
 
-// NOVA Aba: Painel Flespi usando sua nova rota
+// Aba: Painel Flespi usando sua nova rota
 const FlespiPanel = () => {
   const [pontosMapa, setPontosMapa] = useState<PontoMapa[]>([]);
   const [pontoSelecionado, setPontoSelecionado] = useState<PontoMapa | null>(
@@ -1369,8 +1322,8 @@ const FlespiPanel = () => {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [veiculosFlespi, setVeiculosFlespi] = useState<VeiculoFlespi[]>([]);
-  const [channelId, setChannelId] = useState<string>("1328585");
-  const [identId, setIdentId] = useState<string>("7026159070");
+  const [channelId, setChannelId] = useState<string>("");
+  const [identId, setIdentId] = useState<string>("");
   const [estatisticas, setEstatisticas] = useState({
     totalVeiculos: 0,
     emMovimento: 0,
@@ -1384,31 +1337,30 @@ const FlespiPanel = () => {
 
   // Função para buscar dados da sua nova rota
   const fetchFlespiData = useCallback(async () => {
+    if (!channelId || !identId) {
+      setError("Por favor, insira o Channel ID e Ident ID");
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
-      // Usar sua nova rota que retorna apenas o último pacote
       const data = await ApiService.getFlespiPacket(channelId, identId);
 
       if (data && data.success) {
-        // Converter o último pacote para veículo
         const veiculo = GpsDataConverter.converterFlespiPacketParaVeiculo(data);
         
         if (veiculo) {
-          // Salvar detalhes do pacote para exibição
           if (data.lastPacket) {
             setDetalhesPacote(data.lastPacket);
           }
           
-          // Atualizar lista de veículos com apenas o último
           setVeiculosFlespi([veiculo]);
           
-          // Converter para pontos do mapa
           const pontos = GpsDataConverter.converterFlespiParaPontosMapa([veiculo]);
           setPontosMapa(pontos);
 
-          // Atualizar estatísticas
           const emMovimento = veiculo.status === "movimento" ? 1 : 0;
           const parados = veiculo.status === "parado" ? 1 : 0;
 
@@ -1433,31 +1385,24 @@ const FlespiPanel = () => {
       const errorMessage =
         err instanceof Error ? err.message : "Erro de conexão com a API";
       setError(errorMessage);
-
-      // Fallback para dados mock
-      const pontos = GpsDataConverter.converterParaPontosMapa(dadosMock);
-      setPontosMapa(pontos);
+      
       setVeiculosFlespi([]);
+      setPontosMapa([]);
     } finally {
       setLoading(false);
     }
   }, [channelId, identId]);
 
-  // Buscar dados inicialmente
-  useEffect(() => {
-    fetchFlespiData();
-  }, [fetchFlespiData]);
-
   // Atualização automática
   useEffect(() => {
-    if (!autoRefresh) return;
+    if (!autoRefresh || !channelId || !identId) return;
 
     const interval = setInterval(() => {
       fetchFlespiData();
     }, CONFIG.MAP.refreshInterval);
 
     return () => clearInterval(interval);
-  }, [autoRefresh, fetchFlespiData]);
+  }, [autoRefresh, fetchFlespiData, channelId, identId]);
 
   const handleAtualizarMapa = () => {
     fetchFlespiData();
@@ -1561,7 +1506,7 @@ const FlespiPanel = () => {
         {error && (
           <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-lg">
             <p className="text-red-700 text-sm">
-              ⚠️ {error} - Verifique a conexão com a API
+              ⚠️ {error}
             </p>
           </div>
         )}
@@ -1600,7 +1545,7 @@ const FlespiPanel = () => {
           <div className="flex items-center space-x-4">
             <button
               onClick={handleBuscarDados}
-              disabled={loading}
+              disabled={loading || !channelId || !identId}
               className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center disabled:opacity-50"
             >
               <span className="mr-2">🔍</span>
@@ -1637,7 +1582,7 @@ const FlespiPanel = () => {
               <div className="flex gap-2">
                 <button
                   onClick={handleAtualizarMapa}
-                  disabled={loading}
+                  disabled={loading || !channelId || !identId}
                   className="bg-blue-600 text-white px-3 py-1 rounded-lg text-sm hover:bg-blue-700 flex items-center disabled:opacity-50"
                 >
                   <span className="mr-1">🔄</span>
@@ -1801,11 +1746,11 @@ const FlespiPanel = () => {
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <span className="text-gray-500">Channel ID:</span>
-                    <p className="font-medium text-gray-900">{channelId}</p>
+                    <p className="font-medium text-gray-900">{channelId || "Não informado"}</p>
                   </div>
                   <div>
                     <span className="text-gray-500">Ident ID:</span>
-                    <p className="font-medium text-gray-900">{identId}</p>
+                    <p className="font-medium text-gray-900">{identId || "Não informado"}</p>
                   </div>
                   <div>
                     <span className="text-gray-500">Última Atualização:</span>
@@ -1938,7 +1883,7 @@ const FlespiPanel = () => {
   );
 };
 
-// Componente Principal DefaultPanel (mantido igual)
+// Componente Principal DefaultPanel
 const DefaultPanel = () => {
   const [pontosMapa, setPontosMapa] = useState<PontoMapa[]>([]);
   const [pontoSelecionado, setPontoSelecionado] = useState<PontoMapa | null>(
@@ -1965,7 +1910,7 @@ const DefaultPanel = () => {
       const params = {
         curPage: 1,
         pageSize: 100,
-        deviceCodes: ["755078869333"],
+        deviceCodes: [],
       };
 
       console.log("🔄 Buscando dados da API...");
@@ -1986,9 +1931,7 @@ const DefaultPanel = () => {
         } else {
           console.warn("⚠️ API retornou sucesso mas sem dados");
           setError("Nenhum dado disponível na API");
-          // Usa dados mock como fallback
-          const pontos = GpsDataConverter.converterParaPontosMapa(dadosMock);
-          setPontosMapa(pontos);
+          setPontosMapa([]);
         }
       } else {
         throw new Error(response?.returnMsg || "Erro na API");
@@ -1998,10 +1941,7 @@ const DefaultPanel = () => {
       const errorMessage =
         err instanceof Error ? err.message : "Erro de conexão com a API";
       setError(errorMessage);
-
-      // Fallback para dados mock
-      const pontos = GpsDataConverter.converterParaPontosMapa(dadosMock);
-      setPontosMapa(pontos);
+      setPontosMapa([]);
     } finally {
       setLoading(false);
     }
@@ -2082,7 +2022,7 @@ const DefaultPanel = () => {
         {error && (
           <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-lg">
             <p className="text-red-700 text-sm">
-              ⚠️ {error} - Usando dados de demonstração
+              ⚠️ {error}
             </p>
           </div>
         )}
