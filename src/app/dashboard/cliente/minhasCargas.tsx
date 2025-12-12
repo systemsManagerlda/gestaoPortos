@@ -823,11 +823,6 @@ const CargasComponent = () => {
                           </span>
                         </div>
                       )}
-                      {cargo.comissaoCalculada && (
-                        <div className="text-xs text-green-600">
-                          Comissão: {formatarMoeda(cargo.comissaoCalculada)}
-                        </div>
-                      )}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex space-x-2">

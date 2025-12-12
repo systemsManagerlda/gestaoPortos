@@ -302,7 +302,7 @@ export default function DashboardCliente() {
     setIsLoading(true);
     try {
       // Chamar endpoint de estatísticas
-      const response = await fetch("/api/getCargaStats", {
+      const response = await fetch("https://desktop-api-4f850b3f9733.herokuapp.com/getCargaStats", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(filtrosAtuais),
@@ -314,7 +314,7 @@ export default function DashboardCliente() {
       }
 
       // Chamar endpoint de listagem de cargas
-      const cargasResponse = await fetch("/api/getCargaList", {
+      const cargasResponse = await fetch("https://desktop-api-4f850b3f9733.herokuapp.com/getCargaList", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1453,32 +1453,7 @@ export default function DashboardCliente() {
 
         {/* Tab de Faturas */}
         {activeTab === "faturas" && (
-          <FaturasDashboard
-            faturas={[]}
-            cargos={[]}
-            metrics={{ valorPendente: 0 }}
-            faturaChartData={{
-              labels: [],
-              datasets: [],
-            }}
-            isDataLoading={false}
-            formatarMoeda={formatarMoeda}
-            formatarData={function (data: Date | string): string {
-              throw new Error("Function not implemented.");
-            }}
-            getFaturaStatusColor={function (status: string): string {
-              throw new Error("Function not implemented.");
-            }}
-            exportarDados={function (tipo: string): void {
-              throw new Error("Function not implemented.");
-            }}
-            downloadFatura={function (id: string): void {
-              throw new Error("Function not implemented.");
-            }}
-            pagarFatura={function (id: string): void {
-              throw new Error("Function not implemented.");
-            }}
-          />
+          <FaturasDashboard  />
         )}
 
         {activeTab === "relatorios" && (

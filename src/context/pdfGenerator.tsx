@@ -55,6 +55,43 @@ interface DadosReciboPDF {
   empresa: DadosEmpresa;
 }
 
+interface DadosCotacaoPDF {
+  cotacao: CotacaoDetalhada;
+  empresa: DadosEmpresa;
+}
+
+interface CotacaoDetalhada {
+  numeroCotacao: string;
+  dataEmissao: string;
+  dataValidade: string;
+  // Use um tipo mais simples para o cliente na cotação
+  cliente: {
+    nome: string;
+    nif?: string;
+    email?: string;
+    telefone?: string;
+    endereco?: string;
+  };
+  itensCotacao: ItemCotacao[];
+  subtotal: number;
+  iva?: number | any;
+  valorTotal: number;
+  observacoes?: string;
+  status: string;
+  tipoServico?: string;
+  referencia?: string;
+}
+
+
+interface ItemCotacao {
+  id: number;
+  descricao: string;
+  quantidade: number;
+  valorUnitario: number;
+  valorTotal: number;
+  observacoes?: string;
+}
+
 interface RecebimentoFormatado {
   data: string;
   valor: string;
@@ -93,12 +130,21 @@ const EMPRESA_PADRAO: DadosEmpresa = {
     iban: "MZ59000100000123456789123",
   },
 };
+
 const STATUS_MAP: Record<string, string> = {
   pendente: "Pendente",
   paga: "Paga",
   vencida: "Vencida",
   parcial: "Parcialmente Paga",
   cancelada: "Cancelada",
+};
+
+const STATUS_COTACAO_MAP: Record<string, string> = {
+  pendente: "Pendente",
+  aprovada: "Aprovada",
+  recusada: "Recusada",
+  expirada: "Expirada",
+  convertida: "Convertida em Fatura",
 };
 
 const TIPOS_SERVICO: Record<string, string> = {
@@ -182,6 +228,13 @@ const formatarMoeda = (valor: number = 0): string => {
  */
 const obterStatusTexto = (status: string = "pendente"): string => {
   return STATUS_MAP[status] || status;
+};
+
+/**
+ * Traduz status da cotação para português
+ */
+const obterStatusCotacaoTexto = (status: string = "pendente"): string => {
+  return STATUS_COTACAO_MAP[status] || status;
 };
 
 /**
@@ -289,6 +342,47 @@ const prepararItensTabela = (itensFatura?: ItemFatura[]): any[][] => {
 };
 
 /**
+ * Prepara itens da cotação para exibição na tabela
+ */
+const prepararItensCotacaoTabela = (itensCotacao?: ItemCotacao[]): any[][] => {
+  if (!itensCotacao || itensCotacao.length === 0) {
+    return [[]];
+  }
+
+  return itensCotacao.map((item, index) => [
+    {
+      text: (index + 1).toString(),
+      style: "tableBody",
+      alignment: "center",
+    },
+    {
+      text: item.descricao || "Item não especificado",
+      style: "tableDescriptionBody",
+    },
+    {
+      text: item.quantidade?.toString() || "1",
+      style: "tableBody",
+      alignment: "center",
+    },
+    {
+      text: formatarMoeda(item.valorUnitario || 0),
+      style: "tableBody",
+      alignment: "right",
+    },
+    {
+      text: item.observacoes || "-",
+      style: "tableBody",
+      alignment: "left",
+    },
+    {
+      text: formatarMoeda(item.valorTotal || 0),
+      style: "tableBody",
+      alignment: "right",
+    },
+  ]);
+};
+
+/**
  * Prepara recebimentos confirmados para exibição
  */
 const prepararRecebimentos = (
@@ -341,6 +435,32 @@ const calcularValoresFinanceiros = (
     totalComIVA,
     valorPendente,
     valorRecebido,
+  };
+};
+
+/**
+ * Calcula valores financeiros da cotação
+ */
+const calcularValoresCotacao = (cotacao: CotacaoDetalhada): ValoresFinanceiros => {
+  const subtotal = cotacao.subtotal || cotacao.valorTotal || 0;
+
+  let valorIVA = 0;
+  if (cotacao.iva) {
+    if (typeof cotacao.iva === "number") {
+      valorIVA = cotacao.iva;
+    } else if (cotacao.iva && typeof cotacao.iva === "object") {
+      valorIVA = (cotacao.iva as any).valor || 0;
+    }
+  }
+
+  const totalComIVA = cotacao.valorTotal || 0;
+
+  return {
+    subtotal,
+    valorIVA,
+    totalComIVA,
+    valorPendente: 0, // Cotações não têm valor pendente
+    valorRecebido: 0, // Cotações não têm valor recebido
   };
 };
 
@@ -723,6 +843,19 @@ const getPdfStyles = () => ({
     fontSize: LAYOUT_CONFIG.fonts.sizes.xs,
     color: LAYOUT_CONFIG.colors.muted,
   },
+
+  // Cotação
+  cotacaoTitleMain: {
+    fontSize: 20,
+    bold: true,
+    color: LAYOUT_CONFIG.colors.info,
+  },
+  cotacaoTitle: {
+    fontSize: 14,
+    bold: true,
+    color: LAYOUT_CONFIG.colors.info,
+    margin: [0, 0, 0, 5],
+  },
 });
 
 // ============================================================================
@@ -740,6 +873,24 @@ const getStatusColor = (status: string): string => {
       return LAYOUT_CONFIG.colors.warning;
     case "vencida":
       return LAYOUT_CONFIG.colors.error;
+    default:
+      return LAYOUT_CONFIG.colors.text;
+  }
+};
+
+/**
+ * Obtém a cor do status da cotação
+ */
+const getStatusCotacaoColor = (status: string): string => {
+  switch (status) {
+    case "aprovada":
+      return LAYOUT_CONFIG.colors.success;
+    case "pendente":
+      return LAYOUT_CONFIG.colors.warning;
+    case "expirada":
+      return LAYOUT_CONFIG.colors.error;
+    case "convertida":
+      return LAYOUT_CONFIG.colors.info;
     default:
       return LAYOUT_CONFIG.colors.text;
   }
@@ -806,15 +957,15 @@ const criarCabecalhoFaturaParaCorpo = (
                             text: "Endereço:",
                             style: "companyLabel",
                             width: "auto",
-                            margin: [10, 0, 3, 0], // Reduzi de 5 para 3
+                            margin: [10, 0, 3, 0],
                           },
                           {
                             text: empresa.enderecoLocal,
                             style: "companyValue",
-                            margin: [0, 0, 0, 0], // Reduzi de 2 para 0
+                            margin: [0, 0, 0, 0],
                           },
                         ],
-                        margin: [0, 0, 0, 1], // Reduzi de 2 para 1
+                        margin: [0, 0, 0, 1],
                       },
 
                       // NUIT
@@ -824,15 +975,15 @@ const criarCabecalhoFaturaParaCorpo = (
                             text: "NUIT:",
                             style: "companyLabel",
                             width: "auto",
-                            margin: [10, 0, 3, 0], // Reduzi de 5 para 3
+                            margin: [10, 0, 3, 0],
                           },
                           {
                             text: empresa.nuitLocal,
                             style: "companyValue",
-                            margin: [0, 0, 0, 0], // Reduzi de 2 para 0
+                            margin: [0, 0, 0, 0],
                           },
                         ],
-                        margin: [0, 0, 0, 1], // Reduzi de 2 para 1
+                        margin: [0, 0, 0, 1],
                       },
 
                       // Email
@@ -842,15 +993,15 @@ const criarCabecalhoFaturaParaCorpo = (
                             text: "Email:",
                             style: "companyLabel",
                             width: "auto",
-                            margin: [10, 0, 3, 0], // Reduzi de 5 para 3
+                            margin: [10, 0, 3, 0],
                           },
                           {
                             text: empresa.emailLocal,
                             style: "companyValue",
-                            margin: [0, 0, 0, 0], // Reduzi de 2 para 0
+                            margin: [0, 0, 0, 0],
                           },
                         ],
-                        margin: [0, 0, 0, 1], // Reduzi de 2 para 1
+                        margin: [0, 0, 0, 1],
                       },
 
                       // Contactos
@@ -860,15 +1011,15 @@ const criarCabecalhoFaturaParaCorpo = (
                             text: "Contactos:",
                             style: "companyLabel",
                             width: "auto",
-                            margin: [10, 0, 3, 0], // Reduzi de 5 para 3
+                            margin: [10, 0, 3, 0],
                           },
                           {
                             text: empresa.contactosLocal,
                             style: "companyValue",
-                            margin: [0, 0, 0, 0], // Reduzi de 2 para 0
+                            margin: [0, 0, 0, 0],
                           },
                         ],
-                        margin: [0, 0, 0, 0], // Mantive 0
+                        margin: [0, 0, 0, 0],
                       },
                     ],
                   },
@@ -1088,15 +1239,15 @@ const criarCabecalhoReciboParaCorpo = (
                         text: "Endereço:",
                         style: "companyLabel",
                         width: "auto",
-                        margin: [10, 0, 3, 0], // Reduzi de 5 para 3
+                        margin: [10, 0, 3, 0],
                       },
                       {
                         text: empresa.enderecoLocal,
                         style: "companyValue",
-                        margin: [0, 0, 0, 0], // Reduzi de 2 para 0
+                        margin: [0, 0, 0, 0],
                       },
                     ],
-                    margin: [0, 0, 0, 1], // Reduzi de 2 para 1
+                    margin: [0, 0, 0, 1],
                   },
 
                   // NUIT
@@ -1106,15 +1257,15 @@ const criarCabecalhoReciboParaCorpo = (
                         text: "NUIT:",
                         style: "companyLabel",
                         width: "auto",
-                        margin: [10, 0, 3, 0], // Reduzi de 5 para 3
+                        margin: [10, 0, 3, 0],
                       },
                       {
                         text: empresa.nuitLocal,
                         style: "companyValue",
-                        margin: [0, 0, 0, 0], // Reduzi de 2 para 0
+                        margin: [0, 0, 0, 0],
                       },
                     ],
-                    margin: [0, 0, 0, 1], // Reduzi de 2 para 1
+                    margin: [0, 0, 0, 1],
                   },
 
                   // Email
@@ -1124,15 +1275,15 @@ const criarCabecalhoReciboParaCorpo = (
                         text: "Email:",
                         style: "companyLabel",
                         width: "auto",
-                        margin: [10, 0, 3, 0], // Reduzi de 5 para 3
+                        margin: [10, 0, 3, 0],
                       },
                       {
                         text: empresa.emailLocal,
                         style: "companyValue",
-                        margin: [0, 0, 0, 0], // Reduzi de 2 para 0
+                        margin: [0, 0, 0, 0],
                       },
                     ],
-                    margin: [0, 0, 0, 1], // Reduzi de 2 para 1
+                    margin: [0, 0, 0, 1],
                   },
 
                   // Contactos
@@ -1142,15 +1293,15 @@ const criarCabecalhoReciboParaCorpo = (
                         text: "Contactos:",
                         style: "companyLabel",
                         width: "auto",
-                        margin: [10, 0, 3, 0], // Reduzi de 5 para 3
+                        margin: [10, 0, 3, 0],
                       },
                       {
                         text: empresa.contactosLocal,
                         style: "companyValue",
-                        margin: [0, 0, 0, 0], // Reduzi de 2 para 0
+                        margin: [0, 0, 0, 0],
                       },
                     ],
-                    margin: [0, 0, 0, 0], // Mantive 0
+                    margin: [0, 0, 0, 0],
                   },
                 ],
               },
@@ -1290,13 +1441,299 @@ const criarCabecalhoReciboParaCorpo = (
   };
 };
 
+/**
+ * Cria o cabeçalho da cotação para o corpo do documento
+ */
+const criarCabecalhoCotacaoParaCorpo = (
+  empresa: DadosEmpresa,
+  cotacao: CotacaoDetalhada,
+  imagemEmpresa: string,
+  dataEmissao: string,
+  dataValidade: string,
+  statusTexto: string,
+  tipoServicoTexto: string
+) => {
+  const availableWidth =
+    LAYOUT_CONFIG.page.width -
+    LAYOUT_CONFIG.page.margins.left -
+    LAYOUT_CONFIG.page.margins.right;
+
+  return {
+    stack: [
+      // Linha principal: Logo + informações + cotação
+      {
+        columns: [
+          // Coluna da logo e informações da empresa
+          {
+            width: "65%",
+            columns: [
+              // Logo
+              {
+                width: "20%",
+                stack: [
+                  {
+                    image: imagemEmpresa,
+                    width: 60,
+                    height: 60,
+                    alignment: "left",
+                    margin: [0, 0, 0, 5],
+                  },
+                ],
+              },
+
+              // Informações da empresa ao lado do logo
+              {
+                width: "80%",
+                stack: [
+                  // Nome da empresa (ao lado do logo)
+                  {
+                    text: empresa.nomeEmpresaLocal,
+                    style: "companyName",
+                    margin: [10, 5, 0, 8],
+                  },
+
+                  // Informações da empresa em VERTICAL
+                  {
+                    stack: [
+                      // Endereço
+                      {
+                        columns: [
+                          {
+                            text: "Endereço:",
+                            style: "companyLabel",
+                            width: "auto",
+                            margin: [10, 0, 3, 0],
+                          },
+                          {
+                            text: empresa.enderecoLocal,
+                            style: "companyValue",
+                            margin: [0, 0, 0, 0],
+                          },
+                        ],
+                        margin: [0, 0, 0, 1],
+                      },
+
+                      // NUIT
+                      {
+                        columns: [
+                          {
+                            text: "NUIT:",
+                            style: "companyLabel",
+                            width: "auto",
+                            margin: [10, 0, 3, 0],
+                          },
+                          {
+                            text: empresa.nuitLocal,
+                            style: "companyValue",
+                            margin: [0, 0, 0, 0],
+                          },
+                        ],
+                        margin: [0, 0, 0, 1],
+                      },
+
+                      // Email
+                      {
+                        columns: [
+                          {
+                            text: "Email:",
+                            style: "companyLabel",
+                            width: "auto",
+                            margin: [10, 0, 3, 0],
+                          },
+                          {
+                            text: empresa.emailLocal,
+                            style: "companyValue",
+                            margin: [0, 0, 0, 0],
+                          },
+                        ],
+                        margin: [0, 0, 0, 1],
+                      },
+
+                      // Contactos
+                      {
+                        columns: [
+                          {
+                            text: "Contactos:",
+                            style: "companyLabel",
+                            width: "auto",
+                            margin: [10, 0, 3, 0],
+                          },
+                          {
+                            text: empresa.contactosLocal,
+                            style: "companyValue",
+                            margin: [0, 0, 0, 0],
+                          },
+                        ],
+                        margin: [0, 0, 0, 0],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+
+          // Coluna do documento (cotação)
+          {
+            width: "35%",
+            stack: [
+              // COTAÇÃO em destaque
+              {
+                text: "COTAÇÃO",
+                style: "cotacaoTitleMain",
+                alignment: "right",
+                margin: [0, 2, 0, 0],
+              },
+              // ORIGINAL por baixo da COTAÇÃO
+              {
+                text: "ORIGINAL",
+                style: {
+                  fontSize: 12,
+                  bold: true,
+                  color: LAYOUT_CONFIG.colors.info,
+                  alignment: "right",
+                  margin: [0, 0, 0, 3],
+                },
+              },
+              // Informações totalmente alinhadas à direita
+              {
+                stack: [
+                  {
+                    text: `Nº: ${cotacao.numeroCotacao}`,
+                    style: "documentValue",
+                    alignment: "right",
+                    margin: [0, 0, 0, 1],
+                  },
+                  {
+                    text: `Data: ${dataEmissao}`,
+                    style: "documentValue",
+                    alignment: "right",
+                    margin: [0, 0, 0, 1],
+                  },
+                  {
+                    text: `Validade: ${dataValidade}`,
+                    style: "documentValue",
+                    alignment: "right",
+                    margin: [0, 0, 0, 1],
+                  },
+                  {
+                    text: `Status: ${statusTexto}`,
+                    style: "statusText",
+                    color: getStatusCotacaoColor(cotacao.status),
+                    alignment: "right",
+                    margin: [0, 0, 0, 0],
+                  },
+                ],
+                margin: [0, 0, 0, 0],
+              },
+            ],
+          },
+        ],
+        margin: [0, 0, 0, 10],
+      },
+
+      // Linha divisória
+      {
+        canvas: [
+          {
+            type: "line",
+            x1: 0,
+            y1: 0,
+            x2: availableWidth,
+            y2: 0,
+            lineWidth: 1,
+            lineColor: LAYOUT_CONFIG.colors.gray,
+          },
+        ],
+        margin: [0, 0, 0, 10],
+      },
+
+      // Informações do cliente
+      {
+        columns: [
+          {
+            width: "60%",
+            stack: [
+              {
+                text: "CLIENTE",
+                style: "sectionTitleSmall",
+                margin: [0, 0, 0, 5],
+              },
+              {
+                stack: [
+                  {
+                    text: `Nome: ${cotacao.cliente?.nome || "Não especificado"}`,
+                    style: "infoTextSmall",
+                  },
+                  {
+                    text: `Endereço: ${
+                      cotacao.cliente?.endereco || "Não especificado"
+                    }`,
+                    style: "infoTextSmall",
+                  },
+                  {
+                    text: `NUIT/NIF: ${
+                      cotacao.cliente?.nif || "Não especificado"
+                    }`,
+                    style: "infoTextSmall",
+                  },
+                  {
+                    text: `Contacto: ${
+                      cotacao.cliente?.telefone || "Não especificado"
+                    }`,
+                    style: "infoTextSmall",
+                  },
+                  {
+                    text: `Email: ${
+                      cotacao.cliente?.email || "Não especificado"
+                    }`,
+                    style: "infoTextSmall",
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            width: "40%",
+            stack: [
+              {
+                text: "INFORMAÇÕES DA COTAÇÃO",
+                style: "sectionTitleSmall",
+                margin: [0, 0, 0, 5],
+              },
+              {
+                stack: [
+                  {
+                    text: `Tipo de Serviço: ${tipoServicoTexto}`,
+                    style: "infoTextSmall",
+                  },
+                  {
+                    text: `Referência: ${cotacao.referencia || "Nenhuma"}`,
+                    style: "infoTextSmall",
+                  },
+                  {
+                    text: `Itens: ${cotacao.itensCotacao?.length || 0}`,
+                    style: "infoTextSmall",
+                  },
+                  {
+                    text: `Moeda: MZN`,
+                    style: "infoTextSmall",
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        margin: [0, 0, 0, 20],
+      },
+    ],
+  };
+};
+
 // ============================================================================
 // GERADOR DE FATURA
 // ============================================================================
 
-/**
- * Gera PDF da fatura
- */
 /**
  * Gera PDF da fatura
  */
@@ -1434,7 +1871,7 @@ export async function gerarPDFFatura(dados: DadosFaturaPDF): Promise<void> {
           columns: [
             // QR Code
             {
-              width: "40%",
+              width: "60%",
               stack: [
                 {
                   qr: `Fatura: ${fatura.numeroFatura}\nCliente: ${
@@ -1461,7 +1898,7 @@ export async function gerarPDFFatura(dados: DadosFaturaPDF): Promise<void> {
             },
             // Resumo Financeiro
             {
-              width: "60%",
+              width: "40%",
               stack: [
                 {
                   text: "RESUMO FINANCEIRO",
@@ -1634,12 +2071,12 @@ export async function gerarPDFFatura(dados: DadosFaturaPDF): Promise<void> {
                   LAYOUT_CONFIG.spacing.md,
                   0,
                   LAYOUT_CONFIG.spacing.sm,
-                ], // Reduzi de lg para md e md para sm
+                ],
               },
               {
                 text: "DADOS BANCÁRIOS PARA PAGAMENTO",
                 style: "sectionTitle",
-                margin: [0, 0, 0, LAYOUT_CONFIG.spacing.xs], // Adicionei margem inferior
+                margin: [0, 0, 0, LAYOUT_CONFIG.spacing.xs],
               },
               {
                 table: {
@@ -1668,15 +2105,15 @@ export async function gerarPDFFatura(dados: DadosFaturaPDF): Promise<void> {
                 layout: {
                   hLineWidth: () => 0,
                   vLineWidth: () => 0,
-                  paddingTop: () => 1, // Reduzi de 2 para 1
-                  paddingBottom: () => 1, // Reduzi de 2 para 1
+                  paddingTop: () => 1,
+                  paddingBottom: () => 1,
                 },
-                margin: [0, 0, 0, LAYOUT_CONFIG.spacing.sm], // Reduzi de lg para sm
+                margin: [0, 0, 0, LAYOUT_CONFIG.spacing.sm],
               },
               {
                 text: "Por favor, utilize os dados acima para efetuar transferências bancárias.",
                 style: "bankNote",
-                margin: [0, 0, 0, LAYOUT_CONFIG.spacing.sm], // Reduzi de lg para sm
+                margin: [0, 0, 0, LAYOUT_CONFIG.spacing.sm],
               },
             ]
           : []),
@@ -1693,6 +2130,351 @@ export async function gerarPDFFatura(dados: DadosFaturaPDF): Promise<void> {
     throw new Error("Não foi possível gerar o PDF da fatura");
   }
 }
+
+// ============================================================================
+// GERADOR DE COTAÇÃO
+// ============================================================================
+
+/**
+ * Gera PDF de cotação
+ */
+export async function gerarPDFCotacao(dados: { cotacao: CotacaoDetalhada, empresa: DadosEmpresa }): Promise<void> {
+  const { cotacao, empresa } = dados;
+
+  try {
+    const pdfMake = await configurarPdfMake();
+    const imagemEmpresa = await carregarImagemEmpresa(empresa.nomeEmpresaLocal);
+    const styles = getPdfStyles();
+
+    // Dados formatados
+    const dataEmissao = formatarData(cotacao.dataEmissao);
+    const dataValidade = formatarData(cotacao.dataValidade);
+    const statusTexto = obterStatusCotacaoTexto(cotacao.status);
+    const tipoServicoTexto = obterTipoServicoTexto(cotacao.tipoServico);
+    const valores = calcularValoresCotacao(cotacao);
+
+    // Preparar tabela de itens da cotação
+    const itensTabela = prepararItensCotacaoTabela(cotacao.itensCotacao);
+    const cabecalhoTabela = [
+      [
+        { text: "#", style: "tableHeader", alignment: "center" },
+        { text: "Descrição", style: "tableHeader" },
+        { text: "Qtd", style: "tableHeader", alignment: "center" },
+        { text: "Valor Unitário", style: "tableHeader", alignment: "right" },
+        { text: "Observações", style: "tableHeader" },
+        { text: "Valor Total", style: "tableHeader", alignment: "right" },
+      ],
+    ];
+
+    const corpoTabela =
+      itensTabela.length > 0
+        ? [...cabecalhoTabela, ...itensTabela]
+        : cabecalhoTabela;
+
+    // Criar cabeçalho para o corpo
+    const cabecalhoCorpo = criarCabecalhoCotacaoParaCorpo(
+      empresa,
+      cotacao,
+      imagemEmpresa,
+      dataEmissao,
+      dataValidade,
+      statusTexto,
+      tipoServicoTexto
+    );
+
+    // Conteúdo do PDF
+    const docDefinition: PdfMakeContent = {
+      pageSize: "A4",
+      pageMargins: [
+        LAYOUT_CONFIG.page.margins.left,
+        LAYOUT_CONFIG.page.margins.top,
+        LAYOUT_CONFIG.page.margins.right,
+        LAYOUT_CONFIG.page.margins.bottom,
+      ],
+      footer: function (currentPage: number, pageCount: number) {
+        return {
+          columns: [
+            {
+              text: `Processado pelo Software Systems Manager - Licença 92/DAF2/2023`,
+              style: "footer",
+              width: "50%",
+            },
+            {
+              text: `Página ${currentPage} de ${pageCount}`,
+              style: "footer",
+              alignment: "right",
+              width: "50%",
+            },
+          ],
+          margin: [
+            LAYOUT_CONFIG.page.margins.left,
+            0,
+            LAYOUT_CONFIG.page.margins.right,
+            LAYOUT_CONFIG.spacing.sm,
+          ],
+        };
+      },
+      content: [
+        // CABEÇALHO NO CORPO DO DOCUMENTO
+        cabecalhoCorpo,
+
+        // Tabela de Itens da Cotação
+        {
+          text: "ITENS DA COTAÇÃO",
+          style: "sectionTitle",
+        },
+        {
+          table: {
+            headerRows: 1,
+            widths: ["auto", "*", "auto", "auto", "*", "auto"],
+            body: corpoTabela,
+          },
+          layout: {
+            hLineWidth: (i: number) =>
+              i === 0 || i === corpoTabela.length
+                ? 1
+                : LAYOUT_CONFIG.table.borderWidth,
+            vLineWidth: () => LAYOUT_CONFIG.table.borderWidth,
+            hLineColor: () => LAYOUT_CONFIG.table.borderColor,
+            vLineColor: () => LAYOUT_CONFIG.table.borderColor,
+            paddingTop: () => LAYOUT_CONFIG.table.rowPadding,
+            paddingBottom: () => LAYOUT_CONFIG.table.rowPadding,
+            paddingLeft: () => LAYOUT_CONFIG.spacing.xs,
+            paddingRight: () => LAYOUT_CONFIG.spacing.xs,
+          },
+          margin: [0, LAYOUT_CONFIG.spacing.xs, 0, LAYOUT_CONFIG.spacing.lg],
+        },
+
+        // Resumo Financeiro
+        {
+          columns: [
+            // Informações da Cotação
+            {
+              width: "60%",
+              stack: [
+                {
+                  text: "INFORMAÇÕES",
+                  style: "summaryTitle",
+                },
+                {
+                  table: {
+                    widths: ["*"],
+                    body: [
+                      [
+                        {
+                          text: `Validade: ${dataValidade}`,
+                          style: "summaryLabel",
+                        },
+                      ],
+                      [
+                        {
+                          text: `Status: ${statusTexto}`,
+                          style: "summaryLabel",
+                          color: getStatusCotacaoColor(cotacao.status),
+                        },
+                      ],
+                      [
+                        {
+                          text: `Referência: ${cotacao.referencia || "Nenhuma"}`,
+                          style: "summaryLabel",
+                        },
+                      ],
+                    ],
+                  },
+                  layout: "noBorders",
+                  margin: [0, LAYOUT_CONFIG.spacing.xs, 0, 0],
+                },
+              ],
+            },
+            // Resumo Financeiro
+            {
+              width: "40%",
+              stack: [
+                {
+                  text: "RESUMO FINANCEIRO",
+                  style: "summaryTitle",
+                },
+                {
+                  table: {
+                    widths: ["*", "auto"],
+                    body: [
+                      [
+                        { text: "Subtotal:", style: "summaryLabel" },
+                        {
+                          text: formatarMoeda(valores.subtotal),
+                          style: "summaryValue",
+                          alignment: "right",
+                        },
+                      ],
+                      ...(valores.valorIVA > 0
+                        ? [
+                            [
+                              {
+                                text: `IVA (16%):`,
+                                style: "summaryLabel",
+                              },
+                              {
+                                text: formatarMoeda(valores.valorIVA),
+                                style: "summaryValue",
+                                alignment: "right",
+                              },
+                            ],
+                          ]
+                        : []),
+                      [
+                        { text: "TOTAL:", style: "summaryTotalLabel" },
+                        {
+                          text: formatarMoeda(valores.totalComIVA),
+                          style: "summaryTotalValue",
+                          alignment: "right",
+                          bold: true,
+                        },
+                      ],
+                    ],
+                  },
+                  layout: "noBorders",
+                  margin: [0, LAYOUT_CONFIG.spacing.xs, 0, 0],
+                },
+              ],
+            },
+          ],
+          margin: [0, 0, 0, LAYOUT_CONFIG.spacing.lg],
+        },
+
+        // Observações (se houver)
+        ...(cotacao.observacoes
+          ? [
+              {
+                text: "OBSERVAÇÕES",
+                style: "sectionTitle",
+              },
+              {
+                text: cotacao.observacoes,
+                style: "notesText",
+                margin: [
+                  0,
+                  LAYOUT_CONFIG.spacing.xs,
+                  0,
+                  LAYOUT_CONFIG.spacing.lg,
+                ],
+              },
+            ]
+          : []),
+
+        // Termos e Condições
+        {
+          text: "TERMOS E CONDIÇÕES",
+          style: "sectionTitle",
+        },
+        {
+          stack: [
+            {
+              text: "1. Esta cotação tem validade até a data indicada acima.",
+              style: "notesText",
+              margin: [0, 0, 0, 2],
+            },
+            {
+              text: "2. Os preços estão sujeitos a alteração sem aviso prévio após a data de validade.",
+              style: "notesText",
+              margin: [0, 0, 0, 2],
+            },
+            {
+              text: "3. O pagamento deve ser efetuado conforme acordado na fatura subsequente.",
+              style: "notesText",
+              margin: [0, 0, 0, 2],
+            },
+            {
+              text: "4. Para aceitar esta cotação, entre em contacto conosco através dos nossos contactos ou através do seu dashbord onde gerou a carga.",
+              style: "notesText",
+              margin: [0, 0, 0, 2],
+            },
+          ],
+          margin: [0, LAYOUT_CONFIG.spacing.xs, 0, LAYOUT_CONFIG.spacing.lg],
+        },
+
+        // Dados Bancários (importante para cotações também)
+        ...(empresa.dadosBancarios
+          ? [
+              {
+                canvas: [
+                  {
+                    type: "line",
+                    x1: 0,
+                    y1: 0,
+                    x2:
+                      LAYOUT_CONFIG.page.width -
+                      LAYOUT_CONFIG.page.margins.left -
+                      LAYOUT_CONFIG.page.margins.right,
+                    y2: 0,
+                    lineWidth: 1,
+                    lineColor: LAYOUT_CONFIG.colors.gray,
+                  },
+                ],
+                margin: [
+                  0,
+                  LAYOUT_CONFIG.spacing.md,
+                  0,
+                  LAYOUT_CONFIG.spacing.sm,
+                ],
+              },
+              {
+                text: "DADOS BANCÁRIOS",
+                style: "sectionTitle",
+                margin: [0, 0, 0, LAYOUT_CONFIG.spacing.xs],
+              },
+              {
+                table: {
+                  widths: ["*"],
+                  body: [
+                    [
+                      {
+                        text: `Banco: ${empresa.dadosBancarios.banco}`,
+                        style: "bankInfo",
+                      },
+                    ],
+                    [
+                      {
+                        text: `NIB: ${empresa.dadosBancarios.nib}`,
+                        style: "bankInfo",
+                      },
+                    ],
+                    [
+                      {
+                        text: `IBAN: ${empresa.dadosBancarios.iban}`,
+                        style: "bankInfo",
+                      },
+                    ],
+                  ],
+                },
+                layout: {
+                  hLineWidth: () => 0,
+                  vLineWidth: () => 0,
+                  paddingTop: () => 1,
+                  paddingBottom: () => 1,
+                },
+                margin: [0, 0, 0, LAYOUT_CONFIG.spacing.sm],
+              },
+              {
+                text: "Para efetuar pagamentos após aceitação da cotação, utilize os dados bancários acima.",
+                style: "bankNote",
+                margin: [0, 0, 0, LAYOUT_CONFIG.spacing.sm],
+              },
+            ]
+          : []),
+      ],
+      styles: styles,
+    };
+
+    // Gerar PDF
+    pdfMake
+      .createPdf(docDefinition)
+      .download(`Cotação-${cotacao.numeroCotacao.replace(/\//g, "-")}.pdf`);
+  } catch (error) {
+    console.error("Erro ao gerar PDF da cotação:", error);
+    throw new Error("Não foi possível gerar o PDF da cotação");
+  }
+}
+
 // ============================================================================
 // GERADOR DE RECIBO
 // ============================================================================
@@ -1928,3 +2710,18 @@ export async function gerarReciboCompleto(
     empresa: EMPRESA_PADRAO,
   });
 }
+
+/**
+ * Gera PDF de cotação usando dados padrão da empresa
+ */
+export async function gerarPDFCotacaoCompleta(
+  cotacao: CotacaoDetalhada
+): Promise<void> {
+  await gerarPDFCotacao({
+    cotacao,
+    empresa: EMPRESA_PADRAO,
+  });
+}
+
+// Exporta tipos adicionais
+export type { CotacaoDetalhada, ItemCotacao, DadosCotacaoPDF };
