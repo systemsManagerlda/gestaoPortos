@@ -208,6 +208,316 @@ const LAYOUT_CONFIG = {
 } as const;
 
 // ============================================================================
+// TIPOS PARA DESPACHO ADUANEIRO
+// ============================================================================
+
+interface DespachoAduaneiroDetalhado {
+  numeroProcesso: string;
+  tipoProcesso: string;
+  status: string;
+  prioridade: string;
+  datas: {
+    dataCriacao: string;
+    dataSubmissao?: string;
+    dataRegistroAlfandega?: string;
+    dataPrevistaLiberacao?: string;
+    dataPrazoLimite?: string;
+  };
+  cliente: {
+    nomeCliente: string;
+    nuit: string;
+    tipoCliente: string;
+    contato?: {
+      email?: string;
+      telefone?: string;
+    };
+    endereco?: {
+      cidade?: string;
+      provincia?: string;
+      pais?: string;
+      endereco?: string;
+    };
+  };
+  fornecedor?: {
+    nome?: string;
+    pais?: string;
+    incoterm?: string;
+  };
+  mercadoria: {
+    descricao: string;
+    codigoNCM?: string;
+    quantidade: number;
+    unidadeMedida: string;
+    valorMercadoria: number;
+    pesoBruto?: number;
+    pesoLiquido?: number;
+    origemMercadoria?: string;
+    certificadoOrigem?: {
+      tipo?: string;
+      numero?: string;
+    };
+  };
+  transporte?: {
+    meioTransporte?: string;
+    portoOrigem?: string;
+    portoDestino?: string;
+    numeroConhecimento?: string;
+    numeroBL?: string;
+    navioVoo?: string;
+    companhiaTransporte?: string;
+    dataPrevistaEmbarque?: string;
+    dataPrevistaChegada?: string;
+  };
+  regimeAduaneiro?: {
+    tipoRegime?: string;
+    destinoAduaneiro?: string;
+    numeroLicencaImportacao?: string;
+  };
+  tributacao?: {
+    valorAduaneiro: number;
+    moedaAduaneira: string;
+    taxaCambio?: number;
+    impostos: {
+      direitosAduaneiros?: {
+        percentual?: number;
+        valor?: number;
+      };
+      iva?: {
+        percentual?: number;
+        valor?: number;
+      };
+      totalImpostos?: number;
+      totalLiquido?: number;
+    };
+  };
+  garantias?: {
+    tipoGarantia?: string;
+    valorGarantia?: number;
+  };
+  documentacao?: {
+    documentacaoCompleta: boolean;
+    percentualCompleto: number;
+    documentos?: Array<{
+      tipo: string;
+      nomeDocumento: string;
+      recebido: boolean;
+    }>;
+  };
+  pagamento?: {
+    valorTotal: number;
+    valorPago: number;
+    statusPagamento: string;
+    moeda: string;
+    dataVencimento?: string;
+  };
+  alfandega?: {
+    portoAlfandegado?: string;
+    codigoAlfandega?: string;
+    fiscalResponsavel?: string;
+    tipoInspecao?: string;
+    canalVerde?: boolean;
+    dataLiberacao?: string;
+  };
+  rastreio?: {
+    statusRastreio?: string;
+    localizacaoAtual?: string;
+    estimativaEntrega?: string;
+  };
+  observacoes?: string;
+  observacoesInternas?: string;
+  classificacaoRisco?: string;
+}
+
+interface DadosDespachoPDF {
+  despacho: DespachoAduaneiroDetalhado;
+  empresa: DadosEmpresa;
+}
+
+// ============================================================================
+// CONSTANTES PARA DESPACHO ADUANEIRO
+// ============================================================================
+
+const TIPO_PROCESSO_MAP: Record<string, string> = {
+  importacao: "Importação",
+  exportacao: "Exportação",
+  transito: "Trânsito",
+  despacho: "Despacho Aduaneiro",
+  consultoria: "Consultoria",
+  rastreio: "Rastreio",
+  re_exportacao: "Re-exportação",
+  admissao_temporaria: "Admissão Temporária",
+  perfeicoamento: "Aperfeiçoamento",
+};
+
+const STATUS_DESPACHO_MAP: Record<string, string> = {
+  rascunho: "Rascunho",
+  submetido: "Submetido",
+  registrado_alfandega: "Registrado na Alfândega",
+  em_analise: "Em Análise",
+  analise_documental: "Análise Documental",
+  analise_fiscal: "Análise Fiscal",
+  analise_tecnica: "Análise Técnica",
+  aguardando_liquidacao: "Aguardando Liquidação",
+  em_liquidacao: "Em Liquidação",
+  aguardando_pagamento: "Aguardando Pagamento",
+  aguardando_documentacao: "Aguardando Documentação",
+  aguardando_inspecao: "Aguardando Inspeção",
+  em_inspecao: "Em Inspeção",
+  aguardando_liberacao: "Aguardando Liberação",
+  em_transito: "Em Trânsito",
+  liberado: "Liberado",
+  concluido: "Concluído",
+  cancelado: "Cancelado",
+  suspenso: "Suspenso",
+  atrasado: "Atrasado",
+  arquivado: "Arquivado",
+};
+
+const TIPO_CLIENTE_MAP: Record<string, string> = {
+  importador: "Importador",
+  exportador: "Exportador",
+  transitario: "Transitário",
+  agente: "Agente",
+  representante: "Representante",
+  outro: "Outro",
+};
+
+const MEIO_TRANSPORTE_MAP: Record<string, string> = {
+  maritimo: "Marítimo",
+  aereo: "Aéreo",
+  terrestre: "Terrestre",
+  ferroviario: "Ferroviário",
+  multimodal: "Multimodal",
+  postal: "Postal",
+};
+
+const TIPO_REGIME_MAP: Record<string, string> = {
+  definitivo: "Definitivo",
+  temporario: "Temporário",
+  admissao_temporaria: "Admissão Temporária",
+  perfeicoamento_ativo: "Aperfeiçoamento Ativo",
+  perfeicoamento_passivo: "Aperfeiçoamento Passivo",
+  transito: "Trânsito",
+  re_exportacao: "Re-exportação",
+  reimportacao: "Reimportação",
+  entreposto_aduanero: "Entreposto Aduaneiro",
+  deposito_alfandegado: "Depósito Alfandegado",
+};
+
+const DESTINO_ADUANEIRO_MAP: Record<string, string> = {
+  consumo: "Consumo",
+  armazem: "Armazém",
+  industria: "Indústria",
+  reexportacao: "Reexportação",
+  transito: "Trânsito",
+  deposito: "Depósito",
+};
+
+// ============================================================================
+// FUNÇÕES UTILITÁRIAS PARA DESPACHO ADUANEIRO
+// ============================================================================
+
+/**
+ * Traduz tipo de processo para português
+ */
+const obterTipoProcessoTexto = (tipo: string = "importacao"): string => {
+  return TIPO_PROCESSO_MAP[tipo] || tipo;
+};
+
+/**
+ * Traduz status do despacho para português
+ */
+const obterStatusDespachoTexto = (status: string = "rascunho"): string => {
+  return STATUS_DESPACHO_MAP[status] || status;
+};
+
+/**
+ * Traduz tipo de cliente para português
+ */
+const obterTipoClienteTexto = (tipo: string = "importador"): string => {
+  return TIPO_CLIENTE_MAP[tipo] || tipo;
+};
+
+/**
+ * Traduz meio de transporte para português
+ */
+const obterMeioTransporteTexto = (meio?: string): string => {
+  if (!meio) return "Não especificado";
+  return MEIO_TRANSPORTE_MAP[meio] || meio;
+};
+
+/**
+ * Traduz tipo de regime para português
+ */
+const obterTipoRegimeTexto = (tipo?: string): string => {
+  if (!tipo) return "Não especificado";
+  return TIPO_REGIME_MAP[tipo] || tipo;
+};
+
+/**
+ * Traduz destino aduaneiro para português
+ */
+const obterDestinoAduaneiroTexto = (destino?: string): string => {
+  if (!destino) return "Não especificado";
+  return DESTINO_ADUANEIRO_MAP[destino] || destino;
+};
+
+/**
+ * Obtém a cor do status do despacho
+ */
+const getStatusDespachoColor = (status: string): string => {
+  switch (status) {
+    case "concluido":
+    case "liberado":
+      return LAYOUT_CONFIG.colors.success;
+    case "submetido":
+    case "em_analise":
+    case "aguardando_liberacao":
+      return LAYOUT_CONFIG.colors.warning;
+    case "cancelado":
+    case "atrasado":
+    case "suspenso":
+      return LAYOUT_CONFIG.colors.error;
+    case "rascunho":
+      return LAYOUT_CONFIG.colors.info;
+    default:
+      return LAYOUT_CONFIG.colors.text;
+  }
+};
+
+/**
+ * Formata dados de documentos para exibição
+ */
+const prepararDocumentosTabela = (documentos?: Array<any>): any[][] => {
+  if (!documentos || documentos.length === 0) {
+    return [[]];
+  }
+
+  return documentos.map((doc, index) => [
+    {
+      text: (index + 1).toString(),
+      style: "tableBody",
+      alignment: "center",
+    },
+    {
+      text: doc.nomeDocumento || doc.tipo || "Documento",
+      style: "tableDescriptionBody",
+    },
+    {
+      text: doc.tipo || "Não especificado",
+      style: "tableBody",
+      alignment: "center",
+    },
+    {
+      text: doc.recebido ? "✅ Recebido" : "⏳ Pendente",
+      style: "tableBody",
+      alignment: "center",
+      color: doc.recebido ? LAYOUT_CONFIG.colors.success : LAYOUT_CONFIG.colors.warning,
+    },
+  ]);
+};
+
+// ============================================================================
 // FUNÇÕES UTILITÁRIAS
 // ============================================================================
 
@@ -215,9 +525,9 @@ const LAYOUT_CONFIG = {
  * Formata valores monetários no padrão MZN
  */
 const formatarMoeda = (valor: number = 0): string => {
-  return new Intl.NumberFormat("pt-MZ", {
+  return new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: "MZN",
+    currency: "USD",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(valor);
@@ -260,6 +570,303 @@ const formatarData = (dataString: string): string => {
   } catch {
     return dataString;
   }
+};
+
+// ============================================================================
+// CABEÇALHO PARA DESPACHO ADUANEIRO
+// ============================================================================
+
+/**
+ * Cria o cabeçalho do despacho aduaneiro para o corpo do documento
+ */
+const criarCabecalhoDespachoParaCorpo = (
+  empresa: DadosEmpresa,
+  despacho: DespachoAduaneiroDetalhado,
+  imagemEmpresa: string,
+  dataCriacao: string,
+  dataPrazoLimite: string,
+  statusTexto: string,
+  tipoProcessoTexto: string
+) => {
+  const availableWidth =
+    LAYOUT_CONFIG.page.width -
+    LAYOUT_CONFIG.page.margins.left -
+    LAYOUT_CONFIG.page.margins.right;
+
+  return {
+    stack: [
+      // Linha principal: Logo + informações + despacho
+      {
+        columns: [
+          // Coluna da logo e informações da empresa
+          {
+            width: "65%",
+            columns: [
+              // Logo
+              {
+                width: "20%",
+                stack: [
+                  {
+                    image: imagemEmpresa,
+                    width: 60,
+                    height: 60,
+                    alignment: "left",
+                    margin: [0, 0, 0, 5],
+                  },
+                ],
+              },
+
+              // Informações da empresa ao lado do logo
+              {
+                width: "80%",
+                stack: [
+                  // Nome da empresa (ao lado do logo)
+                  {
+                    text: empresa.nomeEmpresaLocal,
+                    style: "companyName",
+                    margin: [10, 5, 0, 8],
+                  },
+
+                  // Informações da empresa em VERTICAL
+                  {
+                    stack: [
+                      // Endereço
+                      {
+                        columns: [
+                          {
+                            text: "Endereço:",
+                            style: "companyLabel",
+                            width: "auto",
+                            margin: [10, 0, 3, 0],
+                          },
+                          {
+                            text: empresa.enderecoLocal,
+                            style: "companyValue",
+                            margin: [0, 0, 0, 0],
+                          },
+                        ],
+                        margin: [0, 0, 0, 1],
+                      },
+
+                      // NUIT
+                      {
+                        columns: [
+                          {
+                            text: "NUIT:",
+                            style: "companyLabel",
+                            width: "auto",
+                            margin: [10, 0, 3, 0],
+                          },
+                          {
+                            text: empresa.nuitLocal,
+                            style: "companyValue",
+                            margin: [0, 0, 0, 0],
+                          },
+                        ],
+                        margin: [0, 0, 0, 1],
+                      },
+
+                      // Email
+                      {
+                        columns: [
+                          {
+                            text: "Email:",
+                            style: "companyLabel",
+                            width: "auto",
+                            margin: [10, 0, 3, 0],
+                          },
+                          {
+                            text: empresa.emailLocal,
+                            style: "companyValue",
+                            margin: [0, 0, 0, 0],
+                          },
+                        ],
+                        margin: [0, 0, 0, 1],
+                      },
+
+                      // Contactos
+                      {
+                        columns: [
+                          {
+                            text: "Contactos:",
+                            style: "companyLabel",
+                            width: "auto",
+                            margin: [10, 0, 3, 0],
+                          },
+                          {
+                            text: empresa.contactosLocal,
+                            style: "companyValue",
+                            margin: [0, 0, 0, 0],
+                          },
+                        ],
+                        margin: [0, 0, 0, 0],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+
+          // Coluna do documento (despacho)
+          {
+            width: "35%",
+            stack: [
+              // DESPACHO ADUANEIRO em destaque
+              {
+                text: "DESPACHO ADUANEIRO",
+                style: "documentTitleMain",
+                alignment: "right",
+                margin: [0, 2, 0, 0],
+              },
+              // ORIGINAL por baixo do título
+              {
+                text: "ORIGINAL",
+                style: {
+                  fontSize: 12,
+                  bold: true,
+                  color: LAYOUT_CONFIG.colors.success,
+                  alignment: "right",
+                  margin: [0, 0, 0, 3],
+                },
+              },
+              // Informações totalmente alinhadas à direita
+              {
+                stack: [
+                  {
+                    text: `Nº: ${despacho.numeroProcesso}`,
+                    style: "documentValue",
+                    alignment: "right",
+                    margin: [0, 0, 0, 1],
+                  },
+                  {
+                    text: `Tipo: ${tipoProcessoTexto}`,
+                    style: "documentValue",
+                    alignment: "right",
+                    margin: [0, 0, 0, 1],
+                  },
+                  {
+                    text: `Data: ${dataCriacao}`,
+                    style: "documentValue",
+                    alignment: "right",
+                    margin: [0, 0, 0, 1],
+                  },
+                  {
+                    text: `Status: ${statusTexto}`,
+                    style: "statusText",
+                    color: getStatusDespachoColor(despacho.status),
+                    alignment: "right",
+                    margin: [0, 0, 0, 0],
+                  },
+                ],
+                margin: [0, 0, 0, 0],
+              },
+            ],
+          },
+        ],
+        margin: [0, 0, 0, 10],
+      },
+
+      // Linha divisória
+      {
+        canvas: [
+          {
+            type: "line",
+            x1: 0,
+            y1: 0,
+            x2: availableWidth,
+            y2: 0,
+            lineWidth: 1,
+            lineColor: LAYOUT_CONFIG.colors.gray,
+          },
+        ],
+        margin: [0, 0, 0, 10],
+      },
+
+      // Informações do processo
+      {
+        columns: [
+          {
+            width: "60%",
+            stack: [
+              {
+                text: "INFORMAÇÕES DO CLIENTE",
+                style: "sectionTitleSmall",
+                margin: [0, 0, 0, 5],
+              },
+              {
+                stack: [
+                  {
+                    text: `Nome: ${despacho.cliente.nomeCliente}`,
+                    style: "infoTextSmall",
+                  },
+                  {
+                    text: `NUIT: ${despacho.cliente.nuit}`,
+                    style: "infoTextSmall",
+                  },
+                  {
+                    text: `Tipo: ${obterTipoClienteTexto(despacho.cliente.tipoCliente)}`,
+                    style: "infoTextSmall",
+                  },
+                  ...(despacho.cliente.contato?.email ? [
+                    {
+                      text: `Email: ${despacho.cliente.contato.email}`,
+                      style: "infoTextSmall",
+                    },
+                  ] : []),
+                  ...(despacho.cliente.contato?.telefone ? [
+                    {
+                      text: `Telefone: ${despacho.cliente.contato.telefone}`,
+                      style: "infoTextSmall",
+                    },
+                  ] : []),
+                ],
+              },
+            ],
+          },
+          {
+            width: "40%",
+            stack: [
+              {
+                text: "DETALHES DO PROCESSO",
+                style: "sectionTitleSmall",
+                margin: [0, 0, 0, 5],
+              },
+              {
+                stack: [
+                  {
+                    text: `Prioridade: ${despacho.prioridade || 'normal'}`,
+                    style: "infoTextSmall",
+                  },
+                  {
+                    text: `Classificação Risco: ${despacho.classificacaoRisco || 'médio'}`,
+                    style: "infoTextSmall",
+                  },
+                  ...(dataPrazoLimite ? [
+                    {
+                      text: `Prazo Limite: ${dataPrazoLimite}`,
+                      style: "infoTextSmall",
+                    },
+                  ] : []),
+                  {
+                    text: `Documentação: ${despacho.documentacao?.percentualCompleto || 0}% completa`,
+                    style: "infoTextSmall",
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        margin: [0, 0, 0, 20],
+      },
+    ],
+  };
+};
+const tituloPorTipo: Record<string, string> = {
+  Importação: "IMPORTAÇÃO",
+  Exportação: "EXPORTAÇÃO",
+  Trânsito: "TRÂNSITO",
+  Consultoria: "CONSULTORIA",
 };
 
 /**
@@ -2680,7 +3287,1182 @@ export async function gerarPDFRecibo(dados: DadosReciboPDF): Promise<void> {
     throw new Error("Não foi possível gerar o recibo");
   }
 }
+// ============================================================================
+// GERADOR DE DESPACHO ADUANEIRO
+// ============================================================================
 
+/**
+ * Gera PDF do despacho aduaneiro
+ */
+export async function gerarPDFDespachoAduaneiro(dados: DadosDespachoPDF): Promise<void> {
+  const { despacho, empresa } = dados;
+
+  try {
+    const pdfMake = await configurarPdfMake();
+    const imagemEmpresa = await carregarImagemEmpresa(empresa.nomeEmpresaLocal);
+    const styles = getPdfStyles();
+
+    // Calcular availableWidth uma vez para reutilizar
+    const availableWidth =
+      LAYOUT_CONFIG.page.width -
+      LAYOUT_CONFIG.page.margins.left -
+      LAYOUT_CONFIG.page.margins.right;
+
+    // Dados formatados
+    const dataCriacao = formatarData(despacho.datas.dataCriacao);
+    const dataPrazoLimite = despacho.datas.dataPrazoLimite 
+      ? formatarData(despacho.datas.dataPrazoLimite)
+      : "Não definido";
+    const dataSubmissao = despacho.datas.dataSubmissao 
+      ? formatarData(despacho.datas.dataSubmissao)
+      : "Não submetido";
+    const dataRegistro = despacho.datas.dataRegistroAlfandega 
+      ? formatarData(despacho.datas.dataRegistroAlfandega)
+      : "Não registrado";
+    const dataPrevistaLiberacao = despacho.datas.dataPrevistaLiberacao 
+      ? formatarData(despacho.datas.dataPrevistaLiberacao)
+      : "Não definida";
+
+    const statusTexto = obterStatusDespachoTexto(despacho.status);
+    const tipoProcessoTexto = obterTipoProcessoTexto(despacho.tipoProcesso);
+
+    // Criar cabeçalho para o corpo (passando availableWidth como parâmetro)
+    const cabecalhoCorpo = {
+      stack: [
+        // Linha principal: Logo + informações + despacho
+        {
+          columns: [
+            // Coluna da logo e informações da empresa
+            {
+              width: "65%",
+              columns: [
+                // Logo
+                {
+                  width: "20%",
+                  stack: [
+                    {
+                      image: imagemEmpresa,
+                      width: 60,
+                      height: 60,
+                      alignment: "left",
+                      margin: [0, 0, 0, 5],
+                    },
+                  ],
+                },
+
+                // Informações da empresa ao lado do logo
+                {
+                  width: "80%",
+                  stack: [
+                    // Nome da empresa (ao lado do logo)
+                    {
+                      text: empresa.nomeEmpresaLocal,
+                      style: "companyName",
+                      margin: [10, 5, 0, 8],
+                    },
+
+                    // Informações da empresa em VERTICAL
+                    {
+                      stack: [
+                        // Endereço
+                        {
+                          columns: [
+                            {
+                              text: "Endereço:",
+                              style: "companyLabel",
+                              width: "auto",
+                              margin: [10, 0, 3, 0],
+                            },
+                            {
+                              text: empresa.enderecoLocal,
+                              style: "companyValue",
+                              margin: [0, 0, 0, 0],
+                            },
+                          ],
+                          margin: [0, 0, 0, 1],
+                        },
+
+                        // NUIT
+                        {
+                          columns: [
+                            {
+                              text: "NUIT:",
+                              style: "companyLabel",
+                              width: "auto",
+                              margin: [10, 0, 3, 0],
+                            },
+                            {
+                              text: empresa.nuitLocal,
+                              style: "companyValue",
+                              margin: [0, 0, 0, 0],
+                            },
+                          ],
+                          margin: [0, 0, 0, 1],
+                        },
+
+                        // Email
+                        {
+                          columns: [
+                            {
+                              text: "Email:",
+                              style: "companyLabel",
+                              width: "auto",
+                              margin: [10, 0, 3, 0],
+                            },
+                            {
+                              text: empresa.emailLocal,
+                              style: "companyValue",
+                              margin: [0, 0, 0, 0],
+                            },
+                          ],
+                          margin: [0, 0, 0, 1],
+                        },
+
+                        // Contactos
+                        {
+                          columns: [
+                            {
+                              text: "Contactos:",
+                              style: "companyLabel",
+                              width: "auto",
+                              margin: [10, 0, 3, 0],
+                            },
+                            {
+                              text: empresa.contactosLocal,
+                              style: "companyValue",
+                              margin: [0, 0, 0, 0],
+                            },
+                          ],
+                          margin: [0, 0, 0, 0],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+
+            // Coluna do documento (despacho)
+            {
+              width: "35%",
+              stack: [
+                // DESPACHO ADUANEIRO em destaque
+                                {
+                  text: tituloPorTipo[tipoProcessoTexto] ?? "DESPACHO ADUANEIRO",
+                  style: "documentTitleMain",
+                  alignment: "right",
+                  margin: [0, 2, 0, 0],
+                },
+                // ORIGINAL por baixo do título
+                {
+                  text: "ORIGINAL",
+                  style: {
+                    fontSize: 12,
+                    bold: true,
+                    color: LAYOUT_CONFIG.colors.success,
+                    alignment: "right",
+                    margin: [0, 0, 0, 3],
+                  },
+                },
+                // Informações totalmente alinhadas à direita
+                {
+                  stack: [
+                    {
+                      text: `Nº: ${despacho.numeroProcesso}`,
+                      style: "documentValue",
+                      alignment: "right",
+                      margin: [0, 0, 0, 1],
+                    },
+                    {
+                      text: `Tipo: ${tipoProcessoTexto}`,
+                      style: "documentValue",
+                      alignment: "right",
+                      margin: [0, 0, 0, 1],
+                    },
+                    {
+                      text: `Data: ${dataCriacao}`,
+                      style: "documentValue",
+                      alignment: "right",
+                      margin: [0, 0, 0, 1],
+                    },
+                    {
+                      text: `Status: ${statusTexto}`,
+                      style: "statusText",
+                      color: getStatusDespachoColor(despacho.status),
+                      alignment: "right",
+                      margin: [0, 0, 0, 0],
+                    },
+                  ],
+                  margin: [0, 0, 0, 0],
+                },
+              ],
+            },
+          ],
+          margin: [0, 0, 0, 10],
+        },
+
+        // Linha divisória
+        {
+          canvas: [
+            {
+              type: "line",
+              x1: 0,
+              y1: 0,
+              x2: availableWidth,
+              y2: 0,
+              lineWidth: 1,
+              lineColor: LAYOUT_CONFIG.colors.gray,
+            },
+          ],
+          margin: [0, 0, 0, 10],
+        },
+
+        // Informações do processo
+        {
+          columns: [
+            {
+              width: "60%",
+              stack: [
+                {
+                  text: "INFORMAÇÕES DO CLIENTE",
+                  style: "sectionTitleSmall",
+                  margin: [0, 0, 0, 5],
+                },
+                {
+                  stack: [
+                    {
+                      text: `Nome: ${despacho.cliente.nomeCliente}`,
+                      style: "infoTextSmall",
+                    },
+                    {
+                      text: `NUIT: ${despacho.cliente.nuit}`,
+                      style: "infoTextSmall",
+                    },
+                    {
+                      text: `Tipo: ${obterTipoClienteTexto(despacho.cliente.tipoCliente)}`,
+                      style: "infoTextSmall",
+                    },
+                    ...(despacho.cliente.contato?.email ? [
+                      {
+                        text: `Email: ${despacho.cliente.contato.email}`,
+                        style: "infoTextSmall",
+                      },
+                    ] : []),
+                    ...(despacho.cliente.contato?.telefone ? [
+                      {
+                        text: `Telefone: ${despacho.cliente.contato.telefone}`,
+                        style: "infoTextSmall",
+                      },
+                    ] : []),
+                  ],
+                },
+              ],
+            },
+            {
+              width: "40%",
+              stack: [
+                {
+                  text: "DETALHES DO PROCESSO",
+                  style: "sectionTitleSmall",
+                  margin: [0, 0, 0, 5],
+                },
+                {
+                  stack: [
+                    {
+                      text: `Prioridade: ${despacho.prioridade || 'normal'}`,
+                      style: "infoTextSmall",
+                    },
+                    {
+                      text: `Classificação Risco: ${despacho.classificacaoRisco || 'médio'}`,
+                      style: "infoTextSmall",
+                    },
+                    ...(dataPrazoLimite ? [
+                      {
+                        text: `Prazo Limite: ${dataPrazoLimite}`,
+                        style: "infoTextSmall",
+                      },
+                    ] : []),
+                    {
+                      text: `Documentação: ${despacho.documentacao?.percentualCompleto || 0}% completa`,
+                      style: "infoTextSmall",
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+          margin: [0, 0, 0, 15],
+        },
+      ],
+    };
+
+    // Preparar tabela de documentos
+    const documentosTabela = prepararDocumentosTabela(despacho.documentacao?.documentos);
+    const cabecalhoDocumentos = [
+      [
+        { text: "#", style: "tableHeader", alignment: "center" },
+        { text: "Documento", style: "tableHeader" },
+        { text: "Tipo", style: "tableHeader", alignment: "center" },
+        { text: "Status", style: "tableHeader", alignment: "center" },
+      ],
+    ];
+
+    const corpoDocumentos = documentosTabela.length > 0
+      ? [...cabecalhoDocumentos, ...documentosTabela]
+      : cabecalhoDocumentos;
+
+    // Conteúdo principal em uma única página (usar arrays dinâmicos)
+    const conteudoPrincipal = [];
+
+    // Seção 1: Mercadoria
+    conteudoPrincipal.push(
+      {
+        text: "INFORMAÇÕES DA MERCADORIA",
+        style: "sectionTitle",
+        margin: [0, 0, 0, 5],
+      },
+      {
+        columns: [
+          {
+            width: "60%",
+            stack: [
+              {
+                text: "Descrição:",
+                style: "infoLabel",
+                margin: [0, 0, 0, 2],
+              },
+              {
+                text: despacho.mercadoria.descricao,
+                style: "infoValue",
+                margin: [0, 0, 0, 10],
+              },
+              {
+                columns: [
+                  {
+                    width: "50%",
+                    stack: [
+                      {
+                        text: "Quantidade:",
+                        style: "infoLabel",
+                        margin: [0, 0, 0, 2],
+                      },
+                      {
+                        text: `${despacho.mercadoria.quantidade} ${despacho.mercadoria.unidadeMedida}`,
+                        style: "infoValue",
+                        margin: [0, 0, 0, 10],
+                      },
+                      {
+                        text: "Código NCM:",
+                        style: "infoLabel",
+                        margin: [0, 0, 0, 2],
+                      },
+                      {
+                        text: despacho.mercadoria.codigoNCM || "Não informado",
+                        style: "infoValue",
+                        margin: [0, 0, 0, 10],
+                      },
+                    ],
+                  },
+                  {
+                    width: "50%",
+                    stack: [
+                      {
+                        text: "Valor Mercadoria:",
+                        style: "infoLabel",
+                        margin: [0, 0, 0, 2],
+                      },
+                      {
+                        text: formatarMoeda(despacho.mercadoria.valorMercadoria),
+                        style: "infoValue",
+                        margin: [0, 0, 0, 10],
+                      },
+                      {
+                        text: "Origem:",
+                        style: "infoLabel",
+                        margin: [0, 0, 0, 2],
+                      },
+                      {
+                        text: despacho.mercadoria.origemMercadoria || "Não informada",
+                        style: "infoValue",
+                        margin: [0, 0, 0, 10],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            width: "40%",
+            stack: [
+              {
+                text: "Pesos:",
+                style: "infoLabel",
+                margin: [0, 0, 0, 2],
+              },
+              {
+                table: {
+                  widths: ["*", "auto"],
+                  body: [
+                    [
+                      { text: "Peso Bruto:", style: "summaryLabel" },
+                      {
+                        text: `${despacho.mercadoria.pesoBruto || 0} kg`,
+                        style: "summaryValue",
+                        alignment: "right",
+                      },
+                    ],
+                    [
+                      { text: "Peso Líquido:", style: "summaryLabel" },
+                      {
+                        text: `${despacho.mercadoria.pesoLiquido || 0} kg`,
+                        style: "summaryValue",
+                        alignment: "right",
+                      },
+                    ],
+                  ],
+                },
+                layout: "noBorders",
+                margin: [0, LAYOUT_CONFIG.spacing.xs, 0, 20],
+              },
+              ...(despacho.mercadoria.certificadoOrigem?.numero ? [
+                {
+                  text: "Certificado de Origem:",
+                  style: "infoLabel",
+                  margin: [0, 0, 0, 2],
+                },
+                {
+                  text: `${despacho.mercadoria.certificadoOrigem.tipo || 'Certificado'} Nº ${despacho.mercadoria.certificadoOrigem.numero}`,
+                  style: "infoValue",
+                  margin: [0, 0, 0, 10],
+                },
+              ] : []),
+            ],
+          },
+        ],
+        margin: [0, 0, 0, 15],
+      }
+    );
+
+    // Seção 2: Transporte e Regime Aduaneiro
+    conteudoPrincipal.push(
+      {
+        text: "TRANSPORTE E REGIME ADUANEIRO",
+        style: "sectionTitle",
+        margin: [0, 5, 0, 5],
+      },
+      {
+        columns: [
+          {
+            width: "50%",
+            stack: [
+              {
+                text: "TRANSPORTE",
+                style: "sectionTitleSmall",
+                margin: [0, 0, 0, 5],
+              },
+              {
+                table: {
+                  widths: ["*"],
+                  body: [
+                    ...(despacho.transporte?.meioTransporte ? [
+                      [
+                        {
+                          text: `Meio: ${obterMeioTransporteTexto(despacho.transporte.meioTransporte)}`,
+                          style: "infoTextSmall",
+                        },
+                      ],
+                    ] : []),
+                    ...(despacho.transporte?.portoOrigem ? [
+                      [
+                        {
+                          text: `Origem: ${despacho.transporte.portoOrigem}`,
+                          style: "infoTextSmall",
+                        },
+                      ],
+                    ] : []),
+                    ...(despacho.transporte?.portoDestino ? [
+                      [
+                        {
+                          text: `Destino: ${despacho.transporte.portoDestino}`,
+                          style: "infoTextSmall",
+                        },
+                      ],
+                    ] : []),
+                    ...(despacho.transporte?.numeroConhecimento ? [
+                      [
+                        {
+                          text: `Conhecimento: ${despacho.transporte.numeroConhecimento}`,
+                          style: "infoTextSmall",
+                        },
+                      ],
+                    ] : []),
+                    ...(despacho.transporte?.navioVoo ? [
+                      [
+                        {
+                          text: `Navio/Voo: ${despacho.transporte.navioVoo}`,
+                          style: "infoTextSmall",
+                        },
+                      ],
+                    ] : []),
+                    ...(despacho.transporte?.companhiaTransporte ? [
+                      [
+                        {
+                          text: `Companhia: ${despacho.transporte.companhiaTransporte}`,
+                          style: "infoTextSmall",
+                        },
+                      ],
+                    ] : []),
+                  ],
+                },
+                layout: "noBorders",
+                margin: [0, 0, 0, 0],
+              },
+            ],
+          },
+          {
+            width: "50%",
+            stack: [
+              {
+                text: "REGIME ADUANEIRO",
+                style: "sectionTitleSmall",
+                margin: [0, 0, 0, 5],
+              },
+              {
+                table: {
+                  widths: ["*"],
+                  body: [
+                    ...(despacho.regimeAduaneiro?.tipoRegime ? [
+                      [
+                        {
+                          text: `Tipo: ${obterTipoRegimeTexto(despacho.regimeAduaneiro.tipoRegime)}`,
+                          style: "infoTextSmall",
+                        },
+                      ],
+                    ] : []),
+                    ...(despacho.regimeAduaneiro?.destinoAduaneiro ? [
+                      [
+                        {
+                          text: `Destino: ${obterDestinoAduaneiroTexto(despacho.regimeAduaneiro.destinoAduaneiro)}`,
+                          style: "infoTextSmall",
+                        },
+                      ],
+                    ] : []),
+                    ...(despacho.regimeAduaneiro?.numeroLicencaImportacao ? [
+                      [
+                        {
+                          text: `Licença: ${despacho.regimeAduaneiro.numeroLicencaImportacao}`,
+                          style: "infoTextSmall",
+                        },
+                      ],
+                    ] : []),
+                    ...(despacho.fornecedor?.nome ? [
+                      [
+                        {
+                          text: `Fornecedor: ${despacho.fornecedor.nome}`,
+                          style: "infoTextSmall",
+                        },
+                      ],
+                    ] : []),
+                    ...(despacho.fornecedor?.incoterm ? [
+                      [
+                        {
+                          text: `INCOTERM: ${despacho.fornecedor.incoterm}`,
+                          style: "infoTextSmall",
+                        },
+                      ],
+                    ] : []),
+                  ],
+                },
+                layout: "noBorders",
+                margin: [0, 0, 0, 0],
+              },
+            ],
+          },
+        ],
+        margin: [0, 0, 0, 15],
+      }
+    );
+
+    // Seção 3: Tributação (se existir)
+    if (despacho.tributacao) {
+      conteudoPrincipal.push(
+        {
+          text: "TRIBUTAÇÃO",
+          style: "sectionTitle",
+          margin: [0, 5, 0, 5],
+        },
+        {
+          columns: [
+            {
+              width: "40%",
+              stack: [
+                {
+                  table: {
+                    widths: ["*", "auto"],
+                    body: [
+                      [
+                        { text: "Valor Aduaneiro:", style: "summaryLabel" },
+                        {
+                          text: formatarMoeda(despacho.tributacao.valorAduaneiro),
+                          style: "summaryValue",
+                          alignment: "right",
+                        },
+                      ],
+                      ...(despacho.tributacao.impostos.direitosAduaneiros?.percentual ? [
+                        [
+                          { 
+                            text: `Direitos Aduaneiros (${despacho.tributacao.impostos.direitosAduaneiros.percentual}%):`, 
+                            style: "summaryLabel" 
+                          },
+                          {
+                            text: formatarMoeda(despacho.tributacao.impostos.direitosAduaneiros.valor || 0),
+                            style: "summaryValue",
+                            alignment: "right",
+                          },
+                        ],
+                      ] : []),
+                      ...(despacho.tributacao.impostos.iva?.percentual ? [
+                        [
+                          { 
+                            text: `IVA (${despacho.tributacao.impostos.iva.percentual}%):`, 
+                            style: "summaryLabel" 
+                          },
+                          {
+                            text: formatarMoeda(despacho.tributacao.impostos.iva.valor || 0),
+                            style: "summaryValue",
+                            alignment: "right",
+                          },
+                        ],
+                      ] : []),
+                      ...(despacho.tributacao.impostos.totalImpostos ? [
+                        [
+                          { text: "Total Impostos:", style: "summaryTotalLabel" },
+                          {
+                            text: formatarMoeda(despacho.tributacao.impostos.totalImpostos),
+                            style: "summaryTotalValue",
+                            alignment: "right",
+                            bold: true,
+                          },
+                        ],
+                      ] : []),
+                      ...(despacho.tributacao.impostos.totalLiquido ? [
+                        [
+                          { text: "Total Líquido:", style: "summaryTotalLabel" },
+                          {
+                            text: formatarMoeda(despacho.tributacao.impostos.totalLiquido),
+                            style: "summaryTotalValue",
+                            alignment: "right",
+                            bold: true,
+                          },
+                        ],
+                      ] : []),
+                    ],
+                  },
+                  layout: "noBorders",
+                  margin: [0, LAYOUT_CONFIG.spacing.xs, 0, 0],
+                },
+              ],
+            },
+            {
+              width: "60%",
+              stack: [
+                {
+                  text: "Informações Adicionais:",
+                  style: "infoLabel",
+                  margin: [80, 0, 0, 5],
+                },
+                {
+                  table: {
+                    widths: ["*"],
+                    body: [
+                      [
+                        {
+                          text: `Moeda: ${despacho.tributacao.moedaAduaneira}`,
+                          style: "infoTextSmall",
+                        },
+                      ],
+                      ...(despacho.tributacao.taxaCambio ? [
+                        [
+                          {
+                            text: `Taxa Câmbio: ${despacho.tributacao.taxaCambio}`,
+                            style: "infoTextSmall",
+                          },
+                        ],
+                      ] : []),
+                      ...(despacho.garantias?.valorGarantia ? [
+                        [
+                          {
+                            text: `Garantia: ${formatarMoeda(despacho.garantias.valorGarantia)} (${despacho.garantias.tipoGarantia || 'Não especificada'})`,
+                            style: "infoTextSmall",
+                          },
+                        ],
+                      ] : []),
+                    ],
+                  },
+                  layout: "noBorders",
+                  margin: [80, 0, 0, 0],
+                },
+              ],
+            },
+          ],
+          margin: [0, 0, 0, 15],
+        }
+      );
+    }
+
+    // Seção 4: Documentação
+    conteudoPrincipal.push(
+      {
+        text: "DOCUMENTAÇÃO",
+        style: "sectionTitle",
+        margin: [0, 5, 0, 5],
+      },
+      {
+        table: {
+          headerRows: 1,
+          widths: ["auto", "*", "auto", "auto"],
+          body: corpoDocumentos,
+        },
+        layout: {
+          hLineWidth: (i: number) =>
+            i === 0 || i === corpoDocumentos.length
+              ? 1
+              : LAYOUT_CONFIG.table.borderWidth,
+          vLineWidth: () => LAYOUT_CONFIG.table.borderWidth,
+          hLineColor: () => LAYOUT_CONFIG.table.borderColor,
+          vLineColor: () => LAYOUT_CONFIG.table.borderColor,
+          paddingTop: () => LAYOUT_CONFIG.table.rowPadding,
+          paddingBottom: () => LAYOUT_CONFIG.table.rowPadding,
+          paddingLeft: () => LAYOUT_CONFIG.spacing.xs,
+          paddingRight: () => LAYOUT_CONFIG.spacing.xs,
+        },
+        margin: [0, 0, 0, 15],
+      }
+    );
+
+    // Status da Documentação e Pagamento
+    conteudoPrincipal.push(
+      {
+        columns: [
+          {
+            width: "50%",
+            stack: [
+              {
+                text: "STATUS DA DOCUMENTAÇÃO",
+                style: "sectionTitleSmall",
+                margin: [0, 0, 0, 5],
+              },
+              {
+                table: {
+                  widths: ["*"],
+                  body: [
+                    [
+                      {
+                        text: `Completude: ${despacho.documentacao?.percentualCompleto || 0}%`,
+                        style: "infoTextSmall",
+                      },
+                    ],
+                    [
+                      {
+                        text: `Status: ${despacho.documentacao?.documentacaoCompleta ? 'Completa' : 'Incompleta'}`,
+                        style: "infoTextSmall",
+                        color: despacho.documentacao?.documentacaoCompleta 
+                          ? LAYOUT_CONFIG.colors.success 
+                          : LAYOUT_CONFIG.colors.warning,
+                      },
+                    ],
+                  ],
+                },
+                layout: "noBorders",
+                margin: [0, 0, 0, 0],
+              },
+            ],
+          },
+          {
+            width: "50%",
+            stack: [
+              {
+                text: "PAGAMENTO",
+                style: "sectionTitleSmall",
+                margin: [0, 0, 0, 5],
+              },
+              {
+                table: {
+                  widths: ["*"],
+                  body: [
+                    ...(despacho.pagamento ? [
+                      [
+                        {
+                          text: `Valor Total: ${formatarMoeda(despacho.pagamento.valorTotal)}`,
+                          style: "infoTextSmall",
+                        },
+                      ],
+                      [
+                        {
+                          text: `Valor Pago: ${formatarMoeda(despacho.pagamento.valorPago)}`,
+                          style: "infoTextSmall",
+                        },
+                      ],
+                      [
+                        {
+                          text: `Status: ${despacho.pagamento.statusPagamento}`,
+                          style: "infoTextSmall",
+                          color: despacho.pagamento.statusPagamento === 'pago' 
+                            ? LAYOUT_CONFIG.colors.success 
+                            : LAYOUT_CONFIG.colors.warning,
+                        },
+                      ],
+                    ] : []),
+                  ],
+                },
+                layout: "noBorders",
+                margin: [0, 0, 0, 0],
+              },
+            ],
+          },
+        ],
+        margin: [0, 150, 0, 15],
+      }
+    );
+
+    // Seção 5: Alfândega e Rastreio
+    conteudoPrincipal.push(
+      {
+        text: "ALFÂNDEGA E RASTREIO",
+        style: "sectionTitle",
+        margin: [0, 5, 0, 5],
+      },
+      {
+        columns: [
+          {
+            width: "50%",
+            stack: [
+              {
+                text: "ALFÂNDEGA",
+                style: "sectionTitleSmall",
+                margin: [0, 0, 0, 5],
+              },
+              {
+                table: {
+                  widths: ["*"],
+                  body: [
+                    ...(despacho.alfandega?.portoAlfandegado ? [
+                      [
+                        {
+                          text: `Porto: ${despacho.alfandega.portoAlfandegado}`,
+                          style: "infoTextSmall",
+                        },
+                      ],
+                    ] : []),
+                    ...(despacho.alfandega?.fiscalResponsavel ? [
+                      [
+                        {
+                          text: `Fiscal: ${despacho.alfandega.fiscalResponsavel}`,
+                          style: "infoTextSmall",
+                        },
+                      ],
+                    ] : []),
+                    ...(despacho.alfandega?.tipoInspecao ? [
+                      [
+                        {
+                          text: `Inspeção: ${despacho.alfandega.tipoInspecao}`,
+                          style: "infoTextSmall",
+                        },
+                      ],
+                    ] : []),
+                    ...(despacho.alfandega?.canalVerde !== undefined ? [
+                      [
+                        {
+                          text: `Canal: ${despacho.alfandega.canalVerde ? 'Verde' : 'Não Verificado'}`,
+                          style: "infoTextSmall",
+                          color: despacho.alfandega.canalVerde 
+                            ? LAYOUT_CONFIG.colors.success 
+                            : LAYOUT_CONFIG.colors.warning,
+                        },
+                      ],
+                    ] : []),
+                    ...(despacho.alfandega?.dataLiberacao ? [
+                      [
+                        {
+                          text: `Liberação: ${formatarData(despacho.alfandega.dataLiberacao)}`,
+                          style: "infoTextSmall",
+                          color: LAYOUT_CONFIG.colors.success,
+                        },
+                      ],
+                    ] : []),
+                  ],
+                },
+                layout: "noBorders",
+                margin: [0, 0, 0, 0],
+              },
+            ],
+          },
+          {
+            width: "50%",
+            stack: [
+              {
+                text: "RASTREIO",
+                style: "sectionTitleSmall",
+                margin: [0, 0, 0, 5],
+              },
+              {
+                table: {
+                  widths: ["*"],
+                  body: [
+                    ...(despacho.rastreio?.statusRastreio ? [
+                      [
+                        {
+                          text: `Status: ${despacho.rastreio.statusRastreio}`,
+                          style: "infoTextSmall",
+                        },
+                      ],
+                    ] : []),
+                    ...(despacho.rastreio?.localizacaoAtual ? [
+                      [
+                        {
+                          text: `Localização: ${despacho.rastreio.localizacaoAtual}`,
+                          style: "infoTextSmall",
+                        },
+                      ],
+                    ] : []),
+                    ...(despacho.rastreio?.estimativaEntrega ? [
+                      [
+                        {
+                          text: `Estimativa Entrega: ${formatarData(despacho.rastreio.estimativaEntrega)}`,
+                          style: "infoTextSmall",
+                        },
+                      ],
+                    ] : []),
+                    ...(dataSubmissao !== "Não submetido" ? [
+                      [
+                        {
+                          text: `Submissão: ${dataSubmissao}`,
+                          style: "infoTextSmall",
+                        },
+                      ],
+                    ] : []),
+                    ...(dataRegistro !== "Não registrado" ? [
+                      [
+                        {
+                          text: `Registro Alfândega: ${dataRegistro}`,
+                          style: "infoTextSmall",
+                        },
+                      ],
+                    ] : []),
+                  ],
+                },
+                layout: "noBorders",
+                margin: [0, 0, 0, 0],
+              },
+            ],
+          },
+        ],
+        margin: [0, 0, 0, 15],
+      }
+    );
+
+    // Seção 6: Cronograma e Observações
+    conteudoPrincipal.push(
+      {
+        columns: [
+          {
+            width: "50%",
+            stack: [
+              {
+                text: "CRONOGRAMA",
+                style: "sectionTitleSmall",
+                margin: [0, 0, 0, 5],
+              },
+              {
+                table: {
+                  widths: ["*"],
+                  body: [
+                    [
+                      {
+                        text: `Criação: ${dataCriacao}`,
+                        style: "infoTextSmall",
+                      },
+                    ],
+                    ...(dataSubmissao !== "Não submetido" ? [
+                      [
+                        {
+                          text: `Submissão: ${dataSubmissao}`,
+                          style: "infoTextSmall",
+                        },
+                      ],
+                    ] : []),
+                    ...(dataRegistro !== "Não registrado" ? [
+                      [
+                        {
+                          text: `Registro: ${dataRegistro}`,
+                          style: "infoTextSmall",
+                        },
+                      ],
+                    ] : []),
+                    ...(dataPrevistaLiberacao !== "Não definida" ? [
+                      [
+                        {
+                          text: `Liberação Prevista: ${dataPrevistaLiberacao}`,
+                          style: "infoTextSmall",
+                        },
+                      ],
+                    ] : []),
+                    ...(dataPrazoLimite !== "Não definido" ? [
+                      [
+                        {
+                          text: `Prazo Limite: ${dataPrazoLimite}`,
+                          style: "infoTextSmall",
+                        },
+                      ],
+                    ] : []),
+                  ],
+                },
+                layout: "noBorders",
+                margin: [0, 0, 0, 0],
+              },
+            ],
+          },
+          {
+            width: "50%",
+            stack: [
+              {
+                text: "OBSERVAÇÕES",
+                style: "sectionTitleSmall",
+                margin: [0, 0, 0, 5],
+              },
+              ...(despacho.observacoes ? [
+                {
+                  text: despacho.observacoes,
+                  style: "notesText",
+                  margin: [0, 0, 0, 10],
+                },
+              ] : [
+                {
+                  text: "Nenhuma observação registrada.",
+                  style: "notesText",
+                  margin: [0, 0, 0, 10],
+                  color: LAYOUT_CONFIG.colors.muted,
+                },
+              ]),
+            ],
+          },
+        ],
+        margin: [0, 0, 0, 15],
+      }
+    );
+
+    // Rodapé Informativo
+    conteudoPrincipal.push(
+      {
+        canvas: [
+          {
+            type: "line",
+            x1: 0,
+            y1: 0,
+            x2: availableWidth,
+            y2: 0,
+            lineWidth: 1,
+            lineColor: LAYOUT_CONFIG.colors.gray,
+          },
+        ],
+        margin: [0, LAYOUT_CONFIG.spacing.md, 0, LAYOUT_CONFIG.spacing.sm],
+      },
+      {
+        text: "INFORMAÇÕES IMPORTANTES",
+        style: "sectionTitle",
+        margin: [0, 0, 0, LAYOUT_CONFIG.spacing.xs],
+      },
+      {
+        stack: [
+          {
+            text: "• Este documento é gerado automaticamente pelo sistema Mega Centro e Logística",
+            style: "bankNote",
+            margin: [0, 0, 0, 2],
+          },
+          {
+            text: "• Todas as informações estão sujeitas a verificação pela autoridade aduaneira competente",
+            style: "bankNote",
+            margin: [0, 0, 0, 2],
+          },
+          {
+            text: "• Para informações atualizadas, consulte o sistema ou entre em contacto com nossa equipe",
+            style: "bankNote",
+            margin: [0, 0, 0, 2],
+          },
+          {
+            text: `• Contactos: ${empresa.contactosLocal} | Email: ${empresa.emailLocal}`,
+            style: "bankNote",
+            margin: [0, 0, 0, 2],
+          },
+        ],
+        margin: [0, 0, 0, LAYOUT_CONFIG.spacing.sm],
+      }
+    );
+
+    // Conteúdo do PDF - TUDO em uma única página se possível
+    const docDefinition: PdfMakeContent = {
+      pageSize: "A4",
+      pageMargins: [
+        LAYOUT_CONFIG.page.margins.left,
+        LAYOUT_CONFIG.page.margins.top,
+        LAYOUT_CONFIG.page.margins.right,
+        LAYOUT_CONFIG.page.margins.bottom,
+      ],
+      footer: function (currentPage: number, pageCount: number) {
+        return {
+          columns: [
+            {
+              text: `Processado pelo Software Systems Manager - Licença 92/DAF2/2023`,
+              style: "footer",
+              width: "50%",
+            },
+            {
+              text: `Página ${currentPage} de ${pageCount}`,
+              style: "footer",
+              alignment: "right",
+              width: "50%",
+            },
+          ],
+          margin: [
+            LAYOUT_CONFIG.page.margins.left,
+            0,
+            LAYOUT_CONFIG.page.margins.right,
+            LAYOUT_CONFIG.spacing.sm,
+          ],
+        };
+      },
+      content: [
+        // CABEÇALHO
+        cabecalhoCorpo,
+        // TODO O CONTEÚDO PRINCIPAL
+        ...conteudoPrincipal,
+      ],
+      styles: styles,
+    };
+
+    // Gerar PDF
+    pdfMake
+      .createPdf(docDefinition)
+      .download(`Despacho-${despacho.numeroProcesso.replace(/\//g, "-")}.pdf`);
+    
+  } catch (error) {
+    console.error("Erro ao gerar PDF do despacho aduaneiro:", error);
+    throw new Error("Não foi possível gerar o PDF do despacho aduaneiro");
+  }
+}
+
+/**
+ * Gera PDF do despacho aduaneiro usando dados padrão da empresa
+ */
+export async function gerarPDFDespachoAduaneiroCompleto(
+  despacho: DespachoAduaneiroDetalhado
+): Promise<void> {
+  await gerarPDFDespachoAduaneiro({
+    despacho,
+    empresa: EMPRESA_PADRAO,
+  });
+}
 // ============================================================================
 // FUNÇÕES DE CONVENIÊNCIA
 // ============================================================================
@@ -2724,4 +4506,4 @@ export async function gerarPDFCotacaoCompleta(
 }
 
 // Exporta tipos adicionais
-export type { CotacaoDetalhada, ItemCotacao, DadosCotacaoPDF };
+export type { CotacaoDetalhada, ItemCotacao, DadosCotacaoPDF, DespachoAduaneiroDetalhado, DadosDespachoPDF };
