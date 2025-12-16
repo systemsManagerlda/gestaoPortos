@@ -10,7 +10,7 @@ const ReferenciaContas = () => {
           <span className="bg-blue-500 text-white p-2 rounded-lg mr-3">
             📊
           </span>
-          Referência de Contas - Plano Contábil Moçambicano
+          Referência de Contas - Plano Contábil Moçambicano 
         </h2>
         <p className="text-sm text-gray-600 mt-2">
           Sistema de referência contábil baseado no Plano de Contas de
