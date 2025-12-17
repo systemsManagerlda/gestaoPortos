@@ -35,6 +35,8 @@ import ReferenciaContas from "../../../components/janelas/ReferenciaContas";
 import MemoriaDescritiva from "../../../components/janelas/MemoriaDescritiva";
 import AreaLogisticaMunhava from "../../../components/janelas/Logistica";
 import NoticiasPage from "@/components/janelas/NoticiasPagePrincipal";
+import MapaControle from "@/components/janelas/MapaControle";
+import DespachantesAduaneiros from "@/components/janelas/DespachantesAduaneiros";
 
 // Tipos
 interface DashboardModule {
@@ -121,6 +123,8 @@ const PanelContent: React.FC<PanelContentProps> = ({ activeModule }) => {
       "Memória Descritiva": <MemoriaDescritiva />,
       "Logística": <AreaLogisticaMunhava />,
       "Notícias": <NoticiasPage />,
+      "Mapa de Controle": <MapaControle />,
+      "Despachantes Aduaneiros": <DespachantesAduaneiros />,
     };
 
     return (
@@ -365,13 +369,13 @@ export default function DashboardAdmin() {
     category: "lateral",
   },
   {
-    title: "Transporte",
-    description: "Gestão de operações de transporte",
-    icon: "🚚",
-    href: "/transporte",
-    color: "bg-blue-500 hover:bg-blue-600",
-    category: "lateral",
-  },
+  title: "Mapa de Controle",
+  description: "Visualização e acompanhamento das operações",
+  icon: "🗺️",
+  href: "/mapa-controle",
+  color: "bg-blue-500 hover:bg-blue-600",
+  category: "lateral",
+},
   {
     title: "Logística",
     description: "Gestão logística completa",
@@ -381,13 +385,13 @@ export default function DashboardAdmin() {
     category: "lateral",
   },
   {
-    title: "Estiva",
-    description: "Operações de estiva e movimentação",
-    icon: "⚓",
-    href: "/estiva",
-    color: "bg-indigo-500 hover:bg-indigo-600",
-    category: "lateral",
-  },
+  title: "Despachantes Aduaneiros",
+  description: "Gestão de processos e documentação aduaneira",
+  icon: "📄",
+  href: "/despachantes-aduaneiros",
+  color: "bg-indigo-500 hover:bg-indigo-600",
+  category: "lateral",
+},
   {
     title: "Notícias",
     description: "Atualizações, avisos e comunicados",

@@ -15,6 +15,10 @@ const DespachoAduaneiro = () => {
   const [editingDespacho, setEditingDespacho] = useState(null);
   const [editFormData, setEditFormData] = useState(null);
 
+  // NOVO ESTADO: Lista de despachantes
+  const [despachantes, setDespachantes] = useState([]);
+  const [loadingDespachantes, setLoadingDespachantes] = useState(false);
+
   // Estado para empresa padrão
   const [empresaInfo] = useState({
     empresaId: 1,
@@ -538,6 +542,159 @@ const DespachoAduaneiro = () => {
 
     return newObj;
   };
+
+  // Função para buscar despachantes disponíveis
+  // Função para buscar despachantes disponíveis
+const fetchDespachantes = async () => {
+  try {
+    setLoadingDespachantes(true);
+    
+    console.log("Buscando despachantes...");
+
+    // Primeiro, tentar buscar todos os despachantes ativos
+    const response = await axios.post(
+      `${API_BASE_URL}/getDespachanteList`,
+      {
+        curPage: 1,
+        pageSize: 100, // Buscar muitos registros
+        statusAtual: "ativo", // Filtrar apenas ativos
+      }
+    );
+
+    console.log("Resposta da API:", response.data);
+
+    if (response.data.returnCode === 200) {
+      const despachantesList = response.data.data.list || [];
+      console.log(`Encontrados ${despachantesList.length} despachantes`);
+      
+      // Se a lista estiver vazia, tentar a rota de disponíveis
+      if (despachantesList.length === 0) {
+        console.log("Lista vazia, tentando rota de disponíveis...");
+        
+        const responseDisponiveis = await axios.post(
+          `${API_BASE_URL}/getDespachantesDisponiveis`,
+          {
+            limit: 100,
+          }
+        );
+
+        if (responseDisponiveis.data.returnCode === 200) {
+          setDespachantes(responseDisponiveis.data.data.despachantes || []);
+          console.log(`Encontrados ${responseDisponiveis.data.data.despachantes?.length || 0} despachantes disponíveis`);
+        } else {
+          console.warn("Erro na rota de disponíveis:", responseDisponiveis.data);
+          setDespachantes([]);
+        }
+      } else {
+        setDespachantes(despachantesList);
+      }
+    } else {
+      console.warn("Erro na resposta principal:", response.data);
+      
+      // Tentar rota alternativa
+      try {
+        const responseAlternativa = await axios.post(
+          `${API_BASE_URL}/getDespachantesPorDepartamento`,
+          {
+            departamento: "despacho",
+            limit: 50
+          }
+        );
+        
+        if (responseAlternativa.data.returnCode === 200) {
+          setDespachantes(responseAlternativa.data.data.despachantes || []);
+        } else {
+          setDespachantes([]);
+        }
+      } catch (altError) {
+        console.error("Erro na rota alternativa:", altError);
+        setDespachantes([]);
+      }
+    }
+  } catch (error) {
+    console.error("Erro detalhado ao buscar despachantes:", {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status,
+      url: error.config?.url
+    });
+    
+  } finally {
+    setLoadingDespachantes(false);
+  }
+};
+
+  // Função para buscar despachantes com filtros avançados
+  const searchDespachantes = async (searchQuery) => {
+    try {
+      setLoadingDespachantes(true);
+
+      const response = await axios.post(`${API_BASE_URL}/searchDespachantes`, {
+        query: searchQuery,
+        campos: [
+          "codigoDespachante",
+          "dadosPessoais.nomeCompleto",
+          "matriculaAlfandega",
+          "contatos.emailPrincipal",
+        ],
+        pageSize: 20,
+      });
+
+      if (response.data.returnCode === 200) {
+        return response.data.data.list || [];
+      }
+      return [];
+    } catch (error) {
+      console.error("Erro ao pesquisar despachantes:", error);
+      return [];
+    } finally {
+      setLoadingDespachantes(false);
+    }
+  };
+
+  // Função para buscar despachantes por departamento
+  const fetchDespachantesPorDepartamento = async (departamento) => {
+    try {
+      setLoadingDespachantes(true);
+
+      const response = await axios.post(
+        `${API_BASE_URL}/getDespachantesPorDepartamento`,
+        {
+          departamento: departamento,
+          limit: 30,
+        }
+      );
+
+      if (response.data.returnCode === 200) {
+        setDespachantes(response.data.data.despachantes || []);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar despachantes por departamento:", error);
+    } finally {
+      setLoadingDespachantes(false);
+    }
+  };
+
+  // Modificar o useEffect inicial para buscar despachantes
+  useEffect(() => {
+    fetchDespachos();
+    fetchDespachantes(); // Buscar despachantes quando o componente montar
+  }, []);
+
+  // Efeito para atualizar despachantes quando o tipo de processo mudar
+  useEffect(() => {
+    if (
+      [
+        "importacao",
+        "exportacao",
+        "transito",
+        "despacho",
+        "consultoria",
+      ].includes(activeAduanaProcess)
+    ) {
+      fetchDespachantes();
+    }
+  }, [activeAduanaProcess]);
 
   // Função para formatar dados antes de enviar
   const formatarDadosParaEnvio = (dados) => {
@@ -1197,8 +1354,8 @@ const DespachoAduaneiro = () => {
   // Renderizar campos específicos por tipo de processo
   const renderCamposEspecificos = () => {
     switch (activeAduanaProcess) {
-      case "despacho": 
-      case "transito": 
+      case "despacho":
+      case "transito":
       case "importacao":
       case "exportacao":
         return (
@@ -1297,7 +1454,6 @@ const DespachoAduaneiro = () => {
           </>
         );
 
-      
       case "consultoria":
         return (
           <>
@@ -2600,7 +2756,6 @@ const DespachoAduaneiro = () => {
                       />
                     </div>
                   </div>
-
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -2687,6 +2842,66 @@ const DespachoAduaneiro = () => {
                         }
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                       />
+                    </div>
+                  </div>
+                  {/* NOVO CAMPO: Despachante Responsável */}
+                  <div className="p-4 bg-blue-50 rounded-lg">
+                    <h5 className="font-medium text-gray-900 mb-3">
+                      👨‍💼 Despachante Aduaneiro Responsável
+                    </h5>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Despachante
+                        </label>
+                        <select
+                          value={editFormData.transporte?.despachanteTransporte || ""}
+                          onChange={(e) => {
+                            const selectedCodigo = e.target.value;
+                            setEditFormData({
+                              ...editFormData,
+                              transporte: {
+                                ...editFormData.transporte,
+                                despachanteTransporte: selectedCodigo
+                              }
+                            });
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                        >
+                          <option value="">Selecione um despachante...</option>
+                          {despachantes.map((despachante) => (
+                            <option 
+                              key={despachante.codigoDespachante} 
+                              value={despachante.codigoDespachante}
+                            >
+                              {despachante.dadosPessoais.nomeCompleto} - {despachante.codigoDespachante}
+                            </option>
+                          ))}
+                          <option value="outro">Outro</option>
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Nome do Despachante
+                        </label>
+                        <input
+                          type="text"
+                          value={editFormData.transporte?.despachanteNome || ""}
+                          onChange={(e) =>
+                            setEditFormData({
+                              ...editFormData,
+                              transporte: {
+                                ...editFormData.transporte,
+                                despachanteNome: e.target.value
+                              }
+                            })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                          placeholder="Nome do despachante"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -3511,9 +3726,12 @@ const DespachoAduaneiro = () => {
                     </div>
 
                     {/* DETALHES DO TRANSPORTE (seção expandida) */}
-                    {["importacao", "exportacao", "transito"].includes(
-                      activeAduanaProcess
-                    ) && (
+                    {[
+                      "importacao",
+                      "exportacao",
+                      "transito",
+                      "despacho",
+                    ].includes(activeAduanaProcess) && (
                       <div className="border-b border-gray-200 pb-6">
                         <h4 className="font-semibold text-gray-900 mb-4">
                           🚢 Dados do Transporte
@@ -3681,6 +3899,278 @@ const DespachoAduaneiro = () => {
                               placeholder="Ex: MSC, Maersk, TAAG, etc."
                               required
                             />
+                          </div>
+                        </div>
+
+                        {/* NOVO CAMPO: Despachante Responsável */}
+                        <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                          <h5 className="font-medium text-gray-900 mb-3">
+                            👨‍💼 Despachante Aduaneiro Responsável
+                          </h5>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Selecionar Despachante *
+                              </label>
+                              <div className="flex space-x-2">
+                                <select
+                                  value={
+                                    formData.transporte.despachanteTransporte ||
+                                    ""
+                                  }
+                                  onChange={(e) => {
+                                    const selectedCodigo = e.target.value;
+                                    updateFormData(
+                                      "transporte.despachanteTransporte",
+                                      selectedCodigo
+                                    );
+
+                                    // Se "outro" for selecionado, limpar o campo de nome
+                                    if (selectedCodigo === "outro") {
+                                      updateFormData(
+                                        "transporte.despachanteNome",
+                                        ""
+                                      );
+                                    } else {
+                                      // Encontrar o despachante selecionado e preencher o nome
+                                      const selectedDespachante =
+                                        despachantes.find(
+                                          (d) =>
+                                            d.codigoDespachante ===
+                                            selectedCodigo
+                                        );
+                                      if (selectedDespachante) {
+                                        updateFormData(
+                                          "transporte.despachanteNome",
+                                          selectedDespachante.dadosPessoais
+                                            .nomeApresentacao ||
+                                            selectedDespachante.dadosPessoais
+                                              .nomeCompleto
+                                        );
+                                      }
+                                    }
+                                  }}
+                                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
+                                  required
+                                >
+                                  <option value="">
+                                    Selecione um despachante...
+                                  </option>
+                                  {despachantes
+                                    .filter(
+                                      (d) => d.status?.disponivel === true
+                                    )
+                                    .map((despachante) => (
+                                      <option
+                                        key={despachante.codigoDespachante}
+                                        value={despachante.codigoDespachante}
+                                      >
+                                        {despachante.dadosPessoais
+                                          .nomeApresentacao ||
+                                          despachante.dadosPessoais
+                                            .nomeCompleto}{" "}
+                                        -{despachante.codigoDespachante}
+                                        {despachante.status?.online
+                                          ? " 🟢 Online"
+                                          : " 🔴 Offline"}{" "}
+                                        -
+                                        {despachante.desempenho?.taxaSucesso ||
+                                          0}
+                                        % sucesso
+                                      </option>
+                                    ))}
+                                  <option value="outro">
+                                    Outro (especificar abaixo)
+                                  </option>
+                                </select>
+
+                                <button
+                                  type="button"
+                                  onClick={fetchDespachantes}
+                                  disabled={loadingDespachantes}
+                                  className="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 disabled:opacity-50"
+                                  title="Recarregar lista de despachantes"
+                                >
+                                  {loadingDespachantes ? "🔄" : "↻"}
+                                </button>
+                              </div>
+
+                              {/* Mostrar informações do despachante selecionado */}
+                              {formData.transporte.despachanteTransporte &&
+                                formData.transporte.despachanteTransporte !==
+                                  "outro" && (
+                                  <div className="mt-2 p-2 bg-white rounded border">
+                                    {(() => {
+                                      const selected = despachantes.find(
+                                        (d) =>
+                                          d.codigoDespachante ===
+                                          formData.transporte
+                                            .despachanteTransporte
+                                      );
+                                      return selected ? (
+                                        <div className="text-sm">
+                                          <p className="font-medium">
+                                            📋{" "}
+                                            {
+                                              selected.dadosPessoais
+                                                .nomeCompleto
+                                            }
+                                          </p>
+                                          <p className="text-gray-600">
+                                            Código: {selected.codigoDespachante}
+                                          </p>
+                                          <p className="text-gray-600">
+                                            Cargo:{" "}
+                                            {selected.carreira?.cargoAtual ||
+                                              "Não informado"}
+                                          </p>
+                                          <p className="text-gray-600">
+                                            Status:{" "}
+                                            {selected.status?.online
+                                              ? "🟢 Online"
+                                              : "🔴 Offline"}{" "}
+                                            |
+                                            {selected.status?.disponivel
+                                              ? " ✅ Disponível"
+                                              : " ❌ Indisponível"}
+                                          </p>
+                                          <p className="text-gray-600">
+                                            Desempenho:{" "}
+                                            {selected.desempenho?.taxaSucesso ||
+                                              0}
+                                            % sucesso | Avaliação: ⭐{" "}
+                                            {selected.desempenho?.avaliacaoMedia?.toFixed(
+                                              1
+                                            ) || "N/A"}
+                                          </p>
+                                        </div>
+                                      ) : null;
+                                    })()}
+                                  </div>
+                                )}
+                            </div>
+
+                            {/* Campo para nome do despachante (se "outro" for selecionado) */}
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Nome do Despachante *
+                              </label>
+                              <input
+                                type="text"
+                                value={
+                                  formData.transporte.despachanteNome || ""
+                                }
+                                onChange={(e) =>
+                                  updateFormData(
+                                    "transporte.despachanteNome",
+                                    e.target.value
+                                  )
+                                }
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                placeholder="Nome completo do despachante"
+                                required={
+                                  formData.transporte.despachanteTransporte ===
+                                    "outro" ||
+                                  !formData.transporte.despachanteTransporte
+                                }
+                                disabled={
+                                  formData.transporte.despachanteTransporte &&
+                                  formData.transporte.despachanteTransporte !==
+                                    "outro"
+                                }
+                              />
+                              {formData.transporte.despachanteTransporte ===
+                                "outro" && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Informe o nome do despachante externo
+                                  responsável
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Botões para busca avançada */}
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                fetchDespachantesPorDepartamento("importacao")
+                              }
+                              className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                            >
+                              Despachantes de Importação
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                fetchDespachantesPorDepartamento("exportacao")
+                              }
+                              className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200"
+                            >
+                              Despachantes de Exportação
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                fetchDespachantesPorDepartamento("transito")
+                              }
+                              className="px-3 py-1 text-xs bg-purple-100 text-purple-700 rounded hover:bg-purple-200"
+                            >
+                              Despachantes de Trânsito
+                            </button>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                const searchTerm = prompt(
+                                  "Digite o nome ou código do despachante:"
+                                );
+                                if (searchTerm) {
+                                  const resultados = await searchDespachantes(
+                                    searchTerm
+                                  );
+                                  if (resultados.length > 0) {
+                                    setDespachantes(resultados);
+                                    setSuccess(
+                                      `${resultados.length} despachante(s) encontrado(s)`
+                                    );
+                                  } else {
+                                    setError(
+                                      "Nenhum despachante encontrado com essa busca"
+                                    );
+                                  }
+                                }
+                              }}
+                              className="px-3 py-1 text-xs bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200"
+                            >
+                              🔍 Buscar Despachante
+                            </button>
+                          </div>
+
+                          {/* Informações sobre os despachantes disponíveis */}
+                          <div className="mt-3 text-xs text-gray-600">
+                            <p>
+                              {
+                                despachantes.filter(
+                                  (d) => d.status?.disponivel === true
+                                ).length
+                              }{" "}
+                              de {despachantes.length} despachantes disponíveis
+                              |
+                              {
+                                despachantes.filter(
+                                  (d) => d.status?.online === true
+                                ).length
+                              }{" "}
+                              online
+                            </p>
+                            {despachantes.length === 0 &&
+                              !loadingDespachantes && (
+                                <p className="text-red-500">
+                                  ⚠️ Nenhum despachante disponível. Verifique se
+                                  há despachantes cadastrados no sistema.
+                                </p>
+                              )}
                           </div>
                         </div>
 
