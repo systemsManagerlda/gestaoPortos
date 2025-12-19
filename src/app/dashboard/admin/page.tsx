@@ -239,7 +239,7 @@ export default function DashboardAdmin() {
     category: "superior",
   },
   {
-    title: "Carga em Curso",
+    title: "Carga em Movimento",
     description: "Monitoramento de cargas em andamento",
     icon: "🚛",
     href: "/cargas/em-curso",

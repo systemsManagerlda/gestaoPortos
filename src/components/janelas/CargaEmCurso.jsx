@@ -278,7 +278,7 @@ const MapaFallback = ({ cargas, selectedCarga, setSelectedCarga }) => {
           <div>
             <div className="text-sm font-medium text-white">{cargas.length} Cargas</div>
             <div className="text-xs text-gray-300">
-              {cargas.filter(c => c.status === 'em_transito').length} em trânsito
+              {cargas.filter(c => c.status === 'em_transito').length} em movimento
             </div>
           </div>
         </div>
@@ -329,7 +329,7 @@ const MapaFallback = ({ cargas, selectedCarga, setSelectedCarga }) => {
             <div className="flex justify-between items-center">
               <span className="text-gray-400">Status:</span>
               <span className={`font-medium ${selectedCarga.status === 'em_transito' ? 'text-green-400' : 'text-yellow-400'}`}>
-                {selectedCarga.status === 'em_transito' ? 'Em Trânsito' : 
+                {selectedCarga.status === 'em_transito' ? 'Em Movimento' : 
                  selectedCarga.status === 'em_entrega' ? 'Em Entrega' : 
                  selectedCarga.status}
               </span>
@@ -494,7 +494,7 @@ const MapaCargasEmCurso = ({
         // Usar coordenadas reais da API
         lat = carga.pontoAtual.lat;
         lng = carga.pontoAtual.lng;
-        descricao = carga.pontoAtual.descricao || 'Em trânsito';
+        descricao = carga.pontoAtual.descricao || 'Em movimento';
       } else {
         // Gerar coordenada aleatória
         const cidade = obterPosicaoCidadeAleatoria(index);
@@ -823,7 +823,7 @@ const MapaCargasEmCurso = ({
                     <div className="flex justify-between">
                       <span className="text-gray-400">Status:</span>
                       <span className="font-medium text-green-400">
-                        {selectedCarga.status === 'em_transito' ? 'Em Trânsito' : 
+                        {selectedCarga.status === 'em_transito' ? 'Em Movimento' : 
                          selectedCarga.status === 'em_entrega' ? 'Em Entrega' : 
                          selectedCarga.status}
                       </span>
@@ -1226,7 +1226,7 @@ const CargaEmCurso = () => {
 
   const getStatusBadge = (status) => {
     const statusMap = {
-      'em_transito': { color: 'bg-green-500', text: 'Em Trânsito', label: 'EM TRÂNSITO' },
+      'em_transito': { color: 'bg-green-500', text: 'Em Movimento', label: 'EM MOVIMENTO' },
       'em_entrega': { color: 'bg-purple-500', text: 'Em Entrega', label: 'EM ENTREGA' },
       'em_fronteira': { color: 'bg-yellow-500', text: 'Em Fronteira', label: 'EM FRONTEIRA' },
       'atrasado': { color: 'bg-red-500', text: 'Atrasado', label: 'ATRASADO' }
@@ -1313,10 +1313,10 @@ const CargaEmCurso = () => {
           <span className="bg-blue-500 text-white p-2 rounded-lg mr-3">
             🚚
           </span>
-          Carga em Curso - Monitoramento de Cargas em Andamento
+          Carga em Movimento - Monitoramento de Cargas em Andamento
         </h2>
         <p className="text-sm text-gray-600 mt-2">
-          Acompanhamento em tempo real de cargas em trânsito e em processo de entrega
+          Acompanhamento em tempo real de cargas em movimento e em processo de entrega
         </p>
       </div>
 
@@ -1364,7 +1364,7 @@ const CargaEmCurso = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600">
-                      Em Trânsito
+                      Em Movimento
                     </p>
                     <p className="text-2xl font-bold text-gray-900">
                       {loading ? '...' : cargas.filter(c => c.status === 'em_transito').length}
@@ -1489,7 +1489,7 @@ const CargaEmCurso = () => {
                 <div className="mt-6 bg-white rounded-xl border border-gray-200 shadow-sm">
                   <div className="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
                     <h3 className="font-semibold text-gray-900">
-                      Lista de Cargas em Curso ({cargas.length})
+                      Lista de Cargas em Movimento ({cargas.length})
                     </h3>
                     <div className="flex space-x-2">
                       <select 
@@ -1497,7 +1497,7 @@ const CargaEmCurso = () => {
                         value={filters.status}
                         onChange={(e) => setFilters({...filters, status: e.target.value})}
                       >
-                        <option value="em_transito">Em Trânsito</option>
+                        <option value="em_transito">Em Movimento</option>
                         <option value="em_entrega">Em Entrega</option>
                         <option value="em_fronteira">Em Fronteira</option>
                         <option value="">Todos Status</option>

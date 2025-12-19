@@ -1,7 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import React, { Suspense, useState, useEffect, useCallback, useMemo } from "react";
+import React, {
+  Suspense,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
 import LocalGasStationIcon from "@mui/icons-material/LocalGasStation";
 import BuildIcon from "@mui/icons-material/Build";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -91,6 +97,10 @@ import {
   Print as PrintIcon,
   Close as CloseIcon,
   Check as CheckCircleIcon,
+  Image as ImageIcon,
+  TableChart as TableChartIcon,
+  InsertDriveFile as InsertDriveFileIcon,
+  Description as DescriptionIcon,
 } from "@mui/icons-material";
 import { toast } from "react-toastify";
 import { useSearchParams } from "next/navigation";
@@ -1037,6 +1047,16 @@ const CargaDetalhes: React.FC<CargaDetalhesProps> = ({
               </CardContent>
             </Card>
           </Grid>
+          <Grid size={{ xs: 12 }}>
+            <Card variant="outlined">
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Documentos da Carga
+                </Typography>
+                <DocumentosCarga documentos={carga.documentos} />
+              </CardContent>
+            </Card>
+          </Grid>
 
           {/* Rota */}
           <Grid size={{ xs: 12 }}>
@@ -1618,6 +1638,9 @@ const CargasLista: React.FC<CargasListaProps> = ({
   onSelectCarga,
   loading = false,
 }) => {
+  const [showDocumentos, setShowDocumentos] = useState(false);
+  const [selectedCarga, setSelectedCarga] = useState<CargaData | null>(null);
+
   if (cargas.length === 0) {
     return (
       <Alert severity="info">
@@ -1837,6 +1860,18 @@ const CargasLista: React.FC<CargasListaProps> = ({
               <Box sx={{ mt: 2, textAlign: "right" }}>
                 <Button size="small" endIcon={<ArrowIcon />}>
                   Ver detalhes
+                </Button>
+                <Button
+                  size="small"
+                  startIcon={<DescriptionIcon />}
+                  onClick={(e) => {
+                    e.stopPropagation(); // Impede que clique no card também
+                    setSelectedCarga(carga);
+                    setShowDocumentos(true);
+                  }}
+                  variant="outlined"
+                >
+                  Documentos
                 </Button>
               </Box>
             </CardContent>
@@ -2709,6 +2744,307 @@ const CamioesResumo: React.FC<CamioesResumoProps> = ({
             </Button>
           </Box>
         )}
+      </CardContent>
+    </Card>
+  );
+};
+
+// ==================== COMPONENTE PARA EXIBIR DOCUMENTOS DA CARGA ====================
+interface DocumentosCargaProps {
+  documentos?: CargaData["documentos"];
+}
+
+const DocumentosCarga: React.FC<DocumentosCargaProps> = ({ documentos }) => {
+  if (!documentos) {
+    return (
+      <Alert severity="info">
+        Nenhum documento disponível para esta carga.
+      </Alert>
+    );
+  }
+
+  // Função para extrair nome do arquivo da URL
+  const extrairNomeArquivo = (url: string): string => {
+    try {
+      const urlObj = new URL(url);
+      const pathname = urlObj.pathname;
+      const filename = pathname.split("/").pop() || "documento";
+      return decodeURIComponent(filename);
+    } catch {
+      return url.split("/").pop() || "documento";
+    }
+  };
+
+  // Função para determinar o ícone com base na extensão do arquivo
+  const getDocumentIcon = (url: string) => {
+    const extension = url.split(".").pop()?.toLowerCase();
+
+    switch (extension) {
+      case "pdf":
+        return <DescriptionIcon sx={{ color: "#d32f2f" }} />;
+      case "png":
+      case "jpg":
+      case "jpeg":
+      case "webp":
+      case "gif":
+        return <ImageIcon sx={{ color: "#388e3c" }} />;
+      case "doc":
+      case "docx":
+        return <DescriptionIcon sx={{ color: "#1976d2" }} />;
+      case "xls":
+      case "xlsx":
+        return <TableChartIcon sx={{ color: "#388e3c" }} />;
+      default:
+        return <InsertDriveFileIcon sx={{ color: "#757575" }} />;
+    }
+  };
+
+  // Agrupar documentos principais
+  const documentosPrincipais = [
+    {
+      key: "conhecimentoEmbarque",
+      label: "Conhecimento de Embarque",
+      url: documentos.conhecimentoEmbarque,
+    },
+    { key: "invoice", label: "Fatura (Invoice)", url: documentos.invoice },
+    { key: "packingList", label: "Packing List", url: documentos.packingList },
+    {
+      key: "certificadoOrigem",
+      label: "Certificado de Origem",
+      url: documentos.certificadoOrigem,
+    },
+    {
+      key: "contratoTransporte",
+      label: "Contrato de Transporte",
+      url: documentos.contratoTransporte,
+    },
+    {
+      key: "numeroCotacao",
+      label: "Número da Cotação",
+      url: documentos.numeroCotacao,
+    },
+    {
+      key: "numeroRecibo",
+      label: "Número do Recibo",
+      url: documentos.numeroRecibo,
+    },
+    { key: "notaDebito", label: "Nota de Débito", url: documentos.notaDebito },
+    { key: "manifest", label: "Manifesto", url: documentos.manifest },
+  ];
+
+  return (
+    <Card>
+      <CardContent>
+        <Typography variant="h6" gutterBottom>
+          Documentos da Carga
+        </Typography>
+
+        {/* Documentos Principais */}
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          {documentosPrincipais.map(
+            (doc) =>
+              doc.url &&
+              doc.url.trim() !== "" && (
+                <Grid size={{ xs: 12, sm: 6, md: 4 }} key={doc.key}>
+                  <Card variant="outlined" sx={{ height: "100%" }}>
+                    <CardContent sx={{ p: 2 }}>
+                      <Box display="flex" alignItems="center" mb={1}>
+                        <Box sx={{ mr: 2 }}>{getDocumentIcon(doc.url)}</Box>
+                        <Typography
+                          variant="subtitle2"
+                          sx={{ fontWeight: "medium" }}
+                        >
+                          {doc.label}
+                        </Typography>
+                      </Box>
+
+                      <Typography
+                        variant="caption"
+                        color="textSecondary"
+                        display="block"
+                      >
+                        {extrairNomeArquivo(doc.url)}
+                      </Typography>
+
+                      <Box sx={{ mt: 2, display: "flex", gap: 1 }}>
+                        <Button
+                          size="small"
+                          startIcon={<VisibilityIcon />}
+                          onClick={() => window.open(doc.url, "_blank")}
+                          variant="outlined"
+                        >
+                          Visualizar
+                        </Button>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              )
+          )}
+        </Grid>
+
+        {/* Outros Documentos */}
+        {documentos.outros && documentos.outros.length > 0 && (
+          <>
+            <Typography variant="subtitle1" gutterBottom sx={{ mt: 3 }}>
+              Outros Documentos ({documentos.outros.length})
+            </Typography>
+
+            <TableContainer component={Paper} variant="outlined">
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Documento</TableCell>
+                    <TableCell>Tipo</TableCell>
+                    <TableCell align="right">Ações</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {documentos.outros.map((url, index) => (
+                    <TableRow key={index}>
+                      <TableCell>
+                        <Box display="flex" alignItems="center">
+                          <Box sx={{ mr: 2 }}>{getDocumentIcon(url)}</Box>
+                          <Typography variant="body2">
+                            {extrairNomeArquivo(url)}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={url.split(".").pop()?.toUpperCase() || "DOC"}
+                          size="small"
+                          variant="outlined"
+                        />
+                      </TableCell>
+                      <TableCell align="right">
+                        <IconButton
+                          size="small"
+                          onClick={() => window.open(url, "_blank")}
+                          title="Visualizar"
+                        >
+                          <VisibilityIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            const link = document.createElement("a");
+                            link.href = url;
+                            link.download = extrairNomeArquivo(url);
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                          }}
+                          title="Baixar"
+                        >
+                          <DownloadIcon fontSize="small" />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </>
+        )}
+
+        {/* Resumo de Documentos */}
+        <Box sx={{ mt: 3, p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
+          <Typography variant="subtitle2" gutterBottom>
+            Resumo de Documentos
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 6, sm: 3 }}>
+              <Typography variant="caption" color="textSecondary">
+                Total de Documentos
+              </Typography>
+              <Typography variant="h6">
+                {Object.values(documentos).filter((v) => v && v !== "").length +
+                  (documentos.outros?.length || 0) -
+                  1}
+              </Typography>
+            </Grid>
+            <Grid size={{ xs: 6, sm: 3 }}>
+              <Typography variant="caption" color="textSecondary">
+                PDFs
+              </Typography>
+              <Typography variant="h6">
+                {
+                  Object.values(documentos).filter(
+                    (v) =>
+                      v &&
+                      v !== "" &&
+                      typeof v === "string" &&
+                      v.toLowerCase().endsWith(".pdf")
+                  ).length
+                }
+              </Typography>
+            </Grid>
+            <Grid size={{ xs: 6, sm: 3 }}>
+              <Typography variant="caption" color="textSecondary">
+                Imagens
+              </Typography>
+              <Typography variant="h6">
+                {
+                  Object.values(documentos).filter(
+                    (v) =>
+                      v &&
+                      v !== "" &&
+                      typeof v === "string" &&
+                      [".png", ".jpg", ".jpeg", ".webp", ".gif"].some((ext) =>
+                        v.toLowerCase().endsWith(ext)
+                      )
+                  ).length
+                }
+              </Typography>
+            </Grid>
+            <Grid size={{ xs: 6, sm: 3 }}>
+              <Typography variant="caption" color="textSecondary">
+                Outros
+              </Typography>
+              <Typography variant="h6">
+                {documentos.outros?.length || 0}
+              </Typography>
+            </Grid>
+          </Grid>
+        </Box>
+
+        {/* Botões de Ação */}
+        <Box sx={{ mt: 3, display: "flex", gap: 2, flexWrap: "wrap" }}>
+          <Button
+            variant="contained"
+            startIcon={<DownloadIcon />}
+            onClick={() => {
+              // Lógica para baixar todos os documentos
+              toast.info(
+                "Funcionalidade de download em lote em desenvolvimento"
+              );
+            }}
+          >
+            Baixar Todos
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<ShareIcon />}
+            onClick={() => {
+              // Lógica para compartilhar documentos
+              toast.info(
+                "Funcionalidade de compartilhamento em desenvolvimento"
+              );
+            }}
+          >
+            Compartilhar
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<PrintIcon />}
+            onClick={() => {
+              window.print();
+            }}
+          >
+            Imprimir Lista
+          </Button>
+        </Box>
       </CardContent>
     </Card>
   );
@@ -4361,12 +4697,7 @@ const DetalhesCompletosModal: React.FC<{
   children: React.ReactNode;
 }> = ({ open, onClose, title, children }) => {
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="md"
-      fullWidth
-    >
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
         <Box display="flex" alignItems="center" justifyContent="space-between">
           <Typography
@@ -4439,7 +4770,7 @@ const useApi = () => {
 // Hook normal - use APENAS no VerificacaoContent
 const useMotoristaId = () => {
   const searchParams = useSearchParams(); // ✅ Ok aqui dentro do Client Component
-  
+
   return useMemo(() => {
     // Primeiro, tentar da query string
     const queryId = searchParams?.get("motoristaId") || searchParams?.get("id");
@@ -5991,7 +6322,7 @@ const ManualIdInput: React.FC<ManualIdInputProps> = ({
 // ==================== COMPONENTE PRINCIPAL ====================
 function VerificacaoContent() {
   const motoristaIdFromUrl = useMotoristaId();
-
+  const [showDocumentos, setShowDocumentos] = useState(false);
   const [activeTab, setActiveTab] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
   const [initialLoad, setInitialLoad] = useState<boolean>(true);
@@ -8952,6 +9283,17 @@ function VerificacaoContent() {
                                         >
                                           Ver
                                         </Button>
+                                        <Button
+                                          size="small"
+                                          startIcon={<DescriptionIcon />}
+                                          onClick={() => {
+                                            setSelectedCarga(carga);
+                                            setShowDocumentos(true);
+                                          }}
+                                          variant="outlined"
+                                        >
+                                          Docs
+                                        </Button>
                                       </Box>
 
                                       {/* Informações rápidas */}
@@ -9338,39 +9680,51 @@ function VerificacaoContent() {
   ]);
 
   return (
-    <Container maxWidth={false} sx={{ 
-      mt: { xs: 1, sm: 2, md: 4 }, 
-      mb: { xs: 2, sm: 3, md: 4 },
-      px: { xs: 1, sm: 2, md: 3 }
-    }}>
+    <Container
+      maxWidth={false}
+      sx={{
+        mt: { xs: 1, sm: 2, md: 4 },
+        mb: { xs: 2, sm: 3, md: 4 },
+        px: { xs: 1, sm: 2, md: 3 },
+      }}
+    >
       {/* Loading Indicator */}
       {loading && !initialLoad && <LinearProgress sx={{ mb: 2 }} />}
 
-      <Paper sx={{ 
-        p: { xs: 1.5, sm: 2, md: 3 }, 
-        position: "relative",
-        overflow: 'hidden'
-      }}>
+      <Paper
+        sx={{
+          p: { xs: 1.5, sm: 2, md: 3 },
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
         {/* Header */}
         <Box
           display="flex"
-          flexDirection={{ xs: 'column', sm: 'row' }}
+          flexDirection={{ xs: "column", sm: "row" }}
           justifyContent="space-between"
-          alignItems={{ xs: 'flex-start', sm: 'center' }}
+          alignItems={{ xs: "flex-start", sm: "center" }}
           mb={3}
           gap={{ xs: 2, sm: 0 }}
         >
           <Box>
-            <Typography variant="h4" sx={{ 
-              fontSize: { xs: '1.5rem', sm: '1.75rem', md: '2.125rem' },
-              fontWeight: 600
-            }}>
+            <Typography
+              variant="h4"
+              sx={{
+                fontSize: { xs: "1.5rem", sm: "1.75rem", md: "2.125rem" },
+                fontWeight: 600,
+              }}
+            >
               Sistema de Verificação
             </Typography>
             {currentMotoristaId ? (
-              <Typography variant="subtitle1" color="textSecondary" sx={{
-                fontSize: { xs: '0.875rem', sm: '1rem' }
-              }}>
+              <Typography
+                variant="subtitle1"
+                color="textSecondary"
+                sx={{
+                  fontSize: { xs: "0.875rem", sm: "1rem" },
+                }}
+              >
                 Motorista: <strong>{currentMotoristaId}</strong>
                 {transportData.motorista?.nome &&
                   ` - ${transportData.motorista.nome}`}
@@ -9388,9 +9742,9 @@ function VerificacaoContent() {
               currentMotoristaId && buscarDadosPorMotorista(currentMotoristaId)
             }
             disabled={loading || !currentMotoristaId}
-            sx={{ 
-              width: { xs: '100%', sm: 'auto' },
-              mt: { xs: 1, sm: 0 }
+            sx={{
+              width: { xs: "100%", sm: "auto" },
+              mt: { xs: 1, sm: 0 },
             }}
           >
             Atualizar
@@ -9399,7 +9753,7 @@ function VerificacaoContent() {
 
         {/* Manual Input para mobile */}
         {!currentMotoristaId && (
-          <Box sx={{ mb: 3, display: { xs: 'block', md: 'none' } }}>
+          <Box sx={{ mb: 3, display: { xs: "block", md: "none" } }}>
             <ManualIdInput
               motoristaId={manualMotoristaId}
               setMotoristaId={setManualMotoristaId}
@@ -9410,15 +9764,17 @@ function VerificacaoContent() {
         )}
 
         {/* Tabs - Otimizadas para mobile */}
-        <Box sx={{ 
-          borderBottom: 1, 
-          borderColor: "divider", 
-          mb: 3,
-          overflowX: 'auto',
-          '& .MuiTabs-scroller': {
-            overflow: 'auto !important'
-          }
-        }}>
+        <Box
+          sx={{
+            borderBottom: 1,
+            borderColor: "divider",
+            mb: 3,
+            overflowX: "auto",
+            "& .MuiTabs-scroller": {
+              overflow: "auto !important",
+            },
+          }}
+        >
           <Tabs
             value={activeTab}
             onChange={handleTabChange}
@@ -9427,19 +9783,21 @@ function VerificacaoContent() {
             allowScrollButtonsMobile
             sx={{
               minHeight: { xs: 48, sm: 64 },
-              '& .MuiTab-root': {
+              "& .MuiTab-root": {
                 minHeight: { xs: 48, sm: 64 },
-                fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                padding: { xs: '8px 12px', sm: '12px 16px' }
-              }
+                fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                padding: { xs: "8px 12px", sm: "12px 16px" },
+              },
             }}
           >
             {TABS.map((tab, index) => (
               <Tab
                 key={index}
-                label={<span style={{ whiteSpace: 'nowrap' }}>{tab.label}</span>}
-                icon={React.cloneElement(tab.icon, { 
-                  sx: { fontSize: { xs: 16, sm: 20 } } 
+                label={
+                  <span style={{ whiteSpace: "nowrap" }}>{tab.label}</span>
+                }
+                icon={React.cloneElement(tab.icon, {
+                  sx: { fontSize: { xs: 16, sm: 20 } },
                 })}
                 iconPosition="start"
                 disabled={loading || !currentMotoristaId}
@@ -9449,10 +9807,12 @@ function VerificacaoContent() {
         </Box>
 
         {/* Content */}
-        <Box sx={{ 
-          maxWidth: '100%',
-          overflow: 'hidden'
-        }}>
+        <Box
+          sx={{
+            maxWidth: "100%",
+            overflow: "hidden",
+          }}
+        >
           {renderTabContent}
         </Box>
       </Paper>
@@ -9464,18 +9824,41 @@ function VerificacaoContent() {
       >
         {detalhesConteudo}
       </DetalhesCompletosModal>
+      {showDocumentos && selectedCarga && (
+        <Dialog
+          open={showDocumentos}
+          onClose={() => setShowDocumentos(false)}
+          maxWidth="lg"
+          fullWidth
+        >
+          <DialogTitle>
+            Documentos da Carga {selectedCarga.codigo}
+            <IconButton
+              onClick={() => setShowDocumentos(false)}
+              sx={{ position: "absolute", right: 8, top: 8 }}
+            >
+              <CloseIcon />
+            </IconButton>
+          </DialogTitle>
+          <DialogContent>
+            <DocumentosCarga documentos={selectedCarga.documentos} />
+          </DialogContent>
+        </Dialog>
+      )}
     </Container>
   );
 }
 
 function Verificacao() {
   return (
-    <Suspense fallback={
-      <Container sx={{ mt: 4, textAlign: 'center' }}>
-        <CircularProgress />
-        <Typography sx={{ mt: 2 }}>Carregando...</Typography>
-      </Container>
-    }>
+    <Suspense
+      fallback={
+        <Container sx={{ mt: 4, textAlign: "center" }}>
+          <CircularProgress />
+          <Typography sx={{ mt: 2 }}>Carregando...</Typography>
+        </Container>
+      }
+    >
       <VerificacaoContent />
     </Suspense>
   );
