@@ -37,6 +37,14 @@ import AreaLogisticaMunhava from "../../../components/janelas/Logistica";
 import NoticiasPage from "@/components/janelas/NoticiasPagePrincipal";
 import MapaControle from "@/components/janelas/MapaControle";
 import DespachantesAduaneiros from "@/components/janelas/DespachantesAduaneiros";
+import QrCodePage from "@/components/janelas/QrCode";
+import CidadeBeira from "@/components/janelas/CidadeBeira";
+import PoliticaAcessoControle from "@/components/janelas/PoliticaAcessoControle";
+import PoliticaPrivacidadeProtecaoDados from "@/components/janelas/PoliticaPrivacidadeProtecaoDados";
+import PoliticaRespostaIncidentes from "@/components/janelas/PoliticaRespostaIncidentes";
+import PoliticaRetencaoEliminacaoDados from "@/components/janelas/PoliticaRetencaoEliminacaoDados";
+import PoliticaSegurancaInformacao from "@/components/janelas/PoliticaSegurancaInformacao";
+import PoliticaUsoAceitavel from "@/components/janelas/PoliticaUsoAceitavel";
 
 // Tipos
 interface DashboardModule {
@@ -125,6 +133,14 @@ const PanelContent: React.FC<PanelContentProps> = ({ activeModule }) => {
       "Notícias": <NoticiasPage />,
       "Mapa de Controle": <MapaControle />,
       "Despachantes Aduaneiros": <DespachantesAduaneiros />,
+      "QR Code Carga": <QrCodePage />,
+      "Cidade da Beira": <CidadeBeira />,
+      "Política de Acesso e Controle de Permissões": <PoliticaAcessoControle />,
+      "Política de Privacidade e Proteção de Dados": <PoliticaPrivacidadeProtecaoDados />,
+      "Política de Resposta a Incidentes": <PoliticaRespostaIncidentes />,
+      "Política de Retenção e Eliminação de Dados": <PoliticaRetencaoEliminacaoDados />,
+      "Política de Segurança da Informação": <PoliticaSegurancaInformacao />,
+      "Política de Uso Aceitável": <PoliticaUsoAceitavel />,
     };
 
     return (
@@ -391,6 +407,75 @@ export default function DashboardAdmin() {
   href: "/despachantes-aduaneiros",
   color: "bg-indigo-500 hover:bg-indigo-600",
   category: "lateral",
+},
+{
+  title: "QR Code Carga",
+  description: "Controle e rastreamento de cargas através de QR codes",
+  icon: "📦",
+  href: "/qr-code-carga",
+  color: "bg-teal-500 hover:bg-teal-600",
+  category: "lateral",
+},
+{
+  title: "Cidade da Beira",
+  description: "Administração municipal e serviços urbanos",
+  icon: "🏛️",
+  href: "/beira",
+  color: "bg-cyan-500 hover:bg-cyan-600",
+  category: "lateral",
+},
+{
+  title: "Política de Acesso e Controle de Permissões",
+  description: "Gestão de acessos, níveis de permissão e controle de privilégios",
+  icon: "🔐",
+  href: "/politicas/acesso-permissoes",
+  color: "bg-blue-500 hover:bg-blue-600",
+  category: "lateral",
+},
+
+{
+  title: "Política de Privacidade e Proteção de Dados",
+  description: "Conformidade com LGPD e proteção de dados pessoais",
+  icon: "🛡️",
+  href: "/politicas/privacidade-dados",
+  color: "bg-purple-500 hover:bg-purple-600",
+  category: "lateral",
+},
+
+{
+  title: "Política de Resposta a Incidentes",
+  description: "Procedimentos para tratamento de incidentes de segurança",
+  icon: "🚨",
+  href: "/politicas/resposta-incidentes",
+  color: "bg-red-500 hover:bg-red-600",
+  category: "lateral",
+},
+
+{
+  title: "Política de Retenção e Eliminação de Dados",
+  description: "Gestão do ciclo de vida de dados e documentos",
+  icon: "🗑️",
+  href: "/politicas/retencao-dados",
+  color: "bg-gray-500 hover:bg-gray-600",
+  category: "lateral",
+},
+
+{
+  title: "Política de Segurança da Informação",
+  description: "Framework completo de segurança da informação",
+  icon: "🏢",
+  href: "/politicas/seguranca-informacao",
+  color: "bg-green-500 hover:bg-green-600",
+  category: "lateral",
+},
+
+{
+  title: "Política de Uso Aceitável",
+  description: "Diretrizes de uso responsável de recursos de TI",
+  icon: "📋",
+  href: "/politicas/uso-aceitavel",
+  color: "bg-orange-500 hover:bg-orange-600",
+category: "lateral",
 },
   {
     title: "Notícias",
