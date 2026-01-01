@@ -39,11 +39,9 @@ const CargaCarregada = () => {
     try {
       setLoading(true);
 
-      // Ajustar filtro para buscar cargas com status de carregadas/em trânsito
       const filterData = {
         curPage: filters.curPage,
         pageSize: filters.pageSize,
-        status: filters.status || undefined,
         cliente: filters.cliente || undefined,
         codigo: filters.codigo || undefined,
         tipoPercurso: filters.tipoPercurso || undefined,
@@ -55,16 +53,16 @@ const CargaCarregada = () => {
       );
 
       if (response.data.returnCode === 200) {
-        // Filtrar cargas que estão carregadas ou em trânsito
-        const cargasCarregadas = response.data.data.list.filter((carga) =>
-          ["coletada", "em_transito", "em_entrega"].includes(carga.status)
-        );
-        setCargas(cargasCarregadas);
-      }
+      // Filtrar no frontend pelos dois status desejados
+      const cargasFiltradas = response.data.data.list.filter(
+        (carga) => 
+          carga.status === "aguardando_coleta" || 
+          carga.status === "coletada"
+      );
+      setCargas(cargasFiltradas);
+    }
     } catch (error) {
       console.error("Erro ao buscar cargas carregadas:", error);
-      // Em caso de erro, mostrar dados mock para demonstração
-      setCargas(getMockCargas());
     } finally {
       setLoading(false);
     }
@@ -84,67 +82,7 @@ const CargaCarregada = () => {
       }
     } catch (error) {
       console.error("Erro ao buscar estatísticas:", error);
-      // Dados mock para demonstração
-      setStats(getMockStats());
     }
-  };
-
-  const getMockCargas = () => {
-    return [
-      {
-        codigo: "CARGA-001",
-        status: "em_transito",
-        dataColeta: "2024-01-15T08:30:00Z",
-        dataEntregaPrevista: "2024-01-18T18:00:00Z",
-        tipoCarga: "Contentorizada",
-        descricao: "Cimento 25 ton",
-        pesoBruto: 25000,
-        origem: { cidade: "Maputo", local: "Porto de Maputo" },
-        destino: { cidade: "Nampula", local: "Depósito Central" },
-        cliente: "Construma Lda",
-        veiculo: { matricula: "MB-1234-AB", modelo: "Volvo FH16" },
-        motorista: { nome: "João Maputo", telefone: "+258 84 123 4567" },
-      },
-      {
-        codigo: "CARGA-002",
-        status: "coletada",
-        dataColeta: "2024-01-15T10:15:00Z",
-        tipoCarga: "Frigorífica",
-        descricao: "Produtos Alimentares 8 ton",
-        pesoBruto: 8000,
-        origem: { cidade: "Maputo", local: "Porto de Maputo" },
-        destino: { cidade: "Matola", local: "Centro Distribuição" },
-        cliente: "Supermercados Moçambique",
-        veiculo: { matricula: "MB-5678-CD", modelo: "Mercedes Actros" },
-        motorista: { nome: "Carlos Beira", telefone: "+258 84 234 5678" },
-      },
-      {
-        codigo: "CARGA-003",
-        status: "em_transito",
-        dataColeta: "2024-01-14T16:00:00Z",
-        dataEntregaPrevista: "2024-01-15T14:00:00Z",
-        tipoCarga: "Carga Geral",
-        descricao: "Material Construção 18 ton",
-        pesoBruto: 18000,
-        origem: { cidade: "Beira", local: "Porto da Beira" },
-        destino: { cidade: "Chimoio", local: "Obra Centro" },
-        cliente: "Construções Moçambique",
-        veiculo: { matricula: "MB-9012-EF", modelo: "Scania R500" },
-        motorista: { nome: "António Nampula", telefone: "+258 84 345 6789" },
-      },
-    ];
-  };
-
-  const getMockStats = () => {
-    return {
-      totalCargas: 24,
-      cargasEntregues: 18,
-      cargasTransito: 4,
-      cargasAtrasadas: 2,
-      valorTotalFretes: 1200000,
-      pesoTotalTransportado: 240000,
-      distanciaTotal: 4800,
-    };
   };
 
   const handleUpdateStatus = async (codigo, novoStatus) => {
@@ -287,6 +225,29 @@ const CargaCarregada = () => {
       entregue: { text: "Entregue", color: "text-teal-600" },
     };
     return statusMap[status] || statusMap["no-prazo"];
+  };
+
+  const handleCargaSelect = (codigoCarga) => {
+    // Encontrar a carga selecionada
+    const cargaSelecionada = cargas.find((c) => c.codigo === codigoCarga);
+
+    if (cargaSelecionada) {
+      setSelectedCarga(cargaSelecionada);
+
+      // Preencher automaticamente os campos do formulário
+      setCarregamentoData({
+        ...carregamentoData,
+        cargaId: cargaSelecionada.codigo,
+        caminhao: cargaSelecionada.veiculo?.matricula || "",
+        motorista: cargaSelecionada.motorista?.nome || "",
+        // Preencher outros campos relevantes se necessário
+        localCarregamento: `${
+          cargaSelecionada.origem?.local ||
+          cargaSelecionada.origem?.cidade ||
+          ""
+        }`,
+      });
+    }
   };
 
   return (
@@ -702,54 +663,7 @@ const CargaCarregada = () => {
                     onSubmit={handleCarregamentoSubmit}
                     className="space-y-6"
                   >
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Caminhão *
-                        </label>
-                        <select
-                          required
-                          value={carregamentoData.caminhao}
-                          onChange={(e) =>
-                            setCarregamentoData({
-                              ...carregamentoData,
-                              caminhao: e.target.value,
-                            })
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-950"
-                        >
-                          <option value="">Selecione o caminhão</option>
-                          <option value="MB-1234-AB">MB-1234-AB</option>
-                          <option value="MB-5678-CD">MB-5678-CD</option>
-                          <option value="MB-9012-EF">MB-9012-EF</option>
-                          <option value="MB-3456-GH">MB-3456-GH</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Motorista *
-                        </label>
-                        <select
-                          required
-                          value={carregamentoData.motorista}
-                          onChange={(e) =>
-                            setCarregamentoData({
-                              ...carregamentoData,
-                              motorista: e.target.value,
-                            })
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-950"
-                        >
-                          <option value="">Selecione o motorista</option>
-                          <option value="João Maputo">João Maputo</option>
-                          <option value="Carlos Beira">Carlos Beira</option>
-                          <option value="António Nampula">
-                            António Nampula
-                          </option>
-                          <option value="Pedro Matola">Pedro Matola</option>
-                        </select>
-                      </div>
-                    </div>
+                    {/* Campos editáveis para caminhão e motorista */}
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
@@ -759,28 +673,24 @@ const CargaCarregada = () => {
                         <select
                           required
                           value={carregamentoData.cargaId}
-                          onChange={(e) => {
-                            const carga = cargas.find(
-                              (c) => c.codigo === e.target.value
-                            );
-                            setCarregamentoData({
-                              ...carregamentoData,
-                              cargaId: e.target.value,
-                            });
-                          }}
+                          onChange={(e) => handleCargaSelect(e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-950"
                         >
                           <option value="">Selecione a carga</option>
                           {cargas
                             .filter(
-                              (carga) =>
-                                carga.status === "aguardando_coleta" ||
-                                !carga.status
+                              (carga) => carga.status === "aguardando_coleta"
                             )
                             .map((carga) => (
                               <option key={carga.codigo} value={carga.codigo}>
                                 {carga.codigo} - {carga.origem?.cidade} →{" "}
                                 {carga.destino?.cidade}
+                                {carga.veiculo?.matricula
+                                  ? ` (Camião: ${carga.veiculo.matricula})`
+                                  : ""}
+                                {carga.motorista?.nome
+                                  ? ` (Motorista: ${carga.motorista.nome})`
+                                  : ""}
                               </option>
                             ))}
                         </select>
@@ -802,6 +712,104 @@ const CargaCarregada = () => {
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-950"
                           placeholder="Ex: Porto Maputo - Cais 3"
                         />
+                      </div>
+                    </div>
+
+                    <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200 text-gray-950">
+                      {carregamentoData.cargaId && (
+                        <>
+                          <h4 className="font-medium text-gray-900 mb-2">
+                            Dados da Carga Selecionada
+                          </h4>
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            {carregamentoData.caminhao && (
+                              <div>
+                                <span className="text-gray-600">Camião:</span>
+                                <span className="font-medium ml-2">
+                                  {carregamentoData.caminhao}
+                                </span>
+                              </div>
+                            )}
+                            {carregamentoData.motorista && (
+                              <div>
+                                <span className="text-gray-600">
+                                  Motorista:
+                                </span>
+                                <span className="font-medium ml-2">
+                                  {carregamentoData.motorista}
+                                </span>
+                              </div>
+                            )}
+                            {selectedCarga?.veiculo?.modelo && (
+                              <div>
+                                <span className="text-gray-600">Modelo:</span>
+                                <span className="font-medium ml-2">
+                                  {selectedCarga.veiculo.modelo}
+                                </span>
+                              </div>
+                            )}
+                            {selectedCarga?.motorista?.telefone && (
+                              <div>
+                                <span className="text-gray-600">Telefone:</span>
+                                <span className="font-medium ml-2">
+                                  {selectedCarga.motorista.telefone}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Caminhão *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={carregamentoData.caminhao}
+                          onChange={(e) =>
+                            setCarregamentoData({
+                              ...carregamentoData,
+                              caminhao: e.target.value,
+                            })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-950"
+                          placeholder="Ex: ABC-123-MZ"
+                        />
+                        {carregamentoData.caminhao && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            Modelo:{" "}
+                            {selectedCarga?.veiculo?.modelo || "Não informado"}
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Motorista *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={carregamentoData.motorista}
+                          onChange={(e) =>
+                            setCarregamentoData({
+                              ...carregamentoData,
+                              motorista: e.target.value,
+                            })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-950"
+                          placeholder="Ex: Carlos Matola"
+                        />
+                        {carregamentoData.motorista && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            Telefone:{" "}
+                            {selectedCarga?.motorista?.telefone ||
+                              "Não informado"}
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -853,10 +861,10 @@ const CargaCarregada = () => {
                           }
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-950"
                         >
-                          <option value="agendado">Agendado</option>
-                          <option value="em_andamento">Em Andamento</option>
-                          <option value="concluido">Concluído</option>
-                          <option value="suspenso">Suspenso</option>
+                          <option value="coletada">Coletada</option>
+                          <option value="em_transito">Em Transito</option>
+                          <option value="entregue">Entregue</option>
+                          <option value="encerrada">Encerrada</option>
                         </select>
                       </div>
                     </div>

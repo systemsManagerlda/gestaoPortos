@@ -113,7 +113,7 @@ const PanelContent: React.FC<PanelContentProps> = ({ activeModule }) => {
       "GPS Geral": <GPSGeral />,
       "Carga Disponível NLT": <CargaDisponivelNLT />,
       "Carga Carregada": <CargaCarregada />,
-      "Carga em Curso": <CargaEmCurso />,
+      "Carga em Movimento": <CargaEmCurso />,
       "Carga Descarregada": <CargaDescarregada />,
       "Contas a Receber": <ContasReceber />,
       "Contas a Pagar": <ContasPagar />,
