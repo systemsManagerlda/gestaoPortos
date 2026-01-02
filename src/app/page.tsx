@@ -199,7 +199,7 @@ export default function Home() {
             </div>
             <div className="flex items-center justify-center gap-2">
               <FiSettings className="text-cyan-500" />
-              <span>+258 872424567 • Megacentrodelogistica@gmail.com</span>
+              <span>+258 872424567 • info@megacentrodelogistica.co.mz</span>
             </div>
           </div>
         </div>
@@ -211,16 +211,8 @@ export default function Home() {
           <p className="mt-2 flex items-center justify-center gap-2 flex-wrap">
             <span>v2.1.0</span>
             <span className="w-1 h-1 bg-gray-400 rounded-full"></span>
-            <Link href="#" className="hover:text-blue-600 dark:hover:text-blue-400">
-              Termos de Serviço
-            </Link>
-            <span className="w-1 h-1 bg-gray-400 rounded-full"></span>
-            <Link href="#" className="hover:text-blue-600 dark:hover:text-blue-400">
+            <Link href="/politicasPrivacidade" className="hover:text-blue-600 dark:hover:text-blue-400">
               Política de Privacidade
-            </Link>
-            <span className="w-1 h-1 bg-gray-400 rounded-full"></span>
-            <Link href="#" className="hover:text-blue-600 dark:hover:text-blue-400">
-              Contato
             </Link>
           </p>
         </div>
