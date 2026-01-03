@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useForm, SubmitHandler } from "react-hook-form";
@@ -15,6 +17,9 @@ import {
   Divider,
 } from "@nextui-org/react";
 import { FiMail, FiArrowLeft, FiCheckCircle, FiKey, FiShield } from "react-icons/fi";
+import { toast } from "react-toastify";
+
+const API_BASE_URL = "https://desktop-api-4f850b3f9733.herokuapp.com";
 
 interface ForgotPasswordFormInputs {
   email: string;
@@ -26,14 +31,22 @@ interface ResetPasswordFormInputs {
   confirmPassword: string;
 }
 
+interface ApiResponse {
+  returnCode: number;
+  returnMsg: string;
+  data?: any;
+}
+
 export default function ForgotPasswordPage() {
   const router = useRouter();
   const [step, setStep] = useState<"email" | "code" | "success">("email");
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [showAlert, setShowAlert] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
+  const [userId, setUserId] = useState<string>("");
   const [alertType, setAlertType] = useState<"success" | "danger">("success");
+  const [showAlert, setShowAlert] = useState(false);
+  const [userName, setUserName] = useState<string>("");
 
   const {
     register: registerEmail,
@@ -48,63 +61,221 @@ export default function ForgotPasswordPage() {
     watch,
   } = useForm<ResetPasswordFormInputs>();
 
-  const showAlertMessage = (message: string, type: "success" | "danger" = "danger") => {
-    setAlertMessage(message);
-    setAlertType(type);
-    setShowAlert(true);
-    setTimeout(() => setShowAlert(false), 5000);
+  // Função para verificar se email existe
+  const verificarEmail = async (email: string) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/verificar-email`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data: ApiResponse = await response.json();
+      
+      if (!response.ok || data.returnCode !== 200) {
+        throw new Error(data.returnMsg || "Erro ao verificar email");
+      }
+
+      return data.data;
+    } catch (error) {
+      console.error("Erro ao verificar email:", error);
+      throw error;
+    }
   };
 
-  const onSubmitEmail: SubmitHandler<ForgotPasswordFormInputs> = async (data) => {
+   // Função para solicitar código de recuperação
+  const solicitarCodigoRecuperacao = async (email: string) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/solicitar-codigo-recuperacao`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data: ApiResponse = await response.json();
+      
+      if (!response.ok || data.returnCode !== 200) {
+        throw new Error(data.returnMsg || "Erro ao solicitar código");
+      }
+
+      return data.data;
+    } catch (error) {
+      console.error("Erro ao solicitar código:", error);
+      throw error;
+    }
+  };
+
+   // Função para verificar código
+  const verificarCodigoRecuperacao = async (userId: string, codigo: string) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/verificar-codigo-recuperacao`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId, codigo }),
+      });
+
+      const data: ApiResponse = await response.json();
+      
+      if (!response.ok || data.returnCode !== 200) {
+        throw new Error(data.returnMsg || "Erro ao verificar código");
+      }
+
+      return data.data;
+    } catch (error) {
+      console.error("Erro ao verificar código:", error);
+      throw error;
+    }
+  };
+
+
+   // Função para redefinir senha
+  const redefinirSenha = async (userId: string, codigo: string, novaSenha: string) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/redefinir-senha`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId, codigo, novaSenha }),
+      });
+
+      const data: ApiResponse = await response.json();
+      
+      if (!response.ok || data.returnCode !== 200) {
+        throw new Error(data.returnMsg || "Erro ao redefinir senha");
+      }
+
+      return data;
+    } catch (error) {
+      console.error("Erro ao redefinir senha:", error);
+      throw error;
+    }
+  };
+
+   const onSubmitEmail: SubmitHandler<ForgotPasswordFormInputs> = async (data) => {
     setIsLoading(true);
     try {
-      // Simulação de envio de email
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Primeiro verificar se o email existe
+      const emailInfo = await verificarEmail(data.email);
       
-      setEmail(data.email);
+      // Se chegou aqui, o email existe, agora solicitar código
+      const codigoInfo = await solicitarCodigoRecuperacao(data.email);
+      
+      // Usar as informações retornadas
+      setUserId(codigoInfo?.userId || emailInfo?.userId);
+      setEmail(codigoInfo?.email || data.email);
+      setUserName(codigoInfo?.nome || emailInfo?.nome);
       setStep("code");
-      showAlertMessage("Código de verificação enviado para seu email!", "success");
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (error) {
-      showAlertMessage("Erro ao enviar código. Tente novamente.");
+      
+      toast.success("Código de verificação enviado para seu email! Verifique sua caixa de entrada.");
+    } catch (error: any) {
+      console.error("Erro:", error);
+      
+      // Mensagens de erro mais amigáveis
+      const errorMessage = error.message || "Erro ao processar sua solicitação";
+      
+      if (errorMessage.includes("429")) {
+        toast.error("Muitas solicitações. Tente novamente mais tarde.");
+      } else if (errorMessage.includes("404") || errorMessage.includes("não encontrado")) {
+        toast.error("Email não encontrado no sistema. Verifique se digitou corretamente.");
+      } else if (errorMessage.includes("500")) {
+        toast.error("Erro no servidor. Tente novamente em alguns minutos.");
+      } else {
+        toast.error(errorMessage);
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
+
   const onSubmitReset: SubmitHandler<ResetPasswordFormInputs> = async (data) => {
     if (data.newPassword !== data.confirmPassword) {
-      showAlertMessage("As senhas não coincidem.");
+      toast.error("As senhas não coincidem.");
+      return;
+    }
+
+    if (data.newPassword.length < 6) {
+      toast.error("A senha deve ter pelo menos 6 caracteres.");
       return;
     }
 
     setIsLoading(true);
     try {
-      // Simulação de redefinição de senha
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Verificar o código
+      const codigoValido = await verificarCodigoRecuperacao(userId, data.code);
       
+      if (!codigoValido || !codigoValido.valido) {
+        toast.error("Código de verificação inválido ou expirado.");
+        return;
+      }
+
+      // Redefinir senha
+      await redefinirSenha(userId, data.code, data.newPassword);
+
       setStep("success");
-      showAlertMessage("Senha redefinida com sucesso!", "success");
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (error) {
-      showAlertMessage("Erro ao redefinir senha. Tente novamente.");
+      toast.success("Senha redefinida com sucesso!");
+      
+      // Redirecionar para login após 3 segundos
+      setTimeout(() => {
+        router.push("/login");
+      }, 3000);
+    } catch (error: any) {
+      console.error("Erro:", error);
+      
+      const errorMessage = error.message || "Erro ao processar sua solicitação";
+      
+      if (errorMessage.includes("expirou") || errorMessage.includes("expirado")) {
+        toast.error("Código expirado. Solicite um novo código.");
+      } else if (errorMessage.includes("incorreto")) {
+        toast.error("Código incorreto.");
+      } else if (errorMessage.includes("Muitas tentativas")) {
+        toast.error("Muitas tentativas incorretas. Tente novamente mais tarde.");
+      } else if (errorMessage.includes("500")) {
+        toast.error("Erro no servidor. Tente novamente em alguns minutos.");
+      } else {
+        toast.error(errorMessage);
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
+
   const handleBackToLogin = () => {
     router.push("/login");
   };
 
-  const handleResendCode = async () => {
+   const handleResendCode = async () => {
+    if (!email) {
+      toast.error("Email não encontrado. Volte para a etapa anterior.");
+      return;
+    }
+
     setIsLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      showAlertMessage("Código reenviado com sucesso!", "success");
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (error) {
-      showAlertMessage("Erro ao reenviar código.");
+      // Solicitar novo código
+      await solicitarCodigoRecuperacao(email);
+      
+      toast.success("Novo código enviado para seu email!");
+    } catch (error: any) {
+      console.error("Erro:", error);
+      
+      const errorMessage = error.message || "Erro ao processar sua solicitação";
+      
+      if (errorMessage.includes("429")) {
+        toast.error("Muitas solicitações. Tente novamente mais tarde.");
+      } else if (errorMessage.includes("500")) {
+        toast.error("Erro no servidor. Tente novamente em alguns minutos.");
+      } else {
+        toast.error(errorMessage);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -171,13 +342,14 @@ export default function ForgotPasswordPage() {
 
           <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
             {step === "email" && "Digite seu email para receber o código de verificação"}
-            {step === "code" && `Digite o código enviado para ${email}`}
+            {step === "code" && userName && `Digite o código enviado para ${userName} (${email})`}
+            {step === "code" && !userName && `Digite o código enviado para ${email}`}
             {step === "success" && "Senha redefinida com sucesso!"}
           </p>
         </CardHeader>
 
         <CardBody className="px-8 py-6">
-          {/* Alert */}
+          {/* Alert (mantido para compatibilidade) */}
           {showAlert && (
             <Alert
               color={alertType}
@@ -201,7 +373,6 @@ export default function ForgotPasswordPage() {
                   },
                 })}
                 type="email"
-                // label="Email cadastrado"
                 placeholder="seu@email.com"
                 labelPlacement="outside"
                 startContent={
@@ -218,6 +389,7 @@ export default function ForgotPasswordPage() {
                   inputWrapper: "h-12 bg-transparent dark:bg-transparent",
                 }}
                 autoComplete="email"
+                disabled={isLoading}
               />
 
               <Button
@@ -229,6 +401,7 @@ export default function ForgotPasswordPage() {
                 isLoading={isLoading}
                 spinner={<Spinner size="sm" color="white" />}
                 className="h-12 bg-gradient-to-r from-blue-600 to-cyan-600 shadow-lg hover:shadow-xl hover:brightness-110 transition-all duration-200 font-semibold"
+                disabled={isLoading}
               >
                 {isLoading ? "Enviando..." : "Enviar Código"}
               </Button>
@@ -245,9 +418,16 @@ export default function ForgotPasswordPage() {
                     value: 6,
                     message: "O código deve ter 6 dígitos",
                   },
+                  maxLength: {
+                    value: 6,
+                    message: "O código deve ter 6 dígitos",
+                  },
+                  pattern: {
+                    value: /^[0-9]{6}$/,
+                    message: "Digite apenas números"
+                  }
                 })}
                 type="text"
-                // label="Código de Verificação"
                 placeholder="000000"
                 labelPlacement="outside"
                 startContent={
@@ -259,20 +439,26 @@ export default function ForgotPasswordPage() {
                 fullWidth
                 size="lg"
                 maxLength={6}
+                inputMode="numeric"
                 classNames={{
                   label: "text-sm font-medium text-gray-700 dark:text-gray-300 mb-2",
                   input: "text-base text-center tracking-widest",
                   inputWrapper: "h-12 bg-transparent dark:bg-transparent",
                 }}
+                disabled={isLoading}
               />
 
-              <div className="flex justify-end">
+              <div className="flex justify-between items-center">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Código válido por 15 minutos
+                </p>
                 <Button
                   variant="light"
                   size="sm"
                   onPress={handleResendCode}
                   isLoading={isLoading}
                   className="text-blue-600 dark:text-blue-400 text-sm"
+                  disabled={isLoading}
                 >
                   Reenviar código
                 </Button>
@@ -287,8 +473,7 @@ export default function ForgotPasswordPage() {
                   },
                 })}
                 type="password"
-                label="Nova Senha"
-                // placeholder="••••••••"
+                placeholder="Digite sua nova senha"
                 labelPlacement="outside"
                 isInvalid={!!resetErrors.newPassword}
                 errorMessage={resetErrors.newPassword?.message}
@@ -300,6 +485,7 @@ export default function ForgotPasswordPage() {
                   input: "text-base",
                   inputWrapper: "h-12 bg-transparent dark:bg-transparent",
                 }}
+                disabled={isLoading}
               />
 
               <Input
@@ -309,8 +495,7 @@ export default function ForgotPasswordPage() {
                     value === watch("newPassword") || "As senhas não coincidem"
                 })}
                 type="password"
-                // label="Confirmar Nova Senha"
-                placeholder="••••••••"
+                placeholder="Confirme sua nova senha"
                 labelPlacement="outside"
                 isInvalid={!!resetErrors.confirmPassword}
                 errorMessage={resetErrors.confirmPassword?.message}
@@ -322,6 +507,7 @@ export default function ForgotPasswordPage() {
                   input: "text-base",
                   inputWrapper: "h-12 bg-transparent dark:bg-transparent",
                 }}
+                disabled={isLoading}
               />
 
               <Button
@@ -333,6 +519,7 @@ export default function ForgotPasswordPage() {
                 isLoading={isLoading}
                 spinner={<Spinner size="sm" color="white" />}
                 className="h-12 bg-gradient-to-r from-green-600 to-emerald-600 shadow-lg hover:shadow-xl hover:brightness-110 transition-all duration-200 font-semibold"
+                disabled={isLoading}
               >
                 {isLoading ? "Redefinindo..." : "Redefinir Senha"}
               </Button>
@@ -353,7 +540,7 @@ export default function ForgotPasswordPage() {
                   Senha Redefinida!
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400">
-                  Sua senha foi redefinida com sucesso. Agora você pode fazer login com sua nova senha.
+                  Sua senha foi redefinida com sucesso. Redirecionando para login...
                 </p>
               </div>
 
@@ -379,9 +566,11 @@ export default function ForgotPasswordPage() {
               Dicas de Segurança
             </h4>
             <ul className="text-xs text-blue-700 dark:text-blue-400 space-y-1">
-              <li>• Use uma senha com letras, números e símbolos</li>
+              <li>• Use uma senha forte com letras, números e símbolos</li>
               <li>• Não compartilhe sua senha com ninguém</li>
-              <li>• Alterne sua senha periodicamente</li>
+              <li>• O código de verificação é válido por apenas 15 minutos</li>
+              <li>• Se não receber o email, verifique sua pasta de spam</li>
+              <li>• Você tem 3 tentativas para digitar o código corretamente</li>
             </ul>
           </div>
         </CardBody>
@@ -392,6 +581,7 @@ export default function ForgotPasswordPage() {
             onPress={handleBackToLogin}
             startContent={<FiArrowLeft className="text-lg" />}
             className="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+            disabled={isLoading}
           >
             Voltar para o Login
           </Button>
