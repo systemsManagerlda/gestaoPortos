@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   FiCheckCircle,
@@ -12,6 +13,17 @@ import { ModalEditarCarga } from "./ModalEditarCarga";
 import { Carga } from "../cliente/cargaService";
 import { useCargas } from "@/types/useCargas";
 
+interface FiltrosFaturaPaga {
+  clienteId?: string;
+  clienteNome?: string;
+  codigoCarga?: string;
+  dataInicio?: string;
+  dataFim?: string;
+  tipoPercurso?: string;
+  abrangenciaSeguro?: string;
+  categoriaSeguro?: string;
+}
+
 export function CargasDisponiveis() {
   const [cargasDisponiveis, setCargasDisponiveis] = useState<Carga[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,10 +32,14 @@ export function CargasDisponiveis() {
   const [filtroTipo, setFiltroTipo] = useState<string>("todos");
   const [cargaParaEditar, setCargaParaEditar] = useState<Carga | null>(null);
   const [modalEditarAberto, setModalEditarAberto] = useState(false);
-  const nomeEmpresa = "Mega Centro e Logistica"
-   const {
-      aceitarCarga
-    } = useCargas(nomeEmpresa);
+  const [aceitandoCargaId, setAceitandoCargaId] = useState<string | null>(null);
+  
+  // Filtros para faturas pagas
+  const [filtrosFaturaPaga, setFiltrosFaturaPaga] = useState<FiltrosFaturaPaga>({});
+  const [mostrarFiltrosAvancados, setMostrarFiltrosAvancados] = useState(false);
+
+  const nomeEmpresa = "Mega Centro e Logistica";
+  const { aceitarCarga } = useCargas(nomeEmpresa);
 
   // Função para abrir edição
   const abrirEditarCarga = (carga: Carga) => {
@@ -31,8 +47,7 @@ export function CargasDisponiveis() {
     setModalEditarAberto(true);
   };
 
-  // Função para salvar (similar à do FiltrosCargas)
-  // Na função handleSalvarCarga no seu componente FiltrosCargas:
+  // Função para salvar
   const handleSalvarCarga = async (
     cargaAtualizada: Carga,
     dadosAssociacao?: {
@@ -41,7 +56,6 @@ export function CargasDisponiveis() {
     }
   ): Promise<boolean> => {
     try {
-      // 1. Primeiro, atualizar os dados da carga
       const response = await fetch(
         "https://desktop-api-4f850b3f9733.herokuapp.com/updateCarga",
         {
@@ -57,7 +71,6 @@ export function CargasDisponiveis() {
         const data = await response.json();
 
         if (data.returnCode === 200) {
-          // 2. Se houver dados de associação, associar a carga ao camião
           if (dadosAssociacao?.camiaoId) {
             try {
               const associacaoResponse = await fetch(
@@ -75,104 +88,121 @@ export function CargasDisponiveis() {
                 }
               );
 
-              if (associacaoResponse.ok) {
-                const associacaoData = await associacaoResponse.json();
-                if (associacaoData.returnCode !== 200) {
-                  console.warn(
-                    "Associação realizada, mas com alerta:",
-                    associacaoData.returnMsg
-                  );
-                }
-              } else {
-                console.warn(
-                  "Erro ao associar carga ao camião, mas carga foi atualizada"
-                );
+              if (!associacaoResponse.ok) {
+                console.warn("Erro ao associar carga ao camião");
               }
             } catch (associacaoError) {
               console.warn("Erro na associação:", associacaoError);
             }
           }
 
-          // 3. Recarregar os dados (se tiver uma função para isso)
-          // await fetchCargas(); // Descomente se tiver
-
-          return true; // Retorna true indicando sucesso
+          await fetchCargasDisponiveis();
+          return true;
         }
       }
 
       console.error("Erro na resposta da API:", await response.text());
-      return false; // Retorna false indicando falha
+      return false;
     } catch (error) {
       console.error("Erro ao salvar carga:", error);
-      return false; // Retorna false indicando falha
+      return false;
     }
   };
 
+  // Atualizada para usar a rota de faturas pagas
+  async function fetchCargasDisponiveis() {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await fetch(
+        "https://desktop-api-4f850b3f9733.herokuapp.com/getCargasComFaturaPaga",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            curPage: 1,
+            pageSize: 50,
+            ...filtrosFaturaPaga,
+          }),
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.returnCode === 200 && data.data?.list) {
+          // Verifica se as cargas têm faturas pagas
+          const cargasComFaturaPaga = data.data.list.filter((carga: any) => 
+            carga.fatura && carga.fatura.status === "paga"
+          );
+          
+          const cargasProcessadas = processarCargas(cargasComFaturaPaga);
+          setCargasDisponiveis(cargasProcessadas);
+        } else {
+          setCargasDisponiveis([]);
+        }
+      } else {
+        throw new Error("Erro ao buscar cargas com faturas pagas");
+      }
+    } catch (error) {
+      console.error("Erro ao buscar cargas disponíveis:", error);
+      setError("Erro ao carregar cargas com faturas pagas. Tente novamente.");
+      setCargasDisponiveis([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   // Buscar cargas disponíveis da API
   useEffect(() => {
-    async function fetchCargasDisponiveis() {
-      try {
-        setLoading(true);
-        setError(null);
+    fetchCargasDisponiveis();
+  }, [filtrosFaturaPaga]);
 
-        const response = await fetch(
-          "https://desktop-api-4f850b3f9733.herokuapp.com/getCargaList",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              curPage: 1,
-              pageSize: 50,
-              status: "planeada", // Buscar apenas cargas planeadas/disponíveis
-            }),
-          }
-        );
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.returnCode === 200 && data.data?.list) {
-            const cargasProcessadas = processarCargas(data.data.list);
-            setCargasDisponiveis(cargasProcessadas);
-          } else {
-            setCargasDisponiveis([]);
-          }
-        } else {
-          throw new Error("Erro ao buscar cargas");
-        }
-      } catch (error) {
-        console.error("Erro ao buscar cargas disponíveis:", error);
-        setError("Erro ao carregar cargas disponíveis. Tente novamente.");
-        setCargasDisponiveis([]);
-      } finally {
-        setLoading(false);
-      }
+  // Função para aceitar carga
+  const handleAceitarCarga = async (codigoCarga: string) => {
+    if (aceitandoCargaId) {
+      return;
     }
 
-    fetchCargasDisponiveis();
-  }, []);
+    try {
+      setAceitandoCargaId(codigoCarga);
+      await aceitarCarga(codigoCarga);
+      await fetchCargasDisponiveis();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setTimeout(() => {
+        setAceitandoCargaId(null);
+      }, 500);
+    } catch (error) {
+      console.error("Erro ao aceitar carga:", error);
+      setAceitandoCargaId(null);
+    }
+  };
+
+  // Aplicar filtros para faturas pagas
+  const aplicarFiltrosFaturaPaga = () => {
+    fetchCargasDisponiveis();
+  };
+
+  // Limpar filtros
+  const limparFiltros = () => {
+    setFiltrosFaturaPaga({});
+  };
+
   const processarCargas = (cargas: any[]): Carga[] => {
     if (!Array.isArray(cargas)) return [];
 
     return cargas
-      .filter(
-        (carga) =>
-          carga?.status === "planeada" || carga?.status === "aguardando_coleta"
-      )
+      .filter((carga) => carga?.fatura?.status === "paga")
       .map((carga) => {
-        // Calcular tempo restante baseado na data de coleta
         const tempoRestante = calcularTempoRestante(carga.dataColeta);
-
-        // Gerar requisitos baseados na natureza da carga
         const requisitos = gerarRequisitos(carga);
 
         return {
-          // Campos obrigatórios da interface Carga
           codigo: carga.codigo || "N/A",
-          atrasada: "false", // Calculado dinamicamente se necessário
+          atrasada: "false",
           nomeEmpresa: carga.nomeEmpresa || "Mega Centro e Logistica",
           clienteId: carga.clienteId?.toString() || "",
           cliente: carga.cliente || "Cliente não especificado",
@@ -199,8 +229,6 @@ export function CargasDisponiveis() {
           prioridade: carga.prioridade || "média",
           dataCriacao: carga.dataCriacao || new Date().toISOString(),
           valorTotal: carga.valorTotal || carga.valorFrete || 0,
-
-          // Campos opcionais
           id: carga._id || carga.codigo || `carga-${Date.now()}`,
           distancia: calcularDistancia(carga.origem, carga.destino),
           volume: carga.volume || 0,
@@ -209,8 +237,6 @@ export function CargasDisponiveis() {
           dataColeta: carga.dataColeta,
           dataEntregaPrevista: carga.dataEntregaPrevista,
           dataAtualizacao: carga.dataAtualizacao || new Date().toISOString(),
-
-          // Campos adicionais da API
           subtipo: carga.subtipo,
           pesoLiquido: carga.pesoLiquido,
           embalagem: carga.embalagem,
@@ -258,6 +284,13 @@ export function CargasDisponiveis() {
           observacoes: carga.observacoes,
           criadoPor: carga.criadoPor,
           atualizadoPor: carga.atualizadoPor,
+          // Informações da fatura paga
+          faturaPaga: carga.fatura ? {
+            numeroFatura: carga.fatura.numeroFatura,
+            valorTotal: carga.fatura.valorTotal,
+            dataEmissao: carga.fatura.dataEmissao,
+            status: carga.fatura.status
+          } : null
         };
       });
   };
@@ -277,14 +310,11 @@ export function CargasDisponiveis() {
     return `${Math.ceil(diffDias / 7)} semanas`;
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
   const calcularDistancia = (origem: any, destino: any): number => {
-    // Simulação de cálculo de distância (em produção, usar API de rotas)
     const distancias = [150, 280, 420, 560, 750, 890, 1200];
     return distancias[Math.floor(Math.random() * distancias.length)];
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const gerarRequisitos = (carga: any): string[] => {
     const requisitos: string[] = [];
 
@@ -376,6 +406,78 @@ export function CargasDisponiveis() {
     ...new Set(cargasDisponiveis.map((c) => c.prioridade)),
   ];
 
+  // Componente de filtros avançados
+  const FiltrosAvancados = () => (
+    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-6 border border-gray-200 dark:border-gray-700">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Cliente
+          </label>
+          <input
+            type="text"
+            value={filtrosFaturaPaga.clienteNome || ''}
+            onChange={(e) => setFiltrosFaturaPaga({...filtrosFaturaPaga, clienteNome: e.target.value})}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+            placeholder="Nome do cliente"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Código Carga
+          </label>
+          <input
+            type="text"
+            value={filtrosFaturaPaga.codigoCarga || ''}
+            onChange={(e) => setFiltrosFaturaPaga({...filtrosFaturaPaga, codigoCarga: e.target.value})}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+            placeholder="Código da carga"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Data Início
+          </label>
+          <input
+            type="date"
+            value={filtrosFaturaPaga.dataInicio || ''}
+            onChange={(e) => setFiltrosFaturaPaga({...filtrosFaturaPaga, dataInicio: e.target.value})}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Data Fim
+          </label>
+          <input
+            type="date"
+            value={filtrosFaturaPaga.dataFim || ''}
+            onChange={(e) => setFiltrosFaturaPaga({...filtrosFaturaPaga, dataFim: e.target.value})}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+          />
+        </div>
+      </div>
+      
+      <div className="flex justify-end mt-4 space-x-2">
+        <button
+          onClick={limparFiltros}
+          className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
+        >
+          Limpar Filtros
+        </button>
+        <button
+          onClick={aplicarFiltrosFaturaPaga}
+          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+        >
+          Aplicar Filtros
+        </button>
+      </div>
+    </div>
+  );
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -409,7 +511,6 @@ export function CargasDisponiveis() {
 
   return (
     <div className="space-y-6">
-      {/* Modal de Edição */}
       <ModalEditarCarga
         carga={cargaParaEditar}
         isOpen={modalEditarAberto}
@@ -419,22 +520,29 @@ export function CargasDisponiveis() {
         }}
         onSave={handleSalvarCarga}
       />
+      
       <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
           <div>
             <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-              Cargas Disponíveis
+              Cargas com Faturas Pagas
               <span className="ml-2 text-green-600">
                 ({cargasFiltradas.length})
               </span>
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              Aceite novas cargas para aumentar sua renda
+              Cargas disponíveis com pagamento confirmado
             </p>
           </div>
 
           <div className="flex flex-wrap gap-3">
-            {/* Filtro de Prioridade */}
+            <button
+              onClick={() => setMostrarFiltrosAvancados(!mostrarFiltrosAvancados)}
+              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm hover:bg-gray-50 dark:hover:bg-gray-600"
+            >
+              {mostrarFiltrosAvancados ? 'Esconder Filtros' : 'Filtros Avançados'}
+            </button>
+
             <select
               value={filtroPrioridade}
               onChange={(e) => setFiltroPrioridade(e.target.value)}
@@ -448,7 +556,6 @@ export function CargasDisponiveis() {
               ))}
             </select>
 
-            {/* Filtro de Tipo */}
             <select
               value={filtroTipo}
               onChange={(e) => setFiltroTipo(e.target.value)}
@@ -464,15 +571,17 @@ export function CargasDisponiveis() {
           </div>
         </div>
 
+        {mostrarFiltrosAvancados && <FiltrosAvancados />}
+
         {cargasFiltradas.length === 0 ? (
           <div className="text-center py-12">
             <FiPackage className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-              Nenhuma carga disponível
+              Nenhuma carga com fatura paga disponível
             </h3>
             <p className="text-gray-500 dark:text-gray-400">
               {cargasDisponiveis.length === 0
-                ? "Não há cargas disponíveis no momento."
+                ? "Não há cargas com faturas pagas no momento."
                 : "Nenhuma carga corresponde aos filtros selecionados."}
             </p>
           </div>
@@ -483,7 +592,6 @@ export function CargasDisponiveis() {
                 key={carga.id}
                 className="border border-gray-200 dark:border-gray-700 rounded-xl p-6 hover:shadow-lg transition-all duration-200 bg-white dark:bg-gray-800 hover:border-green-300 dark:hover:border-green-700"
               >
-                {/* Header */}
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex-1">
                     <h3 className="font-bold text-gray-900 dark:text-white text-lg mb-1">
@@ -492,6 +600,11 @@ export function CargasDisponiveis() {
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       {carga.cliente}
                     </p>
+                    {/* Badge de fatura paga */}
+                    <div className="inline-flex items-center mt-1 px-2 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 rounded-full text-xs">
+                      <FiCheckCircle className="w-3 h-3 mr-1" />
+                      Fatura Paga
+                    </div>
                   </div>
                   <div className="flex flex-col items-end gap-2">
                     <span
@@ -512,7 +625,6 @@ export function CargasDisponiveis() {
                   </div>
                 </div>
 
-                {/* Informações da Rota */}
                 <div className="space-y-3 mb-4">
                   <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
                     <FiMapPin className="w-4 h-4 mr-2 text-blue-500" />
@@ -576,7 +688,6 @@ export function CargasDisponiveis() {
                   </div>
                 </div>
 
-                {/* Descrição e Requisitos */}
                 <div className="mb-4">
                   <p className="text-sm text-gray-600 dark:text-gray-300 mb-3 line-clamp-2">
                     {carga.descricao}
@@ -597,7 +708,6 @@ export function CargasDisponiveis() {
                   </div>
                 </div>
 
-                {/* Footer com Valor e Ação */}
                 <div className="flex justify-between items-center pt-4 border-t border-gray-100 dark:border-gray-700">
                   <div>
                     <div className="text-lg font-bold text-green-600">
@@ -608,32 +718,32 @@ export function CargasDisponiveis() {
                     </div>
                   </div>
                   <div className="flex space-x-2">
-                    {/* Botão Editar */}
-                    <button
-                      onClick={() => abrirEditarCarga(carga)}
-                      className="px-3 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm font-medium flex items-center space-x-2"
-                    >
-                      <FiEdit className="w-4 h-4" />
-                      <span>Editar</span>
-                    </button>
                     {carga.status === "planeada" && (
                       <button
-                        onClick={() => aceitarCarga(carga.codigo)}
-                        className="text-green-600 hover:text-green-800 text-sm font-medium flex items-center transition-colors"
+                        onClick={() => handleAceitarCarga(carga.codigo)}
+                        disabled={aceitandoCargaId === carga.codigo}
+                        className={`
+                      px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 transition-colors
+                      ${
+                        aceitandoCargaId === carga.codigo
+                          ? "bg-gray-400 cursor-not-allowed"
+                          : "bg-green-600 hover:bg-green-700"
+                      }
+                    `}
                       >
-                        <FiCheckCircle className="w-4 h-4 mr-1" />
-                        Aceitar
+                        {aceitandoCargaId === carga.codigo ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                            <span>Aceitando...</span>
+                          </>
+                        ) : (
+                          <>
+                            <FiCheckCircle className="w-4 h-4" />
+                            <span>Aceitar Carga</span>
+                          </>
+                        )}
                       </button>
                     )}
-
-                    {/* Botão Aceitar (existente) */}
-                    {/* <button
-                      onClick={() => {}}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium flex items-center space-x-2"
-                    >
-                      <FiCheckCircle className="w-4 h-4" />
-                      <span>Aceitar Carga</span>
-                    </button> */}
                   </div>
                 </div>
               </div>

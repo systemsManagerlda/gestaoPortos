@@ -649,7 +649,7 @@ export default function RegisterTransportadoraForm({
                 errorMessage={errors.provincia?.message}
               >
                 {provinciaOptions.map((provincia) => (
-                  <SelectItem key={provincia} value={provincia}>
+                  <SelectItem key={provincia} value={provincia} className="bg-purple-900">
                     {provincia}
                   </SelectItem>
                 ))}
@@ -834,7 +834,7 @@ export default function RegisterTransportadoraForm({
                 defaultSelectedKeys={["ativa"]}
               >
                 {statusOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
+                  <SelectItem key={option.value} value={option.value} className="bg-red-900">
                     {option.label}
                   </SelectItem>
                 ))}

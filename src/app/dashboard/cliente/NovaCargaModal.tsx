@@ -1,7 +1,10 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // components/NovaCargaModal.tsx
 
 import React, { useState, useEffect } from "react";
+import { FiCopy } from "react-icons/fi";
+import { FaHistory } from "react-icons/fa";
 import {
   FiX,
   FiSave,
@@ -32,6 +35,11 @@ interface NovaCargaModalProps {
     codigoCarga: string,
     camiaoId: string
   ) => Promise<any>;
+  // Nova prop para histórico de cargas
+  cargasExistentes?: any[];
+  onDuplicarCarga?: (cargaExistente: any) => void;
+  showOpcaoHistorico?: boolean;
+  showOpicaoHistorico?: boolean;
 }
 
 // Tipos melhorados
@@ -81,7 +89,9 @@ export const NovaCargaModal: React.FC<NovaCargaModalProps> = ({
   onSubmit,
   isSubmitting,
   onCalcularCustos,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  cargasExistentes = [],
+  onDuplicarCarga,
+  showOpicaoHistorico = true,
   onVerificarViabilidade,
 }) => {
   const [erros, setErros] = useState<Record<string, string>>({});
@@ -89,6 +99,10 @@ export const NovaCargaModal: React.FC<NovaCargaModalProps> = ({
   const [secaoAtiva, setSecaoAtiva] = useState<string>("identificacao");
   const [mostrarAlertaSeguro, setMostrarAlertaSeguro] = useState(false);
   const [seguroAceito, setSeguroAceito] = useState(false);
+  // Novo estado para controle do histórico
+  const [mostrarHistorico, setMostrarHistorico] = useState(false);
+  const [cargaSelecionadaParaDuplicar, setCargaSelecionadaParaDuplicar] =
+    useState<any>(null);
 
   // Validações personalizadas
   const validacoes = {
@@ -99,6 +113,84 @@ export const NovaCargaModal: React.FC<NovaCargaModalProps> = ({
     quantidadeVolumes: (valor: number) =>
       valor < 0 ? "Quantidade não pode ser negativa" : null,
   };
+
+  // Função para duplicar uma carga existente
+  const handleDuplicarCarga = (carga: any) => {
+    if (onDuplicarCarga) {
+      onDuplicarCarga(carga);
+    } else {
+      // Preencher automaticamente os campos baseados na carga existente
+      const novaCargaDuplicada = {
+        ...carga,
+        // Resetar campos específicos que devem ser únicos
+        codigo: `DUP-${carga.codigo || ""}-${Date.now()}`,
+        status: "pendente",
+        dataCriacao: new Date().toISOString(),
+        dataAtualizacao: new Date().toISOString(),
+        // Resetar campos relacionados a rastreamento
+        rastreamento: {
+          status: "aguardando_coleta",
+          ultimaAtualizacao: new Date().toISOString(),
+        },
+        // Manter campos comuns
+        tipoCarga: carga.tipoCarga,
+        naturezaCarga: carga.naturezaCarga,
+        categoriaSeguro: carga.categoriaSeguro,
+        abrangenciaSeguro: carga.abrangenciaSeguro,
+        tipoPercurso: carga.tipoPercurso,
+        destinoFrete: carga.destinoFrete,
+        prioridade: carga.prioridade,
+        descricao: carga.descricao,
+        pesoBruto: carga.pesoBruto,
+        pesoLiquido: carga.pesoLiquido,
+        volume: carga.volume,
+        quantidadeVolumes: carga.quantidadeVolumes,
+        embalagem: carga.embalagem,
+        dimensoes: carga.dimensoes,
+        clienteId: carga.clienteId,
+        cliente: carga.cliente,
+        exportador: carga.exportador,
+        importador: carga.importador,
+        contatoCliente: carga.contatoCliente,
+        instrucaoEspecial: carga.instrucaoEspecial,
+        origem: carga.origem,
+        destino: carga.destino,
+        valorMercadoria: carga.valorMercadoria,
+        valorFrete: carga.valorFrete,
+        taxasPortuarias: carga.taxasPortuarias,
+        despesasOperacionais: carga.despesasOperacionais,
+        // Seguro - resetar ou manter baseado na opção
+        contratarSeguro: true, // Sempre recomeçar com seguro ativo
+        seguro: {
+          statusSeguro: "pendente",
+          valorSegurado: carga.valorMercadoria || 0,
+          premioFinal: 0, // Será recalculado
+          apolice: "",
+          seguradora: "",
+          dataInicio: "",
+          dataFim: "",
+        },
+        contentor: carga.contentor,
+      };
+
+      setNovaCarga(novaCargaDuplicada);
+    }
+
+    setMostrarHistorico(false);
+    setCargaSelecionadaParaDuplicar(null);
+  };
+
+  const cargasRecentes = cargasExistentes
+    .filter((carga) => {
+      const dataCriacao = new Date(carga.dataCriacao);
+      const trintaDiasAtras = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      return dataCriacao > trintaDiasAtras;
+    })
+    .sort(
+      (a, b) =>
+        new Date(b.dataCriacao).getTime() - new Date(a.dataCriacao).getTime()
+    )
+    .slice(0, 10); // Limitar a 10 cargas mais recentes
 
   // Função para calcular custos automaticamente
   const calcularCustosAutomaticos = async () => {
@@ -747,20 +839,20 @@ export const NovaCargaModal: React.FC<NovaCargaModalProps> = ({
       icone: FiTruck,
       descricao: "Informações do contentor ou equipamento utilizado",
       campos: [
-         {
-      tipo: "select", // Adicione este campo
-      nome: "contentor.estadoAtual",
-      label: "Estado do Contentor *",
-      valor: novaCarga.contentor?.estadoAtual || "bom",
-      required: true,
-      opcoes: [
-        { valor: "excelente", label: "Excelente" },
-        { valor: "bom", label: "Bom" },
-        { valor: "regular", label: "Regular" },
-        { valor: "ruim", label: "Ruim" },
-        { valor: "péssimo", label: "Péssimo" },
-      ],
-    },
+        {
+          tipo: "select", // Adicione este campo
+          nome: "contentor.estadoAtual",
+          label: "Estado do Contentor *",
+          valor: novaCarga.contentor?.estadoAtual || "bom",
+          required: true,
+          opcoes: [
+            { valor: "excelente", label: "Excelente" },
+            { valor: "bom", label: "Bom" },
+            { valor: "regular", label: "Regular" },
+            { valor: "ruim", label: "Ruim" },
+            { valor: "péssimo", label: "Péssimo" },
+          ],
+        },
         {
           tipo: "text",
           nome: "contentor.numero",
@@ -910,11 +1002,144 @@ export const NovaCargaModal: React.FC<NovaCargaModalProps> = ({
     return campoComErro;
   };
 
+  // Modal de seleção de histórico
+  const ModalHistorico = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-60">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg w-full max-w-4xl max-h-[80vh] overflow-y-auto">
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center">
+                <FaHistory className="w-6 h-6 mr-2" />
+                Duplicar Carga Existente
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                Selecione uma carga do histórico para duplicar
+              </p>
+            </div>
+            <button
+              onClick={() => setMostrarHistorico(false)}
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              <FiX className="w-6 h-6" />
+            </button>
+          </div>
+
+          {cargasRecentes.length === 0 ? (
+            <div className="text-center py-8">
+              <FiPackage className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600 dark:text-gray-400">
+                Nenhuma carga recente encontrada
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {cargasRecentes.map((carga) => (
+                <div
+                  key={carga.id}
+                  className={`p-4 border rounded-lg cursor-pointer transition-all hover:bg-blue-50 dark:hover:bg-gray-700 ${
+                    cargaSelecionadaParaDuplicar?.id === carga.id
+                      ? "border-blue-500 bg-blue-50 dark:bg-gray-700"
+                      : "border-gray-200 dark:border-gray-700"
+                  }`}
+                  onClick={() => setCargaSelecionadaParaDuplicar(carga)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <h4 className="font-medium text-gray-900 dark:text-white">
+                          {carga.codigo || `Carga #${carga.id}`}
+                        </h4>
+                        <span
+                          className={`px-2 py-1 text-xs rounded-full ${
+                            carga.status === "entregue"
+                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+                              : carga.status === "transito"
+                              ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
+                              : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"
+                          }`}
+                        >
+                          {carga.status}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        {carga.descricao?.substring(0, 100)}...
+                      </p>
+                      <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500 dark:text-gray-400">
+                        <span>Cliente: {carga.cliente}</span>
+                        <span>•</span>
+                        <span>
+                          Destino: {carga.destino?.cidade || carga.destinoFrete}
+                        </span>
+                        <span>•</span>
+                        <span>Peso: {carga.pesoBruto} kg</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm text-gray-500 dark:text-gray-400">
+                        {new Date(carga.dataCriacao).toLocaleDateString()}
+                      </div>
+                      <div className="font-semibold text-gray-900 dark:text-white mt-1">
+                        {carga.valorMercadoria?.toLocaleString("pt-MZ", {
+                          style: "currency",
+                          currency: "MZN",
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex justify-between items-center mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <button
+              type="button"
+              onClick={() => setMostrarHistorico(false)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600"
+            >
+              Cancelar
+            </button>
+
+            <div className="flex space-x-3">
+              {cargaSelecionadaParaDuplicar && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Visualizar detalhes antes de duplicar
+                    // Pode abrir um modal de confirmação ou mostrar preview
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600"
+                >
+                  Visualizar Detalhes
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() =>
+                  handleDuplicarCarga(cargaSelecionadaParaDuplicar)
+                }
+                disabled={!cargaSelecionadaParaDuplicar}
+                className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <FiCopy className="w-4 h-4" />
+                <span>Duplicar Carga Selecionada</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   // Retorno condicional deve ser o último no componente
   if (!show) return null;
 
   return (
     <>
+      {/* Modal de histórico */}
+      {mostrarHistorico && <ModalHistorico />}
       {/* Modal de Alerta do Seguro */}
       {mostrarAlertaSeguro && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-60">
@@ -977,14 +1202,41 @@ export const NovaCargaModal: React.FC<NovaCargaModalProps> = ({
               </h2>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                 Preencha as informações da nova carga
+                {cargasExistentes && cargasExistentes.length > 0 && (
+                  <span className="ml-2 text-blue-500">
+                    ({cargasExistentes.length} cargas disponíveis para duplicar)
+                  </span>
+                )}
               </p>
             </div>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-            >
-              <FiX className="w-6 h-6" />
-            </button>
+            <div className="flex items-center space-x-3">
+              {/* SEM CONDIÇÃO - sempre mostra, mas desabilita se não houver cargas */}
+              <button
+                type="button"
+                onClick={() => setMostrarHistorico(true)}
+                disabled={!cargasExistentes || cargasExistentes.length === 0}
+                className={`flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  cargasExistentes && cargasExistentes.length > 0
+                    ? "text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30"
+                    : "text-gray-400 bg-gray-100 cursor-not-allowed dark:bg-gray-700 dark:text-gray-500"
+                }`}
+                title={
+                  cargasExistentes && cargasExistentes.length > 0
+                    ? "Duplicar carga do histórico"
+                    : "Nenhuma carga disponível para duplicar"
+                }
+              >
+                <FaHistory className="w-4 h-4" />
+                <span>Duplicar</span>
+              </button>
+
+              <button
+                onClick={onClose}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              >
+                <FiX className="w-6 h-6" />
+              </button>
+            </div>
           </div>
 
           {/* Navegação entre seções */}

@@ -78,7 +78,7 @@ export default function RegisterPage() {
 
         <CardBody className="px-8 py-6 max-h-[80vh] overflow-y-auto">
           {selectedForm === "cliente" ? (
-            <RegisterForm
+            <RegisterForm 
               onSuccess={() => console.log("Sucesso!")}
               onCancel={() => console.log("Cancelado")}
               showLoginLink={true}

@@ -45,7 +45,7 @@ import { TransportadoraSettings } from "./configuracoes";
 import { FinanceiroDashboard } from "./financeiro";
 import { MetricsDashboard } from "./desempenho";
 import { CargasDisponiveis } from "./disponiveis";
-import { FiltrosCargas } from "./viagens";
+
 import {
   FiltrosAvancadosCamioes,
   FiltrosCamioes,
@@ -739,30 +739,6 @@ export default function DashboardTransportador() {
     alert("Problema reportado com sucesso!");
   };
 
-  const atualizarStatus = (viagemId: number, novoStatus: string) => {
-    setViagens(
-      viagens.map((viagem) =>
-        viagem.id === viagemId
-          ? {
-              ...viagem,
-              status: novoStatus as
-                | "disponivel"
-                | "coletando"
-                | "em_viagem"
-                | "entregando"
-                | "concluida"
-                | "cancelada",
-            }
-          : viagem
-      )
-    );
-    alert(
-      `Status da viagem ${viagemId} atualizado para ${getStatusText(
-        novoStatus
-      )}`
-    );
-  };
-
   // Funções para abrir os modais
   const abrirModalRelatorio = (viagemId: number) => {
     setSelectedViagemId(viagemId);
@@ -791,95 +767,7 @@ export default function DashboardTransportador() {
     });
   };
 
-  // Adaptar viagens para cargas
-const adaptarViagensParaCargas = (viagens: any[]): Carga[] => {
-  return viagens.map((viagem) => ({
-    codigo: viagem.numero,
-    tempoRestante: "", // preencha conforme cálculo de prazo
-    atrasada: "false",
-    nomeEmpresa: viagem.cliente || "Mega Centro e Logistica",
-    clienteId: String(viagem.clienteId),
-    cliente: viagem.cliente,
-    tipoCarga: viagem.tipoCarga as TipoCarga,
-    subtipo: viagem.subtipo,
-    descricao: viagem.descricao,
-    naturezaCarga: "não perigosa" as NaturezaCarga,
-    categoriaSeguro: "Carga Geral" as CategoriaSeguro,
-    abrangenciaSeguro: "Nacional" as AbrangenciaSeguro,
-    tipoPercurso: "Nacional" as TipoPercurso,
-    destinoFrete: viagem.destino,
 
-    pesoBruto: viagem.peso,
-    volume: viagem.volume,
-
-    origem: {
-      pais: "Moçambique",
-      cidade: viagem.origem.split(",")[0],
-      local: viagem.origem,
-      coordenadas: { lat: 0, lng: 0 },
-    },
-    destino: {
-      pais: "Moçambique",
-      cidade: viagem.destino.split(",")[0],
-      local: viagem.destino,
-      coordenadas: { lat: 0, lng: 0 },
-    },
-
-    status: viagem.status as StatusCarga,
-    prioridade: viagem.prioridade as Prioridade,
-
-    valorFrete: viagem.valorFrete || 0, // ✅ obrigatório
-    valorMercadoria: viagem.valorMercadoria || 0, // obrigatório
-    valorTotal: viagem.valorTotal || 0, // obrigatório
-
-    dataCriacao: new Date().toISOString(),
-    dataEntregaPrevista: viagem.dataEntregaPrevista || new Date().toISOString(),
-    dataEntregaReal: viagem.dataEntregaReal || new Date().toISOString(),
-  }));
-};
-
-
-
-
-
-  const adaptarStatusViagemParaCarga = (status: string): StatusCarga => {
-    const statusMap: Record<string, StatusCarga> = {
-      concluida: "entregue",
-      em_viagem: "em_transito",
-      disponivel: "planeada",
-      coletando: "aguardando_coleta",
-      entregando: "em_entrega",
-      cancelada: "encerrada",
-    };
-    return statusMap[status] || "planeada";
-  };
-
-  // Filtrar cargas
-  const filteredCargas = adaptarViagensParaCargas(viagens).filter((carga) => {
-    const matchesSearch =
-      carga.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      carga.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      carga.origem.cidade.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      carga.destino.cidade.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesStatus =
-      statusFilter === "todos" || carga.status === statusFilter;
-
-    const matchesTipo =
-      tipoFilter === "todos" || carga.tipoCarga === tipoFilter;
-
-    return matchesSearch && matchesStatus && matchesTipo;
-  });
-
-  // Métricas adaptadas
-  const metrics = {
-    totalCargas: viagens.length,
-    cargasEntregues: viagens.filter((v) => v.status === "concluida").length,
-    cargasTransito: viagens.filter((v) => v.status === "em_viagem").length,
-    cargasAtrasadas: 0, // Você pode calcular isso baseado nas datas
-    pesoTotal: viagens.reduce((sum, v) => sum + v.peso, 0),
-    valorTotalFretes: viagens.reduce((sum, v) => sum + v.valorFrete, 0),
-  };
   const metricsCamioes: MetricsCamioes = {
     totalCamioes: transportadora?.totalCamioes || 0,
     disponiveis: 0,
@@ -892,48 +780,6 @@ const adaptarViagensParaCargas = (viagens: any[]): Carga[] => {
     totalGPSNormal: 0,
     totalGPSVip: 0,
     totalValorRegistroGPS: 0,
-  };
-
-  // Funções para o FiltrosCargas
-  const visualizarCarga = (carga: Carga) => {
-    const viagem = viagens.find((v) => v.numero === carga.codigo);
-    if (viagem) {
-      setSelectedViagem(viagem);
-      setShowViagemModal(true);
-    }
-  };
-
-  const aceitarCarga = (codigo: string) => {
-    alert(`Carga ${codigo} aceita com sucesso!`);
-    // Implementar lógica de aceitação
-  };
-
-  const atualizarStatusCarga = (codigo: string, status: StatusCarga) => {
-    const statusMap: Record<StatusCarga, string> = {
-      planeada: "disponivel",
-      aguardando_coleta: "coletando",
-      coletada: "coletando",
-      em_transito: "em_viagem",
-      em_fronteira: "em_viagem",
-      aguardando_desembaraco: "em_viagem",
-      em_entrega: "entregando",
-      entregue: "concluida",
-      encerrada: "cancelada",
-      armazenada: "concluida",
-    };
-
-    const novoStatusViagem = statusMap[status];
-    if (novoStatusViagem) {
-      atualizarStatus(
-        viagens.findIndex((v) => v.numero === codigo) + 1,
-        novoStatusViagem
-      );
-    }
-  };
-
-  const setShowNovaCargaModal = (show: boolean) => {
-    // Implementar modal de nova carga
-    console.log("Abrir modal de nova carga:", show);
   };
 
   // Dados mock para demonstração

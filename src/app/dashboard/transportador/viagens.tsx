@@ -17,6 +17,7 @@ import {
   FiEdit,
 } from "react-icons/fi";
 import { Carga } from "../cliente/cargaService";
+import { useAuth } from "@/context/AuthContext";
 import { useState } from "react";
 import { ModalDetalhesCarga } from "./ModalDetalhesCarga";
 import { ModalEditarCarga } from "./ModalEditarCarga";
@@ -58,7 +59,7 @@ export interface FiltrosAvancados {
   dataFim: string;
   tipoCarga: string;
   naturezaCarga: string;
-  motoristaEmpresa: boolean; // ← NOVO CAMPO
+  motoristaEmpresa: boolean;
 }
 
 interface FiltrosCargasProps {
@@ -86,7 +87,6 @@ interface FiltrosCargasProps {
 
   // Componente Spinner
   Spinner: React.ComponentType<{ size?: string }>;
-  nomeEmpresa?: string;
 }
 
 // Constantes para os filtros
@@ -138,12 +138,13 @@ export function FiltrosCargas({
   aceitarCarga,
   atualizarStatus,
   Spinner,
-  nomeEmpresa,
 }: FiltrosCargasProps) {
+  const { user } = useAuth();
   const [cargaDetalhada, setCargaDetalhada] = useState<Carga | null>(null);
   const [modalAberto, setModalAberto] = useState(false);
   const [cargaParaEditar, setCargaParaEditar] = useState<Carga | null>(null);
   const [modalEditarAberto, setModalEditarAberto] = useState(false);
+  const [modoVisualizacao, setModoVisualizacao] = useState<'todas' | 'transportadora'>('transportadora');
 
   // Função para abrir o modal de edição
   const abrirEditarCarga = (carga: Carga) => {
@@ -157,18 +158,37 @@ export function FiltrosCargas({
     setCargaParaEditar(null);
   };
 
-  // Função para filtrar cargas com motoristas da mesma empresa
-  const filterCargasByMotoristaEmpresa = (cargas: Carga[]) => {
-    console.log(nomeEmpresa);
+  // Verifique se é uma transportadora e obtenha os dados
+  const transportadoraLogada =
+    user?.tipo === "transportadora"
+      ? (user as import("@/context/AuthContext").TransportadoraUser)
+      : null;
 
-    return cargas.filter((carga) => {
-      return (
-        carga.motorista &&
-        carga.motorista.empresaMotorista &&
-        carga.nomeEmpresa &&
-        carga.motorista.empresaMotorista === carga.nomeEmpresa
-      );
+  const nomeEmpresa = transportadoraLogada?.nomeEmpresa;
+  const transportadoraId = transportadoraLogada?.transportadoraId;
+
+  // Função para filtrar cargas que pertençam à transportadora logada
+  const filterCargasPorTransportadoraLogada = (cargas: Carga[]): Carga[] => {
+    // Se o usuário não for uma transportadora, retorna array vazio
+    if (!transportadoraLogada || !nomeEmpresa) {
+      return [];
+    }
+
+    const cargasFiltradas = cargas.filter((carga) => {
+      // Verifica se a carga tem transportadora associada
+      // 1. Campo 'transportadora' direto (comparação exata)
+      const transportadoraCorrespondente = carga.transportadora === nomeEmpresa;
+      
+      // 2. Campo 'nomeEmpresa' (backward compatibility)
+      const nomeEmpresaCorrespondente = carga.nomeEmpresa === nomeEmpresa;
+      
+      // 3. Campo 'empresaId' corresponde ao transportadoraId
+      const idCorrespondente =  transportadoraId;
+
+      return transportadoraCorrespondente || nomeEmpresaCorrespondente || idCorrespondente;
     });
+
+    return cargasFiltradas;
   };
 
   // Função para abrir o modal com os detalhes da carga
@@ -183,9 +203,9 @@ export function FiltrosCargas({
     setCargaDetalhada(null);
   };
 
-  // Aplicar filtro de motorista da empresa se estiver ativo
-  const cargasFinais = filtrosAvancados.motoristaEmpresa
-    ? filterCargasByMotoristaEmpresa(filteredCargas)
+  // Determinar quais cargas exibir baseado no modo de visualização
+  const cargasParaExibir = modoVisualizacao === 'transportadora' 
+    ? filterCargasPorTransportadoraLogada(filteredCargas)
     : filteredCargas;
 
   // Funções auxiliares
@@ -279,7 +299,7 @@ export function FiltrosCargas({
       dataFim: "",
       tipoCarga: "todos",
       naturezaCarga: "todos",
-      motoristaEmpresa: false, // ← RESETADO
+      motoristaEmpresa: false,
     });
   };
 
@@ -297,7 +317,7 @@ export function FiltrosCargas({
       filtrosAvancados.tipoCarga !== "todos" ||
       filtrosAvancados.naturezaCarga !== "todos" ||
       filtrosAvancados.motoristaEmpresa
-    ); // ← ADICIONADO
+    );
   };
 
   // Função para salvar as alterações da carga
@@ -348,10 +368,6 @@ export function FiltrosCargas({
           }
 
           alert("Carga atualizada com sucesso!");
-
-          // Recarregar as cargas (você precisará implementar esta função)
-          // fetchCargas(); // Descomente se tiver uma função para recarregar cargas
-
           return true;
         }
       }
@@ -380,6 +396,7 @@ export function FiltrosCargas({
         onClose={fecharEditarCarga}
         onSave={handleSalvarCarga}
       />
+
       {/* Filtros e Busca */}
       <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
         <div className="flex flex-col lg:flex-row gap-4 justify-between items-start lg:items-center">
@@ -420,28 +437,17 @@ export function FiltrosCargas({
                 ))}
               </select>
 
-              {/* Botão para filtrar por motorista da empresa */}
-              <button
-                onClick={() =>
-                  setFiltrosAvancados((prev) => ({
-                    ...prev,
-                    motoristaEmpresa: !prev.motoristaEmpresa,
-                  }))
-                }
-                className={`flex items-center space-x-2 px-4 py-2 border rounded-lg transition-colors ${
-                  filtrosAvancados.motoristaEmpresa
-                    ? "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900 dark:text-blue-200 dark:border-blue-600"
-                    : "border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
-                }`}
-              >
-                <FiTruck className="w-4 h-4" />
-                <span>Motoristas da Empresa</span>
-                {filtrosAvancados.motoristaEmpresa && (
-                  <span className="bg-blue-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
-                    ✓
-                  </span>
-                )}
-              </button>
+              {/* Seletor de visualização para transportadoras */}
+              {transportadoraLogada && (
+                <select
+                  value={modoVisualizacao}
+                  onChange={(e) => setModoVisualizacao(e.target.value as 'todas' | 'transportadora')}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                >
+                  <option value="transportadora">Minhas cargas</option>
+                  <option value="todas">Todas as cargas</option>
+                </select>
+              )}
 
               {hasActiveFilters() && (
                 <button
@@ -463,14 +469,6 @@ export function FiltrosCargas({
               <FiDownload className="w-4 h-4" />
               <span>Exportar</span>
             </button>
-
-            {/* <button
-              onClick={() => setShowNovaCargaModal(true)}
-              className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-            >
-              <FiPlus className="w-4 h-4" />
-              <span>Nova Carga</span>
-            </button> */}
           </div>
         </div>
 
@@ -620,31 +618,10 @@ export function FiltrosCargas({
                 />
               </div>
             </div>
-
-            {/* Filtro de Motorista da Empresa nos Filtros Avançados */}
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="motoristaEmpresa"
-                checked={filtrosAvancados.motoristaEmpresa}
-                onChange={(e) =>
-                  setFiltrosAvancados((prev) => ({
-                    ...prev,
-                    motoristaEmpresa: e.target.checked,
-                  }))
-                }
-                className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
-              />
-              <label
-                htmlFor="motoristaEmpresa"
-                className="text-sm text-gray-700 dark:text-gray-300"
-              >
-                Apenas motoristas da empresa
-              </label>
-            </div>
           </div>
         </div>
       </div>
+
 
       {/* Métricas */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -710,10 +687,13 @@ export function FiltrosCargas({
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Minhas Cargas ({cargasFinais.length})
-              {filtrosAvancados.motoristaEmpresa && (
-                <span className="ml-2 text-sm text-blue-600 dark:text-blue-400">
-                  (Filtrado: Motoristas da Empresa)
+              {transportadoraLogada && modoVisualizacao === 'transportadora'
+                ? `Cargas da ${transportadoraLogada.nomeEmpresa}`
+                : "Todas as Cargas"}{" "}
+              ({cargasParaExibir.length})
+              {transportadoraLogada && modoVisualizacao === 'transportadora' && (
+                <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
+                  Transportadora ID: {transportadoraLogada.transportadoraId}
                 </span>
               )}
             </h2>
@@ -777,17 +757,87 @@ export function FiltrosCargas({
                     </p>
                   </td>
                 </tr>
-              ) : cargasFinais.length === 0 ? (
+              ) : cargasParaExibir.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-12 text-center">
-                    <FiPackage className="mx-auto h-12 w-12 text-gray-400" />
-                    <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                      Nenhuma carga encontrada
-                    </p>
+                    {user?.tipo === "transportadora" && modoVisualizacao === 'transportadora' ? (
+                      <>
+                        <FiTruck className="mx-auto h-12 w-12 text-gray-400" />
+                        <p className="mt-2 text-sm font-medium text-gray-900 dark:text-white">
+                          Nenhuma carga encontrada para{" "}
+                          {transportadoraLogada?.nomeEmpresa}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          As cargas só aparecem aqui quando a transportadora for definida como{" "}
+                          <span className="font-semibold">
+                            {transportadoraLogada?.nomeEmpresa}
+                          </span>
+                          {transportadoraLogada?.nif &&
+                            ` (NUIT: ${transportadoraLogada.nif})`}
+                        </p>
+
+                        {/* Informações da transportadora */}
+                        <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                          <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                            Informações da sua transportadora:
+                          </p>
+                          <div className="grid grid-cols-2 gap-2 mt-2 text-xs">
+                            <div>
+                              <span className="text-gray-600 dark:text-gray-400">
+                                ID:
+                              </span>
+                              <span className="ml-1 font-medium">
+                                {transportadoraLogada?.transportadoraId}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600 dark:text-gray-400">
+                                Email:
+                              </span>
+                              <span className="ml-1 font-medium">
+                                {user.email}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600 dark:text-gray-400">
+                                Telefone:
+                              </span>
+                              <span className="ml-1 font-medium">
+                                {transportadoraLogada?.telefonePrincipal ||
+                                  "Não informado"}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600 dark:text-gray-400">
+                                Província:
+                              </span>
+                              <span className="ml-1 font-medium">
+                                {transportadoraLogada?.provincia ||
+                                  "Não informada"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Dicas para o usuário */}
+                        <div className="mt-4 text-sm">
+                          <p className="text-gray-600 dark:text-gray-400">
+                            Dica: Para ver todas as cargas, mude a visualização para &quot;Todas as cargas&quot;
+                          </p>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <FiPackage className="mx-auto h-12 w-12 text-gray-400" />
+                        <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                          Nenhuma carga encontrada
+                        </p>
+                      </>
+                    )}
                   </td>
                 </tr>
               ) : (
-                cargasFinais.map((carga) => (
+                cargasParaExibir.map((carga) => (
                   <tr
                     key={carga.codigo}
                     className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
@@ -804,15 +854,13 @@ export function FiltrosCargas({
                         <div className="text-xs text-gray-500">
                           {formatarPeso(carga.pesoBruto)}
                         </div>
-                        {/* Indicador de motorista da empresa */}
-                        {carga.motorista &&
-                          carga.motorista.empresaMotorista ===
-                            carga.nomeEmpresa && (
-                            <div className="inline-flex items-center px-2 py-1 mt-1 rounded-full text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                              <FiCheckCircle className="w-3 h-3 mr-1" />
-                              Motorista da Empresa
-                            </div>
-                          )}
+                        {/* Informações da transportadora da carga */}
+                        <div className="mt-1 text-xs">
+                          <div className="inline-flex items-center px-2 py-1 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                            <FiTruck className="w-3 h-3 mr-1" />
+                            Transportadora: {carga.transportadora || carga.nomeEmpresa || "Não definida"}
+                          </div>
+                        </div>
                       </div>
                     </td>
 
@@ -877,7 +925,7 @@ export function FiltrosCargas({
                     </td>
 
                     <td className="px-6 py-4">
-                      <div className="flex flex-col space-x-2">
+                      <div className="flex flex-col space-y-2">
                         <button
                           onClick={() => abrirDetalhesCarga(carga)}
                           className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center transition-colors"
@@ -893,15 +941,6 @@ export function FiltrosCargas({
                           <FiEdit className="w-4 h-4 mr-1" />
                           Editar
                         </button>
-                        {/* {carga.status === "planeada" && (
-                          <button
-                            onClick={() => aceitarCarga(carga.codigo)}
-                            className="text-green-600 hover:text-green-800 text-sm font-medium flex items-center transition-colors"
-                          >
-                            <FiCheckCircle className="w-4 h-4 mr-1" />
-                            Aceitar
-                          </button>
-                        )} */}
 
                         {carga.status === "coletada" && (
                           <button

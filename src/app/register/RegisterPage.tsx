@@ -3,6 +3,7 @@
 import { useForm, SubmitHandler } from "react-hook-form";
 import { useState } from "react";
 import { toast } from "react-toastify";
+import { useRouter } from 'next/navigation';
 import {
   Input,
   Button,
@@ -87,6 +88,7 @@ export default function RegisterForm({
   showLoginLink = true,
   compact = false 
 }: RegisterFormProps) {
+  const router = useRouter();
   const {
     register,
     handleSubmit,
@@ -213,10 +215,16 @@ export default function RegisterForm({
           autoClose: 3000,
         });
 
-        // Chamar callback de sucesso se fornecido
-        if (onSuccess) {
-          onSuccess();
-        }
+        // Aguardar um momento antes de redirecionar
+        setTimeout(() => {
+          // Redirecionar para a página de login
+          router.push("/login");
+          
+          // Chamar callback de sucesso se fornecido
+          if (onSuccess) {
+            onSuccess();
+          }
+        }, 1500); // 1.5 segundos de delay para o usuário ver a mensagem de sucesso
       } else {
         throw new Error(result.returnMsg || "Erro ao cadastrar");
       }
@@ -599,7 +607,7 @@ export default function RegisterForm({
                 errorMessage={errors.tipoPessoa?.message}
               >
                 {tipoPessoaOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
+                  <SelectItem key={option.value} value={option.value} className="bg-blue-900">
                     {option.label}
                   </SelectItem>
                 ))}
@@ -620,7 +628,7 @@ export default function RegisterForm({
                 errorMessage={errors.categoria?.message}
               >
                 {categoriaOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
+                  <SelectItem key={option.value} value={option.value} className="bg-blue-900">
                     {option.label}
                   </SelectItem>
                 ))}
@@ -641,7 +649,7 @@ export default function RegisterForm({
                 errorMessage={errors.segmento?.message}
               >
                 {segmentoOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
+                  <SelectItem key={option.value} value={option.value} className="bg-blue-900">
                     {option.label}
                   </SelectItem>
                 ))}
@@ -878,7 +886,7 @@ export default function RegisterForm({
                 errorMessage={errors.provincia?.message}
               >
                 {provinciaOptions.map((provincia) => (
-                  <SelectItem key={provincia} value={provincia}>
+                  <SelectItem key={provincia} value={provincia} className="bg-orange-900">
                     {provincia}
                   </SelectItem>
                 ))}
@@ -931,7 +939,7 @@ export default function RegisterForm({
                 size="sm"
               >
                 {formaPagamentoOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
+                  <SelectItem key={option.value} value={option.value} className="bg-red-900">
                     {option.label}
                   </SelectItem>
                 ))}
@@ -966,7 +974,7 @@ export default function RegisterForm({
                 errorMessage={errors.canalCaptacao?.message}
               >
                 {canalCaptacaoOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
+                  <SelectItem key={option.value} value={option.value} className="bg-red-900">
                     {option.label}
                   </SelectItem>
                 ))}

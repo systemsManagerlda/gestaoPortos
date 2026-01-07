@@ -120,8 +120,8 @@ export interface SensorIOT {
 }
 
 export interface Motorista {
-  id: number;
-  nome: string;
+  id?: number;
+  nome?: string;
   empresaMotorista: string;
   empresaMotoristaId?: number;
   cartaConducaoNumero?: string;
@@ -209,6 +209,7 @@ export interface Carga {
   _id?: string; // Para MongoDB
   id?: string | number; // Para uso geral
   tempoRestante: string;
+  transportadora?: string;
   requisitos?: string[]; 
   codigo: string;
   atrasada: string;

@@ -1,8 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { useState, useEffect } from "react";
-import { FiX, FiUser, FiTruck, FiPackage, FiMapPin, FiCalendar, FiDollarSign, FiAlertCircle, FiCheckCircle } from "react-icons/fi";
+import {
+  FiX,
+  FiUser,
+  FiTruck,
+  FiPackage,
+  FiMapPin,
+  FiCalendar,
+  FiDollarSign,
+  FiAlertCircle,
+  FiCheckCircle,
+} from "react-icons/fi";
 import { Carga } from "../cliente/cargaService";
+import { useAuth } from "@/context/AuthContext"; // Importar o AuthContext
 
 interface Motorista {
   motoristaId: number;
@@ -22,6 +33,7 @@ interface Motorista {
 
 interface Camiao {
   camiaoId: number;
+  transportadoraId: number;
   matricula: string;
   marca: string;
   modelo: string;
@@ -43,13 +55,22 @@ interface ModalEditarCargaProps {
   carga: Carga | null;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (cargaAtualizada: Carga, dadosAssociacao?: {
-    motoristaId?: number;
-    camiaoId?: number;
-  }) => Promise<boolean>;
+  onSave: (
+    cargaAtualizada: Carga,
+    dadosAssociacao?: {
+      motoristaId?: number;
+      camiaoId?: number;
+    }
+  ) => Promise<boolean>;
 }
 
-export function ModalEditarCarga({ carga, isOpen, onClose, onSave }: ModalEditarCargaProps) {
+export function ModalEditarCarga({
+  carga,
+  isOpen,
+  onClose,
+  onSave,
+}: ModalEditarCargaProps) {
+  const { user } = useAuth(); // Usar o contexto de autenticação
   const [formData, setFormData] = useState<Partial<Carga>>({});
   const [motoristas, setMotoristas] = useState<Motorista[]>([]);
   const [camioes, setCamioes] = useState<Camiao[]>([]);
@@ -58,6 +79,11 @@ export function ModalEditarCarga({ carga, isOpen, onClose, onSave }: ModalEditar
   const [loading, setLoading] = useState(false);
   const [viabilidade, setViabilidade] = useState<any>(null);
   const [loadingViabilidade, setLoadingViabilidade] = useState(false);
+
+  // Obter informações da transportadora logada
+  const transportadoraLogada = user?.tipo === "transportadora" ? (user as any) : null;
+  const nomeEmpresaTransportadora = transportadoraLogada?.nomeEmpresa;
+  const transportadoraId = transportadoraLogada?.transportadoraId;
 
   // Carregar dados iniciais
   useEffect(() => {
@@ -70,60 +96,114 @@ export function ModalEditarCarga({ carga, isOpen, onClose, onSave }: ModalEditar
     }
   }, [isOpen, carga]);
 
-  const carregarMotoristas = async () => {
-  try {
-    console.log("Iniciando carregamento de motoristas...");
-    const response = await fetch("https://desktop-api-4f850b3f9733.herokuapp.com/getMotoristaList", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        curPage: 1,
-        pageSize: 100,
-        status: "disponivel"
-      })
-    });
-
-    console.log("Resposta da API:", response.status, response.statusText);
-
-    if (response.ok) {
-      const data = await response.json();
-      console.log("Dados completos da resposta:", data);
-      
-      if (data.returnCode === 200) {
-        console.log("Lista de motoristas recebida:", data.data.list);
-        console.log("Número de motoristas:", data.data.list?.length || 0);
-        setMotoristas(data.data.list || []);
-      } else {
-        console.error("returnCode não é 200:", data.returnCode, data.message);
-      }
-    } else {
-      console.error("Resposta não OK:", response.status);
+  // Função para filtrar motoristas apenas da transportadora logada
+  const filtrarMotoristasPorTransportadora = (motoristas: Motorista[]): Motorista[] => {
+    if (!nomeEmpresaTransportadora && !transportadoraId) {
+      return motoristas;
     }
-  } catch (error) {
-    console.error("Erro ao carregar motoristas:", error);
+
+    return motoristas.filter((motorista) => {
+      // Verifica se o motorista pertence à transportadora logada
+      const empresaCorrespondente = motorista.empresaMotorista === nomeEmpresaTransportadora;
+      const idCorrespondente = motorista.empresaMotoristaId === transportadoraId;
+      
+      return empresaCorrespondente || idCorrespondente;
+    });
+  };
+
+ // Função para filtrar camiões apenas da transportadora logada
+const filtrarCamioesPorTransportadora = (camioes: Camiao[]): Camiao[] => {
+  if (!transportadoraId) {
+    return camioes;
   }
+
+  return camioes.filter((camiao) => {
+    // Usar o campo transportadoraId do schema
+    const camiaoTransportadoraId = camiao.transportadoraId;
+    
+    // Verificar se o camião pertence à transportadora logada
+    const idCorrespondente = camiaoTransportadoraId === transportadoraId;
+    
+    return idCorrespondente;
+  });
 };
+
+  const carregarMotoristas = async () => {
+    try {
+      console.log("Iniciando carregamento de motoristas...");
+      const response = await fetch(
+        "https://desktop-api-4f850b3f9733.herokuapp.com/getMotoristaList",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            curPage: 1,
+            pageSize: 100,
+            status: "disponivel",
+          }),
+        }
+      );
+
+      console.log("Resposta da API:", response.status, response.statusText);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Dados completos da resposta:", data);
+
+        if (data.returnCode === 200) {
+          let motoristasData = data.data.list || [];
+          
+          // Filtrar motoristas apenas da transportadora logada
+          if (transportadoraLogada) {
+            motoristasData = filtrarMotoristasPorTransportadora(motoristasData);
+            console.log(`Motoristas filtrados para ${nomeEmpresaTransportadora}:`, motoristasData.length);
+          }
+          
+          console.log("Lista de motoristas recebida:", motoristasData);
+          console.log("Número de motoristas:", motoristasData.length || 0);
+          setMotoristas(motoristasData);
+        } else {
+          console.error("returnCode não é 200:", data.returnCode, data.message);
+        }
+      } else {
+        console.error("Resposta não OK:", response.status);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar motoristas:", error);
+    }
+  };
 
   const carregarCamioes = async () => {
     try {
-      const response = await fetch("https://desktop-api-4f850b3f9733.herokuapp.com/getCamiaoList", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          curPage: 1,
-          pageSize: 100,
-          status: "disponivel"
-        })
-      });
+      const response = await fetch(
+        "https://desktop-api-4f850b3f9733.herokuapp.com/getCamiaoList",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            curPage: 1,
+            pageSize: 100,
+            status: "disponivel",
+          }),
+        }
+      );
 
       if (response.ok) {
         const data = await response.json();
         if (data.returnCode === 200) {
-          setCamioes(data.data.list || []);
+          let camioesData = data.data.list || [];
+          
+          // Filtrar camiões apenas da transportadora logada
+          if (transportadoraLogada) {
+            camioesData = filtrarCamioesPorTransportadora(camioesData);
+            console.log(`Camiões filtrados para ${nomeEmpresaTransportadora}:`, camioesData.length);
+          }
+          
+          setCamioes(camioesData);
         }
       }
     } catch (error) {
@@ -136,16 +216,19 @@ export function ModalEditarCarga({ carga, isOpen, onClose, onSave }: ModalEditar
 
     setLoadingViabilidade(true);
     try {
-      const response = await fetch("https://desktop-api-4f850b3f9733.herokuapp.com/verificarViabilidadeCargaCamiao", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          codigoCarga: carga.codigo,
-          camiaoId: camiaoSelecionado
-        })
-      });
+      const response = await fetch(
+        "https://desktop-api-4f850b3f9733.herokuapp.com/verificarViabilidadeCargaCamiao",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            codigoCarga: carga.codigo,
+            camiaoId: camiaoSelecionado,
+          }),
+        }
+      );
 
       if (response.ok) {
         const data = await response.json();
@@ -166,22 +249,24 @@ export function ModalEditarCarga({ carga, isOpen, onClose, onSave }: ModalEditar
     }
   }, [camiaoSelecionado]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
-    
-    if (name.includes('.')) {
-      const [parent, child] = name.split('.');
-      setFormData(prev => ({
+
+    if (name.includes(".")) {
+      const [parent, child] = name.split(".");
+      setFormData((prev) => ({
         ...prev,
         [parent]: {
-          ...(prev[parent as keyof Carga] as object || {}),
-          [child]: value
-        }
+          ...((prev[parent as keyof Carga] as object) || {}),
+          [child]: value,
+        },
       }));
     } else {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        [name]: value
+        [name]: value,
       }));
     }
   };
@@ -195,22 +280,25 @@ export function ModalEditarCarga({ carga, isOpen, onClose, onSave }: ModalEditar
       const cargaAtualizada = {
         ...carga,
         ...formData,
-        dataAtualizacao: new Date().toISOString()
+        dataAtualizacao: new Date().toISOString(),
       };
 
       // Dados para associação
       const dadosAssociacao: any = {};
-      
+
       if (motoristaSelecionado) {
         dadosAssociacao.motoristaId = motoristaSelecionado;
       }
-      
+
       if (camiaoSelecionado) {
         dadosAssociacao.camiaoId = camiaoSelecionado;
       }
 
-      const sucesso = await onSave(cargaAtualizada, Object.keys(dadosAssociacao).length > 0 ? dadosAssociacao : undefined);
-      
+      const sucesso = await onSave(
+        cargaAtualizada,
+        Object.keys(dadosAssociacao).length > 0 ? dadosAssociacao : undefined
+      );
+
       if (sucesso) {
         onClose();
       }
@@ -228,17 +316,20 @@ export function ModalEditarCarga({ carga, isOpen, onClose, onSave }: ModalEditar
     }
 
     try {
-      const response = await fetch("https://desktop-api-4f850b3f9733.herokuapp.com/associarCargaCamiao", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          codigoCarga: carga.codigo,
-          camiaoId: camiaoSelecionado,
-          motoristaId: motoristaSelecionado || null
-        })
-      });
+      const response = await fetch(
+        "https://desktop-api-4f850b3f9733.herokuapp.com/associarCargaCamiao",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            codigoCarga: carga.codigo,
+            camiaoId: camiaoSelecionado,
+            motoristaId: motoristaSelecionado || null,
+          }),
+        }
+      );
 
       if (response.ok) {
         const data = await response.json();
@@ -246,23 +337,31 @@ export function ModalEditarCarga({ carga, isOpen, onClose, onSave }: ModalEditar
           alert("Carga associada ao camião com sucesso!");
           // Atualizar dados locais
           if (carga) {
-            const motoristaSelecionadoObj = motoristas.find(m => m.motoristaId === motoristaSelecionado);
-            const camiaoSelecionadoObj = camioes.find(c => c.camiaoId === camiaoSelecionado);
-            
-            setFormData(prev => ({
+            const motoristaSelecionadoObj = motoristas.find(
+              (m) => m.motoristaId === motoristaSelecionado
+            );
+            const camiaoSelecionadoObj = camioes.find(
+              (c) => c.camiaoId === camiaoSelecionado
+            );
+
+            setFormData((prev) => ({
               ...prev,
-              motorista: motoristaSelecionadoObj ? {
-                id: motoristaSelecionadoObj.motoristaId,
-                nome: motoristaSelecionadoObj.nomeCompleto,
-                empresaMotorista: motoristaSelecionadoObj.empresaMotorista,
-                empresaMotoristaId: motoristaSelecionadoObj.empresaMotoristaId,
-                telefone: motoristaSelecionadoObj.contactos?.telefonePrincipal || ""
-              } : prev.motorista,
-              veiculo: camiaoSelecionadoObj ? {
-                id: camiaoSelecionadoObj.camiaoId,
-                matricula: camiaoSelecionadoObj.matricula,
-                modelo: `${camiaoSelecionadoObj.marca} ${camiaoSelecionadoObj.modelo}`
-              } : prev.veiculo
+              motorista: motoristaSelecionadoObj
+                ? {
+                    id: motoristaSelecionadoObj.motoristaId,
+                    nome: motoristaSelecionadoObj.nomeCompleto,
+                    empresaMotorista: motoristaSelecionadoObj.empresaMotorista,
+                    empresaMotoristaId: motoristaSelecionadoObj.empresaMotoristaId,
+                    telefone: motoristaSelecionadoObj.contactos?.telefonePrincipal || "",
+                  }
+                : prev.motorista,
+              veiculo: camiaoSelecionadoObj
+                ? {
+                    id: camiaoSelecionadoObj.camiaoId,
+                    matricula: camiaoSelecionadoObj.matricula,
+                    modelo: `${camiaoSelecionadoObj.marca} ${camiaoSelecionadoObj.modelo}`,
+                  }
+                : prev.veiculo,
             }));
           }
           return true;
@@ -277,12 +376,33 @@ export function ModalEditarCarga({ carga, isOpen, onClose, onSave }: ModalEditar
 
   const getMotoristaAtual = () => {
     if (!motoristaSelecionado) return null;
-    return motoristas.find(m => m.motoristaId === motoristaSelecionado);
+    return motoristas.find((m) => m.motoristaId === motoristaSelecionado);
   };
 
   const getCamiaoAtual = () => {
     if (!camiaoSelecionado) return null;
-    return camioes.find(c => c.camiaoId === camiaoSelecionado);
+    return camioes.find((c) => c.camiaoId === camiaoSelecionado);
+  };
+
+  // Indicador de filtro por transportadora
+  const getIndicadorTransportadora = () => {
+    if (!transportadoraLogada) return null;
+
+    return (
+      <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+        <div className="flex items-center">
+          <FiTruck className="w-5 h-5 text-blue-600 dark:text-blue-400 mr-2" />
+          <div>
+            <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
+              Mostrando apenas recursos da {nomeEmpresaTransportadora}
+            </p>
+            <p className="text-xs text-blue-600 dark:text-blue-400">
+              {motoristas.length} motorista(s) disponível(is) • {camioes.length} camião(ões) disponível(is)
+            </p>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   if (!isOpen || !carga) return null;
@@ -290,7 +410,6 @@ export function ModalEditarCarga({ carga, isOpen, onClose, onSave }: ModalEditar
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-
         {/* Modal */}
         <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
           {/* Header */}
@@ -301,6 +420,11 @@ export function ModalEditarCarga({ carga, isOpen, onClose, onSave }: ModalEditar
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white">
                   Editar Carga: {carga.codigo}
                 </h3>
+                {transportadoraLogada && (
+                  <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-200 rounded">
+                    {nomeEmpresaTransportadora}
+                  </span>
+                )}
               </div>
               <button
                 onClick={onClose}
@@ -313,6 +437,9 @@ export function ModalEditarCarga({ carga, isOpen, onClose, onSave }: ModalEditar
 
           {/* Content */}
           <div className="px-6 py-4 max-h-[70vh] overflow-y-auto">
+            {/* Indicador de filtro por transportadora */}
+            {getIndicadorTransportadora()}
+
             {/* Coluna 2: Motorista e Caminhão */}
             <div className="space-y-4">
               <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-4 flex items-center">
@@ -323,20 +450,42 @@ export function ModalEditarCarga({ carga, isOpen, onClose, onSave }: ModalEditar
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center">
                   <FiUser className="mr-2" /> Motorista
+                  {transportadoraLogada && (
+                    <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">
+                      (apenas da {nomeEmpresaTransportadora})
+                    </span>
+                  )}
                 </label>
                 <select
                   value={motoristaSelecionado || ""}
-                  onChange={(e) => setMotoristaSelecionado(e.target.value ? parseInt(e.target.value) : null)}
+                  onChange={(e) =>
+                    setMotoristaSelecionado(
+                      e.target.value ? parseInt(e.target.value) : null
+                    )
+                  }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  disabled={motoristas.length === 0}
                 >
                   <option value="">Selecione um motorista...</option>
-                  {motoristas.map(motorista => (
-                    <option key={motorista.motoristaId} value={motorista.motoristaId}>
-                      {motorista.nomeCompleto} - {motorista.empresaMotorista}
+                  {motoristas.length === 0 ? (
+                    <option value="" disabled>
+                      {transportadoraLogada 
+                        ? `Nenhum motorista disponível da ${nomeEmpresaTransportadora}` 
+                        : "Nenhum motorista disponível"}
                     </option>
-                  ))}
+                  ) : (
+                    motoristas.map((motorista) => (
+                      <option
+                        key={motorista.motoristaId}
+                        value={motorista.motoristaId}
+                      >
+                        {motorista.nomeCompleto} - {motorista.empresaMotorista}
+                        {motorista.empresaMotorista === nomeEmpresaTransportadora && " ✓"}
+                      </option>
+                    ))
+                  )}
                 </select>
-                
+
                 {getMotoristaAtual() && (
                   <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                     <p className="text-sm font-medium text-gray-900 dark:text-white">
@@ -347,7 +496,8 @@ export function ModalEditarCarga({ carga, isOpen, onClose, onSave }: ModalEditar
                     </p>
                     {getMotoristaAtual()?.cartaConducao && (
                       <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Carta: {getMotoristaAtual()?.cartaConducao?.categoria} - {getMotoristaAtual()?.cartaConducao?.numero}
+                        Carta: {getMotoristaAtual()?.cartaConducao?.categoria} -{" "}
+                        {getMotoristaAtual()?.cartaConducao?.numero}
                       </p>
                     )}
                   </div>
@@ -358,34 +508,79 @@ export function ModalEditarCarga({ carga, isOpen, onClose, onSave }: ModalEditar
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center">
                   <FiTruck className="mr-2" /> Caminhão
+                  {transportadoraLogada && (
+                    <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">
+                      (apenas da {nomeEmpresaTransportadora})
+                    </span>
+                  )}
                 </label>
                 <select
                   value={camiaoSelecionado || ""}
-                  onChange={(e) => setCamiaoSelecionado(e.target.value ? parseInt(e.target.value) : null)}
+                  onChange={(e) =>
+                    setCamiaoSelecionado(
+                      e.target.value ? parseInt(e.target.value) : null
+                    )
+                  }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  disabled={camioes.length === 0}
                 >
                   <option value="">Selecione um caminhão...</option>
-                  {camioes.map(camiao => (
-                    <option key={camiao.camiaoId} value={camiao.camiaoId}>
-                      {camiao.matricula} - {camiao.marca} {camiao.modelo} ({camiao.nivelInspecao.categoria})
+                  {camioes.length === 0 ? (
+                    <option value="" disabled>
+                      {transportadoraLogada 
+                        ? `Nenhum camião disponível da ${nomeEmpresaTransportadora}` 
+                        : "Nenhum camião disponível"}
                     </option>
-                  ))}
+                  ) : (
+                    camioes.map((camiao) => (
+                      <option key={camiao.camiaoId} value={camiao.camiaoId}>
+                        {camiao.matricula} - {camiao.marca} {camiao.modelo} (
+                        {camiao.nivelInspecao.categoria})
+                        {(camiao as any).empresa === nomeEmpresaTransportadora && " ✓"}
+                      </option>
+                    ))
+                  )}
                 </select>
 
                 {getCamiaoAtual() && (
                   <div className="mt-2 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
                     <p className="text-sm font-medium text-gray-900 dark:text-white">
-                      {getCamiaoAtual()?.matricula} - {getCamiaoAtual()?.marca} {getCamiaoAtual()?.modelo}
+                      {getCamiaoAtual()?.matricula} - {getCamiaoAtual()?.marca}{" "}
+                      {getCamiaoAtual()?.modelo}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Capacidade: {getCamiaoAtual()?.especificacoes.cargaUtil} kg
+                      Capacidade: {getCamiaoAtual()?.especificacoes.cargaUtil}{" "}
+                      kg
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Categoria: {getCamiaoAtual()?.nivelInspecao.categoria} - {getCamiaoAtual()?.nivelInspecao.descricao}
+                      Categoria: {getCamiaoAtual()?.nivelInspecao.categoria} -{" "}
+                      {getCamiaoAtual()?.nivelInspecao.descricao}
                     </p>
+                    {(getCamiaoAtual() as any).empresa && (
+                      <p className="text-xs text-blue-600 dark:text-blue-400">
+                        Empresa: {(getCamiaoAtual() as any).empresa}
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
+
+              {/* Mensagem se não houver recursos disponíveis */}
+              {transportadoraLogada && (motoristas.length === 0 || camioes.length === 0) && (
+                <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                  <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                    ⚠️ Alguns recursos podem não estar disponíveis:
+                  </p>
+                  <ul className="text-xs text-yellow-600 dark:text-yellow-400 mt-1 space-y-1">
+                    {motoristas.length === 0 && (
+                      <li>• Nenhum motorista da {nomeEmpresaTransportadora} está disponível</li>
+                    )}
+                    {camioes.length === 0 && (
+                      <li>• Nenhum camião da {nomeEmpresaTransportadora} está disponível</li>
+                    )}
+                  </ul>
+                </div>
+              )}
 
               {/* Botão para associar carga */}
               {camiaoSelecionado && (
@@ -409,45 +604,76 @@ export function ModalEditarCarga({ carga, isOpen, onClose, onSave }: ModalEditar
               )}
 
               {viabilidade && !loadingViabilidade && (
-                <div className={`mt-4 p-3 rounded-lg ${
-                  viabilidade.viavel 
-                    ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
-                    : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
-                }`}>
+                <div
+                  className={`mt-4 p-3 rounded-lg ${
+                    viabilidade.viavel
+                      ? "bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800"
+                      : "bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800"
+                  }`}
+                >
                   <div className="flex items-center justify-between mb-2">
-                    <p className={`text-sm font-medium ${
-                      viabilidade.viavel 
-                        ? 'text-green-700 dark:text-green-300'
-                        : 'text-red-700 dark:text-red-300'
-                    }`}>
-                      {viabilidade.viavel ? '✅ Viável' : '❌ Não Viável'}
+                    <p
+                      className={`text-sm font-medium ${
+                        viabilidade.viavel
+                          ? "text-green-700 dark:text-green-300"
+                          : "text-red-700 dark:text-red-300"
+                      }`}
+                    >
+                      {viabilidade.viavel ? "✅ Viável" : "❌ Não Viável"}
                     </p>
                   </div>
-                  
+
                   {viabilidade.problemas.length > 0 && (
                     <div className="mb-2">
-                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Problemas:</p>
-                      {viabilidade.problemas.map((problema: string, index: number) => (
-                        <p key={index} className="text-xs text-red-600 dark:text-red-400">• {problema}</p>
-                      ))}
+                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Problemas:
+                      </p>
+                      {viabilidade.problemas.map(
+                        (problema: string, index: number) => (
+                          <p
+                            key={index}
+                            className="text-xs text-red-600 dark:text-red-400"
+                          >
+                            • {problema}
+                          </p>
+                        )
+                      )}
                     </div>
                   )}
-                  
+
                   {viabilidade.alertas.length > 0 && (
                     <div className="mb-2">
-                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Alertas:</p>
-                      {viabilidade.alertas.map((alerta: string, index: number) => (
-                        <p key={index} className="text-xs text-yellow-600 dark:text-yellow-400">• {alerta}</p>
-                      ))}
+                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Alertas:
+                      </p>
+                      {viabilidade.alertas.map(
+                        (alerta: string, index: number) => (
+                          <p
+                            key={index}
+                            className="text-xs text-yellow-600 dark:text-yellow-400"
+                          >
+                            • {alerta}
+                          </p>
+                        )
+                      )}
                     </div>
                   )}
-                  
+
                   {viabilidade.recomendacoes.length > 0 && (
                     <div>
-                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Recomendações:</p>
-                      {viabilidade.recomendacoes.map((recomendacao: string, index: number) => (
-                        <p key={index} className="text-xs text-green-600 dark:text-green-400">• {recomendacao}</p>
-                      ))}
+                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Recomendações:
+                      </p>
+                      {viabilidade.recomendacoes.map(
+                        (recomendacao: string, index: number) => (
+                          <p
+                            key={index}
+                            className="text-xs text-green-600 dark:text-green-400"
+                          >
+                            • {recomendacao}
+                          </p>
+                        )
+                      )}
                     </div>
                   )}
                 </div>
