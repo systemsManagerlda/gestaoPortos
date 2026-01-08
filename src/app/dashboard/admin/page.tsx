@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { JSX, useEffect, useState } from "react";
 import { Spinner } from "@nextui-org/react";
 import Head from "next/head";
-import Image from "next/image";
 import { MainPanel } from "../../../components/janelas/DefaultPanel";
 import { CadastroPanel } from "../../../components/janelas/CadastroPanel";
 import { LancamentosPanel } from "../../../components/janelas/LancamentosPanel";
@@ -45,16 +44,11 @@ import PoliticaRespostaIncidentes from "@/components/janelas/PoliticaRespostaInc
 import PoliticaRetencaoEliminacaoDados from "@/components/janelas/PoliticaRetencaoEliminacaoDados";
 import PoliticaSegurancaInformacao from "@/components/janelas/PoliticaSegurancaInformacao";
 import PoliticaUsoAceitavel from "@/components/janelas/PoliticaUsoAceitavel";
-
-// Tipos
-interface DashboardModule {
-  title: string;
-  description: string;
-  icon: string;
-  href: string;
-  color: string;
-  category: string;
-}
+import modules from "../../../components/models/dashboardModules";
+import Header from "../../../components/models/header";
+import Sidebar from "../../../components/models/sidebar";
+import MenuSuperior from "../../../components/models/menuSuperior";
+import Footer from "../../../components/models/footer";
 
 // Componente para o conteúdo do painel central
 interface PanelContentProps {
@@ -66,8 +60,10 @@ const PanelContent: React.FC<PanelContentProps> = ({ activeModule }) => {
   const [activeVistoriaForm, setActiveVistoriaForm] = useState("agendamento");
   const [activeSeguroForm, setActiveSeguroForm] = useState("apolices");
   const [activeGPSForm, setActiveGPSForm] = useState("monitoramento");
-  const [activeLancamentoForm, setActiveLancamentoForm] = useState<string>("nova_carga");
-  const [activeCombustivelForm, setActiveCombustivelForm] = useState<string>("abastecimento");
+  const [activeLancamentoForm, setActiveLancamentoForm] =
+    useState<string>("nova_carga");
+  const [activeCombustivelForm, setActiveCombustivelForm] =
+    useState<string>("abastecimento");
 
   if (!activeModule) {
     return <MainPanel />;
@@ -129,16 +125,20 @@ const PanelContent: React.FC<PanelContentProps> = ({ activeModule }) => {
       "Central de Riscos": <CentralRiscos />,
       "Referência de Contas": <ReferenciaContas />,
       "Memória Descritiva": <MemoriaDescritiva />,
-      "Logística": <AreaLogisticaMunhava />,
-      "Notícias": <NoticiasPage />,
+      Logística: <AreaLogisticaMunhava />,
+      Notícias: <NoticiasPage />,
       "Mapa de Controle": <MapaControle />,
       "Despachantes Aduaneiros": <DespachantesAduaneiros />,
       "QR Code Carga": <QrCodePage />,
       "Cidade da Beira": <CidadeBeira />,
       "Política de Acesso e Controle de Permissões": <PoliticaAcessoControle />,
-      "Política de Privacidade e Proteção de Dados": <PoliticaPrivacidadeProtecaoDados />,
+      "Política de Privacidade e Proteção de Dados": (
+        <PoliticaPrivacidadeProtecaoDados />
+      ),
       "Política de Resposta a Incidentes": <PoliticaRespostaIncidentes />,
-      "Política de Retenção e Eliminação de Dados": <PoliticaRetencaoEliminacaoDados />,
+      "Política de Retenção e Eliminação de Dados": (
+        <PoliticaRetencaoEliminacaoDados />
+      ),
       "Política de Segurança da Informação": <PoliticaSegurancaInformacao />,
       "Política de Uso Aceitável": <PoliticaUsoAceitavel />,
     };
@@ -168,324 +168,9 @@ export default function DashboardAdmin() {
   const router = useRouter();
   const [activeModule, setActiveModule] = useState<string>("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   // Módulos organizados por categoria
-  const modules: DashboardModule[] = [
-  // Módulos Superiores
-  {
-    title: "Cadastro",
-    description: "Clientes, Despachante, Transportadora, Motorista",
-    icon: "📋",
-    href: "/cadastros",
-    color: "bg-green-500 hover:bg-green-600",
-    category: "superior",
-  },  
-  {
-    title: "Vistoria",
-    description: "Vistorias de veículos e cargas",
-    icon: "🔍",
-    href: "/vistorias",
-    color: "bg-pink-500 hover:bg-pink-600",
-    category: "superior",
-  },
-  {
-    title: "Lançamentos",
-    description: "Registro de operações e movimentações",
-    icon: "📥",
-    href: "/lancamentos",
-    color: "bg-blue-500 hover:bg-blue-600",
-    category: "superior",
-  },
-  {
-    title: "Carga Disponível NLT",
-    description: "Cargas disponíveis para transporte",
-    icon: "📋",
-    href: "/cargas/disponiveis",
-    color: "bg-cyan-500 hover:bg-cyan-600",
-    category: "superior",
-  },
-  {
-    title: "Seguro de Cargas",
-    description: "Gestão de seguros e apólices",
-    icon: "🛡️",
-    href: "/seguros",
-    color: "bg-purple-500 hover:bg-purple-600",
-    category: "superior",
-  },
-  {
-    title: "Combustível e Expediente",
-    description: "Controle de combustível e expedientes",
-    icon: "⛽",
-    href: "/combustivel-expediente",
-    color: "bg-yellow-500 hover:bg-yellow-600",
-    category: "superior",
-  },
-  
-  {
-    title: "GPS Camiões",
-    description: "Monitoramento de caminhões",
-    icon: "🚛",
-    href: "/gps/camioes",
-    color: "bg-red-500 hover:bg-red-600",
-    category: "superior",
-  },
-  {
-    title: "GPS Contentor",
-    description: "Rastreamento de contentores",
-    icon: "📦",
-    href: "/gps/contentor",
-    color: "bg-indigo-500 hover:bg-indigo-600",
-    category: "superior",
-  },
-  {
-    title: "GPS Geral",
-    description: "Monitoramento geral da frota",
-    icon: "🗺️",
-    href: "/gps/geral",
-    color: "bg-teal-500 hover:bg-teal-600",
-    category: "superior",
-  },
-  
-  {
-    title: "Carga Carregada",
-    description: "Controle de cargas carregadas",
-    icon: "🚚",
-    href: "/cargas/carregadas",
-    color: "bg-lime-500 hover:bg-lime-600",
-    category: "superior",
-  },
-  {
-    title: "Carga em Movimento",
-    description: "Monitoramento de cargas em andamento",
-    icon: "🚛",
-    href: "/cargas/em-curso",
-    color: "bg-violet-500 hover:bg-violet-600",
-    category: "superior",
-  },
-  {
-    title: "Carga Descarregada",
-    description: "Registro de cargas descarregadas",
-    icon: "🏁",
-    href: "/cargas/descarregadas",
-    color: "bg-fuchsia-500 hover:bg-fuchsia-600",
-    category: "superior",
-  },
-
-  // Menu Lateral
-  {
-    title: "Contas a Receber",
-    description: "Gestão de recebíveis",
-    icon: "💰",
-    href: "/financeiro/receber",
-    color: "bg-emerald-500 hover:bg-emerald-600",
-    category: "lateral",
-  },
-  {
-    title: "Contas a Pagar",
-    description: "Gestão de pagamentos",
-    icon: "💸",
-    href: "/financeiro/pagar",
-    color: "bg-rose-500 hover:bg-rose-600",
-    category: "lateral",
-  },
-  {
-    title: "Contabilidade",
-    description: "Gestão contábil completa",
-    icon: "📊",
-    href: "/contabilidade",
-    color: "bg-slate-500 hover:bg-slate-600",
-    category: "lateral",
-  },
-  {
-    title: "Tabela de Preços",
-    description: "Tabelas e tarifas",
-    icon: "📋",
-    href: "/precos",
-    color: "bg-violet-500 hover:bg-violet-600",
-    category: "lateral",
-  },
-  {
-    title: "Emissão de Guias",
-    description: "Emissão de documentos fiscais",
-    icon: "📄",
-    href: "/guias",
-    color: "bg-amber-500 hover:bg-amber-600",
-    category: "lateral",
-  },
-  {
-    title: "Fluxo Financeiro",
-    description: "Fluxo de caixa e financeiro",
-    icon: "💹",
-    href: "/fluxo-financeiro",
-    color: "bg-lime-500 hover:bg-lime-600",
-    category: "lateral",
-  },
-  {
-    title: "Fluxo de Caixa",
-    description: "Controle diário de caixa",
-    icon: "🏦",
-    href: "/fluxo-caixa",
-    color: "bg-cyan-500 hover:bg-cyan-600",
-    category: "lateral",
-  },
-  {
-    title: "Despacho",
-    description: "Serviço de Despacho",
-    icon: "📋",
-    href: "/despacho",
-    color: "bg-teal-500 hover:bg-teal-600",
-    category: "lateral",
-  },
-  {
-    title: "Organização de Arquivos",
-    description: "Gestão documental",
-    icon: "📁",
-    href: "/arquivos",
-    color: "bg-stone-500 hover:bg-stone-600",
-    category: "lateral",
-  },
-  {
-    title: "Serviços Terceirizados",
-    description: "Controle de serviços externos",
-    icon: "🤝",
-    href: "/terceirizados",
-    color: "bg-fuchsia-500 hover:bg-fuchsia-600",
-    category: "lateral",
-  },
-  {
-    title: "Controle Interno",
-    description: "Controles internos e auditoria",
-    icon: "🔒",
-    href: "/controle-interno",
-    color: "bg-neutral-500 hover:bg-neutral-600",
-    category: "lateral",
-  },
-  {
-    title: "Central de Riscos",
-    description: "Gestão e monitoramento de riscos",
-    icon: "⚠️",
-    href: "/central-riscos",
-    color: "bg-red-700 hover:bg-red-800",
-    category: "lateral",
-  },
-  {
-    title: "Referência de Contas",
-    description: "Referência contábil",
-    icon: "🏷️",
-    href: "/referencia-contas",
-    color: "bg-sky-500 hover:bg-sky-600",
-    category: "lateral",
-  },
-  {
-    title: "Memória Descritiva",
-    description: "Descrição da Plataforma Mega Centro de Logística",
-    icon: "🏷️",
-    href: "/memoria-descritiva",
-    color: "bg-sky-500 hover:bg-sky-600",
-    category: "lateral",
-  },
-  {
-  title: "Mapa de Controle",
-  description: "Visualização e acompanhamento das operações",
-  icon: "🗺️",
-  href: "/mapa-controle",
-  color: "bg-blue-500 hover:bg-blue-600",
-  category: "lateral",
-},
-  {
-    title: "Logística",
-    description: "Gestão logística completa",
-    icon: "📦",
-    href: "/logistica",
-    color: "bg-green-500 hover:bg-green-600",
-    category: "lateral",
-  },
-  {
-  title: "Despachantes Aduaneiros",
-  description: "Gestão de processos e documentação aduaneira",
-  icon: "📄",
-  href: "/despachantes-aduaneiros",
-  color: "bg-indigo-500 hover:bg-indigo-600",
-  category: "lateral",
-},
-{
-  title: "QR Code Carga",
-  description: "Controle e rastreamento de cargas através de QR codes",
-  icon: "📦",
-  href: "/qr-code-carga",
-  color: "bg-teal-500 hover:bg-teal-600",
-  category: "lateral",
-},
-{
-  title: "Cidade da Beira",
-  description: "Administração municipal e serviços urbanos",
-  icon: "🏛️",
-  href: "/beira",
-  color: "bg-cyan-500 hover:bg-cyan-600",
-  category: "lateral",
-},
-{
-  title: "Política de Acesso e Controle de Permissões",
-  description: "Gestão de acessos, níveis de permissão e controle de privilégios",
-  icon: "🔐",
-  href: "/politicas/acesso-permissoes",
-  color: "bg-blue-500 hover:bg-blue-600",
-  category: "lateral",
-},
-
-{
-  title: "Política de Privacidade e Proteção de Dados",
-  description: "Conformidade com LGPD e proteção de dados pessoais",
-  icon: "🛡️",
-  href: "/politicas/privacidade-dados",
-  color: "bg-purple-500 hover:bg-purple-600",
-  category: "lateral",
-},
-
-{
-  title: "Política de Resposta a Incidentes",
-  description: "Procedimentos para tratamento de incidentes de segurança",
-  icon: "🚨",
-  href: "/politicas/resposta-incidentes",
-  color: "bg-red-500 hover:bg-red-600",
-  category: "lateral",
-},
-
-{
-  title: "Política de Retenção e Eliminação de Dados",
-  description: "Gestão do ciclo de vida de dados e documentos",
-  icon: "🗑️",
-  href: "/politicas/retencao-dados",
-  color: "bg-gray-500 hover:bg-gray-600",
-  category: "lateral",
-},
-
-{
-  title: "Política de Segurança da Informação",
-  description: "Framework completo de segurança da informação",
-  icon: "🏢",
-  href: "/politicas/seguranca-informacao",
-  color: "bg-green-500 hover:bg-green-600",
-  category: "lateral",
-},
-
-{
-  title: "Política de Uso Aceitável",
-  description: "Diretrizes de uso responsável de recursos de TI",
-  icon: "📋",
-  href: "/politicas/uso-aceitavel",
-  color: "bg-orange-500 hover:bg-orange-600",
-category: "lateral",
-},
-  {
-    title: "Notícias",
-    description: "Atualizações, avisos e comunicados",
-    icon: "📰",
-    href: "/noticias",
-    color: "bg-orange-500 hover:bg-orange-600",
-    category: "lateral",
-  },
-];
 
   const superiorModules = modules.filter(
     (module) => module.category === "superior"
@@ -519,143 +204,41 @@ category: "lateral",
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Head>
         <title>Área Administrativa - Mega Centro de Logística</title>
-        <meta name="description" content="Sistema administrativo Mega Centro de Logística" />
+        <meta
+          name="description"
+          content="Sistema administrativo Mega Centro de Logística"
+        />
       </Head>
 
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-2 rounded-lg">
-                <Image
-                  src="/image/megaCentroLogistica.png"
-                  alt="Logo"
-                  width={32}
-                  height={32}
-                  className="rounded-lg"
-                />
-              </div>
-              <div className="ml-3">
-                <h1 className="text-xl font-bold text-gray-900">
-                  Área Administrativa
-                </h1>
-                <p className="text-sm text-gray-500">
-                  Mega Centro de Logística
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-4">
-              <div className="text-right">
-                <p className="text-sm font-semibold text-gray-900">
-                  {user?.email}
-                </p>
-                <p className="text-xs text-gray-500">{user?.email}</p>
-              </div>
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                {user?.email.charAt(0)}
-              </div>
-              <button
-                onClick={logout}
-                className="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 shadow-md hover:shadow-lg"
-              >
-                Sair
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+      {/* Header Aprimorado */}
+      <Header
+        user={user ?? undefined}
+        activeModule={activeModule}
+        onLogout={logout}
+        onSearch={(query) => console.log("Buscar:", query)}
+      />
 
       {/* Conteúdo Principal */}
       <div className="flex flex-1">
         {/* Sidebar */}
-        <aside
-          className={`${
-            sidebarOpen ? "w-64" : "w-20"
-          } bg-white shadow-lg border-r border-gray-200 transition-all duration-300 flex flex-col`}
-        >
-          {/* Botão para recolher/expandir sidebar */}
-          <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
-            {sidebarOpen && (
-              <h2 className="text-lg font-semibold text-gray-800">
-                📋 Menu Administrativo
-              </h2>
-            )}
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 rounded-lg hover:bg-gray-200 transition-colors text-gray-600 hover:text-gray-800"
-            >
-              {sidebarOpen ? "◀" : "▶"}
-            </button>
-          </div>
-
-          {/* Módulos Laterais */}
-          <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
-            <div className="space-y-2">
-              {lateralModules.map((module, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleModuleClick(module.title)}
-                  className={`w-full text-left p-3 rounded-lg transition-all duration-200 border flex items-center space-x-3 group hover:shadow-md ${
-                    activeModule === module.title
-                      ? "bg-white border-gray-300 shadow-md transform scale-105"
-                      : "bg-gray-100 border-gray-200 hover:bg-white"
-                  }`}
-                >
-                  <span
-                    className={`text-lg p-2 rounded-lg ${module.color} text-white`}
-                  >
-                    {module.icon}
-                  </span>
-                  {sidebarOpen && (
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-gray-900 text-sm truncate group-hover:text-blue-600">
-                        {module.title}
-                      </p>
-                      <p className="text-xs text-gray-600 truncate">
-                        {module.description}
-                      </p>
-                    </div>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-        </aside>
+        <Sidebar
+          lateralModules={lateralModules}
+          activeModule={activeModule}
+          onModuleClick={handleModuleClick}
+          sidebarOpen={sidebarOpen}
+          onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+          user={user ?? undefined}
+        />
 
         {/* Área Central */}
         <main className="flex-1 flex flex-col">
           {/* Módulos Superiores */}
-          <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200 p-6">
-            <div className="max-w-7xl mx-auto">
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-                {superiorModules.map((module, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleModuleClick(module.title)}
-                    className={`p-4 rounded-xl text-gray-950 text-center transition-all duration-200 hover:shadow-lg transform hover:-translate-y-1 ${
-                      module.color
-                    } shadow-md hover:shadow-xl border border-transparent hover:border-white hover:border-opacity-30 ${
-                      activeModule === module.title
-                        ? "ring-2 ring-white ring-opacity-50"
-                        : ""
-                    }`}
-                  >
-                    <div className="text-2xl mb-2 drop-shadow-sm">
-                      {module.icon}
-                    </div>
-                    <p className="text-sm font-semibold truncate drop-shadow-sm">
-                      {module.title}
-                    </p>
-                    <p className="text-xs opacity-90 mt-1 truncate">
-                      {module.description}
-                    </p>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
+          <MenuSuperior
+            modules={superiorModules}
+            activeModule={activeModule}
+            onModuleClick={handleModuleClick}
+            user={user ?? undefined}
+          />
 
           {/* Painel Central */}
           <div className="flex-1 p-6 bg-gray-50">
@@ -669,60 +252,7 @@ category: "lateral",
       </div>
 
       {/* Footer / Área de Comunicação */}
-      <footer className="bg-white border-t border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          {/* Título do Rodapé */}
-          <div className="mb-4">
-            <h3 className="font-semibold text-gray-900 text-sm flex items-center">
-              <span className="bg-gray-100 p-1 rounded-lg mr-2">📡</span>
-              Área de Comunicação Administrativa
-            </h3>
-          </div>
-
-          {/* Ferramentas de Comunicação */}
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            {/* Comunicação */}
-            <div className="flex items-center space-x-3">
-              <button className="flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5">
-                <span>📧</span>
-                <span>E-mail Corporativo</span>
-              </button>
-
-              <button className="flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5">
-                <span>💬</span>
-                <span>WhatsApp</span>
-              </button>
-
-              <button className="flex items-center space-x-2 bg-gradient-to-r from-gray-500 to-gray-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5">
-                <span>📷</span>
-                <span>Câmera</span>
-              </button>
-            </div>
-
-            {/* Status e Informações */}
-            <div className="flex items-center space-x-6 text-sm">
-              <div className="flex items-center space-x-2 bg-gray-100 px-3 py-2 rounded-lg">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-gray-700 font-medium">
-                  Sistema Online
-                </span>
-              </div>
-
-              <div className="flex items-center space-x-2 bg-blue-50 px-3 py-2 rounded-lg border border-blue-200">
-                <span className="text-gray-700">Linha do Cliente:</span>
-                <span className="font-semibold text-blue-600">
-                  +258 82 456 7890
-                </span>
-              </div>
-            </div>
-
-            {/* Copyright */}
-            <div className="text-xs text-gray-500 bg-gray-100 px-3 py-2 rounded-lg">
-              © 2025 Mega Centro de Logística. Todos os direitos reservados.
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
 
       {/* Estilos CSS personalizados */}
       <style jsx global>{`
@@ -737,19 +267,43 @@ category: "lateral",
         }
 
         .overflow-y-auto::-webkit-scrollbar-thumb {
-          background: #c1c1c1;
+          background: linear-gradient(to bottom, #3b82f6, #1d4ed8);
           border-radius: 10px;
         }
 
         .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-          background: #a8a8a8;
+          background: linear-gradient(to bottom, #2563eb, #1e40af);
         }
 
         /* Animações suaves */
         .transition-all {
           transition: all 0.3s ease;
         }
+
+        /* Animar dropdown */
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .group-hover\\:visible {
+          animation: fadeIn 0.2s ease-out;
+        }
       `}</style>
+
+      {/* Overlay para fechar notificações ao clicar fora */}
+      {showNotifications && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => setShowNotifications(false)}
+        />
+      )}
     </div>
   );
 }

@@ -309,47 +309,46 @@ class GpsUtils {
     horario: string;
   } {
     try {
-      if (!timestamp || typeof timestamp !== 'number' || isNaN(timestamp)) {
+      if (!timestamp || typeof timestamp !== "number" || isNaN(timestamp)) {
         console.warn("Timestamp inválido:", timestamp);
-        return { 
-          data: "Data inválida", 
-          horario: "--:--:--" 
+        return {
+          data: "Data inválida",
+          horario: "--:--:--",
         };
       }
 
       const date = new Date(timestamp * 1000);
-      
+
       if (isNaN(date.getTime())) {
         console.warn("Data criada é inválida:", timestamp, date);
-        return { 
-          data: "Data inválida", 
-          horario: "--:--:--" 
+        return {
+          data: "Data inválida",
+          horario: "--:--:--",
         };
       }
 
       const now = Date.now();
-      const minDate = new Date('2000-01-01').getTime();
-      const maxDate = new Date('2100-01-01').getTime();
+      const minDate = new Date("2000-01-01").getTime();
+      const maxDate = new Date("2100-01-01").getTime();
       const dateTime = date.getTime();
-      
+
       if (dateTime < minDate || dateTime > maxDate) {
         console.warn("Data fora do range aceitável:", timestamp, date);
-        return { 
-          data: "Data fora do range", 
-          horario: "--:--:--" 
+        return {
+          data: "Data fora do range",
+          horario: "--:--:--",
         };
       }
 
       const data = date.toISOString().split("T")[0];
       const horario = date.toLocaleTimeString("pt-BR");
-      
+
       return { data, horario };
-      
     } catch (error) {
       console.error("Erro ao formatar data Flespi:", error, timestamp);
-      return { 
-        data: "Erro na data", 
-        horario: "--:--:--" 
+      return {
+        data: "Erro na data",
+        horario: "--:--:--",
       };
     }
   }
@@ -388,64 +387,72 @@ class GpsUtils {
     try {
       return atob(str);
     } catch (e) {
-      return Buffer.from(str, 'base64').toString('utf-8');
+      return Buffer.from(str, "base64").toString("utf-8");
     }
   }
 
   static decodeGpsData(base64Data: string): DecodedGpsData | null {
     try {
       const decodedString = this.decodeBase64(base64Data);
-      const cleanString = decodedString.replace(/^\*\*|\#$/, '');
-      const parts = cleanString.split(',');
+      const cleanString = decodedString.replace(/^\*\*|\#$/, "");
+      const parts = cleanString.split(",");
 
       if (parts.length < 12) {
         console.error("❌ Formato inválido: número insuficiente de partes");
         return null;
       }
 
-      const protocolo = parts[0] || 'HQ';
-      const imei = parts[1] || '';
-      const versao = parts[2] || '';
-      
-      const horaGps = parts[3] || '';
-      const horaFormatada = horaGps.length >= 6 
-        ? `${horaGps.slice(0, 2)}:${horaGps.slice(2, 4)}:${horaGps.slice(4, 6)}`
-        : '00:00:00';
+      const protocolo = parts[0] || "HQ";
+      const imei = parts[1] || "";
+      const versao = parts[2] || "";
 
-      const validade = parts[4] || '';
-      
-      const latStr = parts[5] || '0';
+      const horaGps = parts[3] || "";
+      const horaFormatada =
+        horaGps.length >= 6
+          ? `${horaGps.slice(0, 2)}:${horaGps.slice(2, 4)}:${horaGps.slice(
+              4,
+              6
+            )}`
+          : "00:00:00";
+
+      const validade = parts[4] || "";
+
+      const latStr = parts[5] || "0";
       const latDeg = parseInt(latStr.slice(0, 2));
       const latMin = parseFloat(latStr.slice(2));
-      const latitude = latDeg + (latMin / 60);
-      const hemisferioLat = parts[6] || 'N';
-      
-      const lonStr = parts[7] || '0';
+      const latitude = latDeg + latMin / 60;
+      const hemisferioLat = parts[6] || "N";
+
+      const lonStr = parts[7] || "0";
       const lonDeg = parseInt(lonStr.slice(0, 3));
       const lonMin = parseFloat(lonStr.slice(3));
-      const longitude = lonDeg + (lonMin / 60);
-      const hemisferioLon = parts[8] || 'E';
-      
-      const velocidadeKnots = parseFloat(parts[9] || '0');
+      const longitude = lonDeg + lonMin / 60;
+      const hemisferioLon = parts[8] || "E";
+
+      const velocidadeKnots = parseFloat(parts[9] || "0");
       const velocidade = Math.round(velocidadeKnots * 1.852);
-      
-      const direcao = parseInt(parts[10] || '0');
-      
-      const dataGps = parts[11] || '';
-      const dataFormatada = dataGps.length >= 6
-        ? `${dataGps.slice(0, 2)}/${dataGps.slice(2, 4)}/${dataGps.slice(4, 6)}`
-        : '01/01/25';
-      
-      const statusHex = parts[12] || '';
+
+      const direcao = parseInt(parts[10] || "0");
+
+      const dataGps = parts[11] || "";
+      const dataFormatada =
+        dataGps.length >= 6
+          ? `${dataGps.slice(0, 2)}/${dataGps.slice(2, 4)}/${dataGps.slice(
+              4,
+              6
+            )}`
+          : "01/01/25";
+
+      const statusHex = parts[12] || "";
 
       const odometro = parts[13] ? parseInt(parts[13]) : undefined;
       const sinalGsm = parts[14] ? parseInt(parts[14]) : undefined;
       const altitude = parts[15] ? parseInt(parts[15]) : undefined;
       const outroParametro = parts[16] ? parseInt(parts[16]) : undefined;
-      const checksum = parts[17] || '';
+      const checksum = parts[17] || "";
 
-      const dataCompleta = dataFormatada.split('/');
-      const horaCompleta = horaFormatada.split(':');
+      const dataCompleta = dataFormatada.split("/");
+      const horaCompleta = horaFormatada.split(":");
       const dataHora = new Date(
         2000 + parseInt(dataCompleta[2]),
         parseInt(dataCompleta[1]) - 1,
@@ -461,9 +468,9 @@ class GpsUtils {
         versao,
         dataHora: dataHora.toISOString(),
         validade,
-        latitude: hemisferioLat === 'S' ? -latitude : latitude,
+        latitude: hemisferioLat === "S" ? -latitude : latitude,
         hemisferioLat,
-        longitude: hemisferioLon === 'W' ? -longitude : longitude,
+        longitude: hemisferioLon === "W" ? -longitude : longitude,
         hemisferioLon,
         velocidade,
         direcao,
@@ -473,9 +480,8 @@ class GpsUtils {
         sinalGsm,
         altitude,
         outroParametro,
-        checksum
+        checksum,
       };
-
     } catch (error) {
       console.error("💥 Erro ao decodificar dados GPS:", error);
       return null;
@@ -490,25 +496,37 @@ class GpsUtils {
     bateria: number;
   } {
     try {
-      const hexString = statusHex.toLowerCase().replace(/[^0-9a-f]/g, '');
+      const hexString = statusHex.toLowerCase().replace(/[^0-9a-f]/g, "");
       if (!hexString) {
-        return { ignicao: false, alarme: false, movimento: false, gpsFixo: false, bateria: 100 };
+        return {
+          ignicao: false,
+          alarme: false,
+          movimento: false,
+          gpsFixo: false,
+          bateria: 100,
+        };
       }
 
       const lastBits = hexString.slice(-4);
-      const binary = parseInt(lastBits, 16).toString(2).padStart(16, '0');
-      
-      const ignicao = binary[binary.length - 1] === '1';
-      const alarme = binary[binary.length - 2] === '1';
-      const movimento = binary[binary.length - 3] === '1';
-      const gpsFixo = binary[binary.length - 4] === '1';
+      const binary = parseInt(lastBits, 16).toString(2).padStart(16, "0");
+
+      const ignicao = binary[binary.length - 1] === "1";
+      const alarme = binary[binary.length - 2] === "1";
+      const movimento = binary[binary.length - 3] === "1";
+      const gpsFixo = binary[binary.length - 4] === "1";
       const batteryValue = parseInt(hexString.slice(0, 2), 16) || 100;
       const bateria = Math.min(100, Math.max(0, batteryValue));
 
       return { ignicao, alarme, movimento, gpsFixo, bateria };
     } catch (error) {
       console.error("Erro ao interpretar status hex:", error);
-      return { ignicao: false, alarme: false, movimento: false, gpsFixo: false, bateria: 100 };
+      return {
+        ignicao: false,
+        alarme: false,
+        movimento: false,
+        gpsFixo: false,
+        bateria: 100,
+      };
     }
   }
 }
@@ -517,7 +535,9 @@ class GpsUtils {
 class ApiService {
   static async getFlespiPacket(channelId: string, identId: string) {
     try {
-      console.log(`🔍 Buscando último pacote Flespi - Channel: ${channelId}, Ident: ${identId}`);
+      console.log(
+        `🔍 Buscando último pacote Flespi - Channel: ${channelId}, Ident: ${identId}`
+      );
 
       const response = await fetch(
         `${CONFIG.API.BASE_URL}${CONFIG.API.ENDPOINTS.FLESPI_PACKETS}`,
@@ -535,21 +555,25 @@ class ApiService {
       if (!response.ok) {
         const errorText = await response.text();
         console.error(`❌ API Error ${response.status}:`, errorText);
-        
+
         if (response.status === 401) {
           throw new Error("API Key inválida ou expirada");
         } else if (response.status === 404) {
-          throw new Error(`Recurso não encontrado (Channel ${channelId}, Ident ${identId})`);
+          throw new Error(
+            `Recurso não encontrado (Channel ${channelId}, Ident ${identId})`
+          );
         } else if (response.status === 429) {
           throw new Error("Limite de requisições excedido");
         } else {
-          throw new Error(`API retornou status: ${response.status} - ${errorText}`);
+          throw new Error(
+            `API retornou status: ${response.status} - ${errorText}`
+          );
         }
       }
 
       const data = await response.json();
       console.log("✅ Último pacote Flespi recebido:", data);
-      
+
       return data;
     } catch (error) {
       console.error("💥 Erro ao buscar último pacote Flespi:", error);
@@ -597,7 +621,9 @@ class ApiService {
 // Conversor de dados
 class GpsDataConverter {
   // Converter dados da sua nova rota para VeiculoFlespi
-  static converterFlespiPacketParaVeiculo(packetData: any): VeiculoFlespi | null {
+  static converterFlespiPacketParaVeiculo(
+    packetData: any
+  ): VeiculoFlespi | null {
     try {
       if (!packetData || !packetData.lastPacket) {
         console.warn("❌ Nenhum pacote disponível na resposta");
@@ -605,11 +631,11 @@ class GpsDataConverter {
       }
 
       const packet = packetData.lastPacket;
-      
+
       // Extrair dados básicos
       const ident = packet.ident || packet.device_id?.toString() || "unknown";
       const deviceId = packet.device_id || 0;
-      
+
       // Usar dados convertidos se disponíveis
       let latitude = 0;
       let longitude = 0;
@@ -625,55 +651,57 @@ class GpsDataConverter {
       let bateria = 100;
       let status = "parado";
       let evento = "posicao_gps";
-      
+
       // Se tivermos dados parsed do seu endpoint
       if (packet.parsed) {
         const parsed = packet.parsed;
-        
+
         // Coordenadas
         if (parsed.coordinates?.latitude && parsed.coordinates?.longitude) {
           latitude = parsed.coordinates.latitude;
           longitude = parsed.coordinates.longitude;
         } else if (parsed.coordinates?.formatted) {
           // Tentar extrair das coordenadas formatadas
-          const coords = this.extrairCoordenadasFormatadas(parsed.coordinates.formatted);
+          const coords = this.extrairCoordenadasFormatadas(
+            parsed.coordinates.formatted
+          );
           if (coords) {
             latitude = coords.latitude;
             longitude = coords.longitude;
           }
         }
-        
+
         // Velocidade
         if (parsed.speed?.kmh) {
           velocidade = parsed.speed.kmh;
           status = velocidade > 0 ? "movimento" : "parado";
         }
-        
+
         // Direção
         if (parsed.course?.degrees) {
           direcao = parsed.course.degrees;
         }
-        
+
         // Satélites
         if (parsed.gpsInfo?.satellites) {
           satelites = parsed.gpsInfo.satellites;
         }
-        
+
         // Bateria
         if (parsed.battery?.percentage) {
           bateria = parsed.battery.percentage;
         }
-        
+
         // Ignição
         if (parsed.digitalIO_parsed?.ignition !== undefined) {
           ignicao = parsed.digitalIO_parsed.ignition;
         }
-        
+
         // Evento
         if (parsed.eventDescription) {
           evento = parsed.eventDescription;
         }
-        
+
         // Data/Hora
         if (parsed.datetime?.iso) {
           serverTimeDate = new Date(parsed.datetime.iso);
@@ -685,13 +713,15 @@ class GpsDataConverter {
         // Fallback para dados originais do Flespi
         latitude = packet.position.latitude || 0;
         longitude = packet.position.longitude || 0;
-        velocidade = packet.position.speed ? Math.round(packet.position.speed * 3.6) : 0;
+        velocidade = packet.position.speed
+          ? Math.round(packet.position.speed * 3.6)
+          : 0;
         direcao = packet.position.direction || 0;
         altitude = packet.position.altitude || 0;
         satelites = packet.position.satellites || 0;
         hdop = packet.position.hdop || 0;
         status = velocidade > 0 ? "movimento" : "parado";
-        
+
         // Timestamp
         if (packet.server_time) {
           serverTimeDate = new Date(packet.server_time * 1000);
@@ -699,10 +729,11 @@ class GpsDataConverter {
           dataFormatada = formatted.data;
           horarioFormatado = formatted.horario;
         }
-        
+
         // Verificar ignição nos parâmetros
-        ignicao = packet.params?.ignition === 1 || packet.params?.ignition === true;
-        
+        ignicao =
+          packet.params?.ignition === 1 || packet.params?.ignition === true;
+
         // Verificar bateria
         if (packet.params?.battery) {
           bateria = packet.params.battery;
@@ -732,7 +763,9 @@ class GpsDataConverter {
         motorista: "Motorista não identificado",
         status,
         ignicao,
-        ultimaAtualizacao: GpsUtils.formatarUltimaAtualizacao(serverTimeDate.getTime()),
+        ultimaAtualizacao: GpsUtils.formatarUltimaAtualizacao(
+          serverTimeDate.getTime()
+        ),
         data: dataFormatada,
         horario: horarioFormatado,
         evento,
@@ -741,18 +774,19 @@ class GpsDataConverter {
 
       console.log("✅ Veículo convertido:", veiculo);
       return veiculo;
-      
     } catch (error) {
       console.error("💥 Erro ao converter pacote Flespi:", error, packetData);
       return null;
     }
   }
 
-  private static extrairCoordenadasFormatadas(formatted: string): { latitude: number; longitude: number } | null {
+  private static extrairCoordenadasFormatadas(
+    formatted: string
+  ): { latitude: number; longitude: number } | null {
     try {
       const regex = /(\d+)°(\d+\.\d+)'([NS]),\s*(\d+)°(\d+\.\d+)'([EW])/;
       const match = formatted.match(regex);
-      
+
       if (match) {
         const latDeg = parseInt(match[1]);
         const latMin = parseFloat(match[2]);
@@ -760,13 +794,13 @@ class GpsDataConverter {
         const lonDeg = parseInt(match[4]);
         const lonMin = parseFloat(match[5]);
         const lonDir = match[6];
-        
-        const latitude = latDeg + (latMin / 60);
-        const longitude = lonDeg + (lonMin / 60);
-        
-        const latFinal = latDir === 'S' ? -latitude : latitude;
-        const lonFinal = lonDir === 'W' ? -longitude : longitude;
-        
+
+        const latitude = latDeg + latMin / 60;
+        const longitude = lonDeg + lonMin / 60;
+
+        const latFinal = latDir === "S" ? -latitude : latitude;
+        const lonFinal = lonDir === "W" ? -longitude : longitude;
+
         return { latitude: latFinal, longitude: lonFinal };
       }
     } catch (error) {
@@ -789,11 +823,11 @@ class GpsDataConverter {
   private static extrairNomeVeiculo(ident: string, params: any): string {
     if (params?.vehicle_name) return params.vehicle_name;
     if (params?.name) return params.name;
-    
+
     if (params?.summary?.imei) {
       return `Veículo ${params.summary.imei.slice(-6)}`;
     }
-    
+
     return `Veículo ${ident.substring(0, 6)}`;
   }
 
@@ -1225,7 +1259,7 @@ const MapaMonitoramento: React.FC<MapaMonitoramentoProps> = ({
 
 // COMPONENTE PRINCIPAL COM ABAS
 export const MainPanel = () => {
-  const [activeTab, setActiveTab] = useState<'default' | 'flespi'>('default');
+  const [activeTab, setActiveTab] = useState<"default" | "flespi">("default");
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -1252,7 +1286,7 @@ export const MainPanel = () => {
                 <span className="ml-2 text-green-600">● Online</span>
               </div>
               <div className="text-sm text-gray-600">
-                {new Date().toLocaleDateString('pt-BR')}
+                {new Date().toLocaleDateString("pt-BR")}
               </div>
             </div>
           </div>
@@ -1264,12 +1298,13 @@ export const MainPanel = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <nav className="flex space-x-8">
             <button
-              onClick={() => setActiveTab('default')}
+              onClick={() => setActiveTab("default")}
               className={`
                 py-4 px-1 text-sm font-medium border-b-2 flex items-center
-                ${activeTab === 'default'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ${
+                  activeTab === "default"
+                    ? "border-blue-500 text-blue-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 }
               `}
             >
@@ -1277,12 +1312,13 @@ export const MainPanel = () => {
               Painel Principal
             </button>
             <button
-              onClick={() => setActiveTab('flespi')}
+              onClick={() => setActiveTab("flespi")}
               className={`
                 py-4 px-1 text-sm font-medium border-b-2 flex items-center
-                ${activeTab === 'flespi'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ${
+                  activeTab === "flespi"
+                    ? "border-blue-500 text-blue-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 }
               `}
             >
@@ -1295,18 +1331,8 @@ export const MainPanel = () => {
 
       {/* Tab Content */}
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        {activeTab === 'default' ? <DefaultPanel /> : <FlespiPanel />}
+        {activeTab === "default" ? <DefaultPanel /> : <FlespiPanel />}
       </main>
-
-      {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 mt-8">
-        <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
-          <div className="text-center text-sm text-gray-500">
-            <p>© {new Date().getFullYear()} Sistema de Monitoramento GPS. Todos os direitos reservados.</p>
-            <p className="mt-1">Versão 2.0 | Desenvolvido para rastreamento de frota</p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };
@@ -1350,15 +1376,17 @@ const FlespiPanel = () => {
 
       if (data && data.success) {
         const veiculo = GpsDataConverter.converterFlespiPacketParaVeiculo(data);
-        
+
         if (veiculo) {
           if (data.lastPacket) {
             setDetalhesPacote(data.lastPacket);
           }
-          
+
           setVeiculosFlespi([veiculo]);
-          
-          const pontos = GpsDataConverter.converterFlespiParaPontosMapa([veiculo]);
+
+          const pontos = GpsDataConverter.converterFlespiParaPontosMapa([
+            veiculo,
+          ]);
           setPontosMapa(pontos);
 
           const emMovimento = veiculo.status === "movimento" ? 1 : 0;
@@ -1385,7 +1413,7 @@ const FlespiPanel = () => {
       const errorMessage =
         err instanceof Error ? err.message : "Erro de conexão com a API";
       setError(errorMessage);
-      
+
       setVeiculosFlespi([]);
       setPontosMapa([]);
     } finally {
@@ -1435,35 +1463,49 @@ const FlespiPanel = () => {
             <>
               <div>
                 <span className="text-blue-700">IMEI:</span>
-                <p className="font-medium text-gray-900">{detalhesPacote.parsed.summary.imei}</p>
+                <p className="font-medium text-gray-900">
+                  {detalhesPacote.parsed.summary.imei}
+                </p>
               </div>
               <div>
                 <span className="text-blue-700">Posição:</span>
-                <p className="font-medium text-gray-900">{detalhesPacote.parsed.summary.position}</p>
+                <p className="font-medium text-gray-900">
+                  {detalhesPacote.parsed.summary.position}
+                </p>
               </div>
               <div>
                 <span className="text-blue-700">Velocidade:</span>
-                <p className="font-medium text-gray-900">{detalhesPacote.parsed.summary.speed}</p>
+                <p className="font-medium text-gray-900">
+                  {detalhesPacote.parsed.summary.speed}
+                </p>
               </div>
               <div>
                 <span className="text-blue-700">Direção:</span>
-                <p className="font-medium text-gray-900">{detalhesPacote.parsed.summary.direction}</p>
+                <p className="font-medium text-gray-900">
+                  {detalhesPacote.parsed.summary.direction}
+                </p>
               </div>
               <div>
                 <span className="text-blue-700">Ignição:</span>
-                <p className="font-medium text-gray-900">{detalhesPacote.parsed.summary.ignition}</p>
+                <p className="font-medium text-gray-900">
+                  {detalhesPacote.parsed.summary.ignition}
+                </p>
               </div>
               <div>
                 <span className="text-blue-700">Bateria:</span>
-                <p className="font-medium text-gray-900">{detalhesPacote.parsed.summary.battery}</p>
+                <p className="font-medium text-gray-900">
+                  {detalhesPacote.parsed.summary.battery}
+                </p>
               </div>
               <div className="col-span-2 md:col-span-3">
                 <span className="text-blue-700">Status:</span>
-                <p className="font-medium text-gray-900">{detalhesPacote.parsed.summary.status}</p>
+                <p className="font-medium text-gray-900">
+                  {detalhesPacote.parsed.summary.status}
+                </p>
               </div>
             </>
           )}
-          
+
           {detalhesPacote.timestamp && (
             <div className="col-span-2 md:col-span-3">
               <span className="text-blue-700">Timestamp:</span>
@@ -1472,7 +1514,7 @@ const FlespiPanel = () => {
               </p>
             </div>
           )}
-          
+
           {detalhesPacote.decodedData && (
             <div className="col-span-2 md:col-span-3">
               <span className="text-blue-700">Dados Brutos:</span>
@@ -1505,9 +1547,7 @@ const FlespiPanel = () => {
 
         {error && (
           <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-700 text-sm">
-              ⚠️ {error}
-            </p>
+            <p className="text-red-700 text-sm">⚠️ {error}</p>
           </div>
         )}
 
@@ -1746,11 +1786,15 @@ const FlespiPanel = () => {
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <span className="text-gray-500">Channel ID:</span>
-                    <p className="font-medium text-gray-900">{channelId || "Não informado"}</p>
+                    <p className="font-medium text-gray-900">
+                      {channelId || "Não informado"}
+                    </p>
                   </div>
                   <div>
                     <span className="text-gray-500">Ident ID:</span>
-                    <p className="font-medium text-gray-900">{identId || "Não informado"}</p>
+                    <p className="font-medium text-gray-900">
+                      {identId || "Não informado"}
+                    </p>
                   </div>
                   <div>
                     <span className="text-gray-500">Última Atualização:</span>
@@ -1810,35 +1854,48 @@ const FlespiPanel = () => {
                       </div>
                       {veiculosFlespi[0].bateria && (
                         <div className="text-xs">
-                          <span className={`font-medium ${
-                            veiculosFlespi[0].bateria > 50 ? 'text-green-600' : 
-                            veiculosFlespi[0].bateria > 20 ? 'text-yellow-600' : 'text-red-600'
-                          }`}>
+                          <span
+                            className={`font-medium ${
+                              veiculosFlespi[0].bateria > 50
+                                ? "text-green-600"
+                                : veiculosFlespi[0].bateria > 20
+                                ? "text-yellow-600"
+                                : "text-red-600"
+                            }`}
+                          >
                             🔋 {veiculosFlespi[0].bateria}%
                           </span>
                         </div>
                       )}
                     </div>
                   </div>
-                  
+
                   {/* Informações adicionais */}
                   <div className="bg-gray-100 p-3 rounded-lg">
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       <div>
                         <span className="text-gray-500">Latitude:</span>
-                        <p className="font-medium">{veiculosFlespi[0].latitude.toFixed(6)}</p>
+                        <p className="font-medium">
+                          {veiculosFlespi[0].latitude.toFixed(6)}
+                        </p>
                       </div>
                       <div>
                         <span className="text-gray-500">Longitude:</span>
-                        <p className="font-medium">{veiculosFlespi[0].longitude.toFixed(6)}</p>
+                        <p className="font-medium">
+                          {veiculosFlespi[0].longitude.toFixed(6)}
+                        </p>
                       </div>
                       <div>
                         <span className="text-gray-500">Direção:</span>
-                        <p className="font-medium">{veiculosFlespi[0].direcao}°</p>
+                        <p className="font-medium">
+                          {veiculosFlespi[0].direcao}°
+                        </p>
                       </div>
                       <div>
                         <span className="text-gray-500">Altitude:</span>
-                        <p className="font-medium">{veiculosFlespi[0].altitude}m</p>
+                        <p className="font-medium">
+                          {veiculosFlespi[0].altitude}m
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -2021,18 +2078,16 @@ const DefaultPanel = () => {
 
         {error && (
           <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-700 text-sm">
-              ⚠️ {error}
-            </p>
+            <p className="text-red-700 text-sm">⚠️ {error}</p>
           </div>
         )}
       </div>
 
       {/* Conteúdo padrão */}
       <div className="flex-1 p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
-          {/* Mapa GPS Ativo */}
-          <div className="bg-gradient-to-br from-gray-50 to-white rounded-xl border border-gray-200 p-5 shadow-sm">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
+          {/* Mapa GPS Ativo - Ocupa 2 colunas em telas grandes */}
+          <div className="lg:col-span-2 bg-gradient-to-br from-gray-50 to-white rounded-xl border border-gray-200 p-5 shadow-sm">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-bold text-gray-900 flex items-center">
                 <span className="bg-blue-100 text-blue-600 p-2 rounded-lg mr-2">
@@ -2068,7 +2123,7 @@ const DefaultPanel = () => {
               </div>
             </div>
 
-            <div className="rounded-xl overflow-hidden border border-gray-300 shadow-md">
+            <div className="rounded-xl overflow-hidden border border-gray-300 shadow-md h-[calc(100%-120px)] min-h-[400px]">
               <MapaMonitoramento
                 pontosMapa={pontosMapa}
                 pontoSelecionado={pontoSelecionado}
@@ -2078,32 +2133,32 @@ const DefaultPanel = () => {
             </div>
 
             {/* Legenda do Mapa */}
-            <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+            <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
               <div className="flex items-center">
-                <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
+                <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
                 <span className="text-gray-600">Em Movimento</span>
               </div>
               <div className="flex items-center">
-                <div className="w-2 h-2 bg-yellow-500 rounded-full mr-1"></div>
+                <div className="w-3 h-3 bg-yellow-500 rounded-full mr-2"></div>
                 <span className="text-gray-600">Parado</span>
               </div>
               <div className="flex items-center">
-                <div className="w-2 h-2 bg-blue-500 rounded-full mr-1"></div>
+                <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
                 <span className="text-gray-600">Segurança</span>
               </div>
               <div className="flex items-center">
-                <div className="w-2 h-2 bg-purple-500 rounded-full mr-1"></div>
+                <div className="w-3 h-3 bg-purple-500 rounded-full mr-2"></div>
                 <span className="text-gray-600">Selagem</span>
               </div>
             </div>
 
             {/* Informações do veículo selecionado */}
             {pontoSelecionado && (
-              <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
                 <h4 className="font-semibold text-blue-900 text-sm mb-2">
                   Veículo Selecionado
                 </h4>
-                <div className="grid grid-cols-2 gap-1 text-xs">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
                   <div>
                     <span className="text-blue-700">Placa:</span>
                     <p className="font-medium">{pontoSelecionado.placa}</p>
@@ -2114,20 +2169,20 @@ const DefaultPanel = () => {
                       {pontoSelecionado.dispositivo}
                     </p>
                   </div>
-                  <div className="col-span-2">
+                  <div>
                     <span className="text-blue-700">Status:</span>
                     <p className="font-medium">
                       {GpsUtils.getStatusConfig(pontoSelecionado.status).texto}
                     </p>
                   </div>
-                  <div className="col-span-2">
+                  <div>
                     <span className="text-blue-700">Evento:</span>
                     <p className="font-medium">
                       {GpsUtils.traduzirEvento(pontoSelecionado.evento)}
                     </p>
                   </div>
                   {pontoSelecionado.bateria && (
-                    <div className="col-span-2">
+                    <div>
                       <span className="text-blue-700">Bateria:</span>
                       <p
                         className={`font-medium ${
@@ -2147,15 +2202,16 @@ const DefaultPanel = () => {
             )}
           </div>
 
-          {/* Relatórios Rápidos */}
-          <div className="bg-gradient-to-br from-gray-50 to-white rounded-xl border border-gray-200 p-5 shadow-sm">
+          {/* Painel Lateral - Relatórios Rápidos */}
+          <div className="bg-gradient-to-br from-gray-50 to-white rounded-xl border border-gray-200 p-5 shadow-sm flex flex-col">
             <h3 className="font-bold text-gray-900 mb-4 flex items-center">
               <span className="bg-green-100 text-blue-600 p-2 rounded-lg mr-2">
                 📊
               </span>
               Relatórios Rápidos
             </h3>
-            <div className="space-y-4">
+
+            <div className="space-y-3 flex-grow overflow-y-auto">
               <div className="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex items-center">
                   <div className="bg-blue-100 p-2 rounded-lg mr-3">
@@ -2169,6 +2225,7 @@ const DefaultPanel = () => {
                   {pontosMapa.length}
                 </span>
               </div>
+
               <div className="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex items-center">
                   <div className="bg-green-100 p-2 rounded-lg mr-3">
@@ -2182,6 +2239,7 @@ const DefaultPanel = () => {
                   {veiculosEmMovimento}
                 </span>
               </div>
+
               <div className="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex items-center">
                   <div className="bg-yellow-100 p-2 rounded-lg mr-3">
@@ -2195,6 +2253,7 @@ const DefaultPanel = () => {
                   {veiculosParados}
                 </span>
               </div>
+
               <div className="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex items-center">
                   <div className="bg-purple-100 p-2 rounded-lg mr-3">
@@ -2208,6 +2267,7 @@ const DefaultPanel = () => {
                   {veiculosSelagem}
                 </span>
               </div>
+
               {nivelBateriaMedio > 0 && (
                 <div className="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
                   <div className="flex items-center">
@@ -2241,11 +2301,11 @@ const DefaultPanel = () => {
               <div className="space-y-2 max-h-40 overflow-y-auto">
                 {Object.entries(estatisticasEventos)
                   .sort(([, a], [, b]) => b - a)
-                  .slice(0, 4)
+                  .slice(0, 5)
                   .map(([evento, count]) => (
                     <div
                       key={evento}
-                      className="flex justify-between items-center p-2 bg-gray-50 rounded-lg"
+                      className="flex justify-between items-center p-2 bg-gray-50 rounded-lg hover:bg-gray-100"
                     >
                       <div className="flex items-center">
                         <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
@@ -2267,15 +2327,15 @@ const DefaultPanel = () => {
                 Veículos Ativos
               </h4>
               <div className="space-y-2 max-h-60 overflow-y-auto">
-                {pontosMapa.slice(0, 5).map((ponto) => (
+                {pontosMapa.slice(0, 6).map((ponto) => (
                   <div
                     key={ponto.id}
-                    className="flex justify-between items-center p-2 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer"
+                    className="flex justify-between items-center p-2 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
                     onClick={() => setPontoSelecionado(ponto)}
                   >
                     <div className="flex items-center">
                       <div
-                        className="w-2 h-2 rounded-full mr-2"
+                        className="w-3 h-3 rounded-full mr-3"
                         style={{ backgroundColor: ponto.cor }}
                       ></div>
                       <div>
@@ -2294,9 +2354,6 @@ const DefaultPanel = () => {
                       <div className="text-xs text-gray-500">
                         {ponto.ultimaAtualizacao}
                       </div>
-                      <div className="text-xs text-gray-400 mt-1">
-                        {ponto.evento}
-                      </div>
                     </div>
                   </div>
                 ))}
@@ -2304,15 +2361,15 @@ const DefaultPanel = () => {
             </div>
           </div>
 
-          {/* Alertas e Status */}
-          <div className="lg:col-span-2 bg-gradient-to-r from-yellow-50 to-amber-50 rounded-xl border border-yellow-200 p-5 shadow-sm">
+          {/* Status da Frota - Ocupa toda a largura abaixo do mapa e painel */}
+          <div className="lg:col-span-3 bg-gradient-to-r from-yellow-50 to-amber-50 rounded-xl border border-yellow-200 p-5 shadow-sm">
             <h3 className="font-bold text-gray-700 mb-4 flex items-center">
               <span className="bg-yellow-100 text-yellow-600 p-2 rounded-lg mr-2">
                 ⚠️
               </span>
               Status da Frota em Tempo Real
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="flex items-center space-x-3 p-3 bg-white rounded-xl border border-green-200 shadow-sm">
                 <span className="text-green-600 text-xl">🟢</span>
                 <div>
