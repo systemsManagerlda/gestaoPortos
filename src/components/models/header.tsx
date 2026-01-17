@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 
 interface User {
@@ -25,11 +25,14 @@ interface HeaderProps {
 
 function Header({ user, activeModule, onLogout, onSearch }: HeaderProps) {
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [showNotificationSidebar, setShowNotificationSidebar] = useState(false);
   const [selectedNotification, setSelectedNotification] =
     useState<Notification | null>(null);
   const [notificationCount, setNotificationCount] = useState(5);
   const [searchQuery, setSearchQuery] = useState("");
+  const userDropdownRef = useRef<HTMLDivElement>(null);
+  const userButtonRef = useRef<HTMLButtonElement>(null);
 
   const notifications: Notification[] = [
     {
@@ -86,6 +89,46 @@ function Header({ user, activeModule, onLogout, onSearch }: HeaderProps) {
 
   const markAllAsRead = () => {
     setNotificationCount(0);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        userDropdownRef.current &&
+        !userDropdownRef.current.contains(event.target as Node) &&
+        userButtonRef.current &&
+        !userButtonRef.current.contains(event.target as Node)
+      ) {
+        setShowUserDropdown(false);
+      }
+    };
+
+    // Efeito para teclado (Escape)
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setShowUserDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscapeKey);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscapeKey);
+    };
+  }, []);
+
+  const toggleUserDropdown = () => {
+    setShowUserDropdown(!showUserDropdown);
+    // Fecha notificações se estiverem abertas
+    if (showNotifications) {
+      setShowNotifications(false);
+    }
+  };
+
+  const closeUserDropdown = () => {
+    setShowUserDropdown(false);
   };
 
   const handleNotificationClick = (notification: Notification) => {
@@ -380,14 +423,26 @@ function Header({ user, activeModule, onLogout, onSearch }: HeaderProps) {
                   ></div>
                 </div>
 
-                {/* Dropdown do Usuário */}
-                <div className="relative group">
+                {/* Dropdown do Usuário - ATUALIZADO */}
+                <div className="relative" ref={userDropdownRef}>
                   <button
+                    ref={userButtonRef}
+                    onClick={toggleUserDropdown}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        toggleUserDropdown();
+                      }
+                    }}
                     className="p-2 rounded-lg hover:bg-blue-500 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-300"
                     aria-label="Menu do usuário"
+                    aria-expanded={showUserDropdown}
+                    aria-haspopup="true"
                   >
                     <svg
-                      className="w-5 h-5 text-white"
+                      className={`w-5 h-5 text-white transition-transform duration-200 ${
+                        showUserDropdown ? "rotate-180" : ""
+                      }`}
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -402,7 +457,14 @@ function Header({ user, activeModule, onLogout, onSearch }: HeaderProps) {
                     </svg>
                   </button>
 
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-2xl border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                  <div
+                    className={`absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-2xl border border-gray-200 transition-all duration-200 z-50 ${
+                      showUserDropdown
+                        ? "opacity-100 visible transform translate-y-0"
+                        : "opacity-0 invisible transform -translate-y-2"
+                    }`}
+                    role="menu"
+                  >
                     <div className="p-3 border-b border-gray-100">
                       <p className="font-semibold text-gray-900 text-sm">
                         Conectado como
@@ -414,8 +476,11 @@ function Header({ user, activeModule, onLogout, onSearch }: HeaderProps) {
 
                     <div className="p-2">
                       <button
-                        className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg flex items-center focus:outline-none focus:bg-gray-100"
-                        onClick={() => setShowNotifications(false)}
+                        className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg flex items-center focus:outline-none focus:bg-gray-100 focus:ring-2 focus:ring-blue-300"
+                        onClick={() => {
+                          closeUserDropdown();
+                        }}
+                        role="menuitem"
                       >
                         <svg
                           className="w-4 h-4 mr-2"
@@ -441,8 +506,11 @@ function Header({ user, activeModule, onLogout, onSearch }: HeaderProps) {
                       </button>
 
                       <button
-                        className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg flex items-center focus:outline-none focus:bg-gray-100"
-                        onClick={() => setShowNotifications(false)}
+                        className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg flex items-center focus:outline-none focus:bg-gray-100 focus:ring-2 focus:ring-blue-300"
+                        onClick={() => {
+                          closeUserDropdown();
+                        }}
+                        role="menuitem"
                       >
                         <svg
                           className="w-4 h-4 mr-2"
@@ -462,8 +530,11 @@ function Header({ user, activeModule, onLogout, onSearch }: HeaderProps) {
                       </button>
 
                       <button
-                        className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg flex items-center focus:outline-none focus:bg-gray-100"
-                        onClick={() => setShowNotifications(false)}
+                        className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg flex items-center focus:outline-none focus:bg-gray-100 focus:ring-2 focus:ring-blue-300"
+                        onClick={() => {
+                          closeUserDropdown();
+                        }}
+                        role="menuitem"
                       >
                         <svg
                           className="w-4 h-4 mr-2"
@@ -485,8 +556,12 @@ function Header({ user, activeModule, onLogout, onSearch }: HeaderProps) {
 
                     <div className="p-3 border-t border-gray-100">
                       <button
-                        onClick={onLogout}
+                        onClick={() => {
+                          closeUserDropdown();
+                          if (onLogout) onLogout();
+                        }}
                         className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-red-300"
+                        role="menuitem"
                       >
                         <svg
                           className="w-4 h-4"
@@ -547,10 +622,13 @@ function Header({ user, activeModule, onLogout, onSearch }: HeaderProps) {
       </header>
 
       {/* Overlay para fechar notificações ao clicar fora */}
-      {showNotifications && (
+      {(showNotifications || showUserDropdown) && (
         <div
           className="fixed inset-0 z-40"
-          onClick={() => setShowNotifications(false)}
+          onClick={() => {
+            setShowNotifications(false);
+            setShowUserDropdown(false);
+          }}
           aria-hidden="true"
         />
       )}
