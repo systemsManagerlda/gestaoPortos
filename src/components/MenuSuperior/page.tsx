@@ -1,14 +1,15 @@
-"use client"
-import React, { useState } from 'react';
+// components/MenuSuperior/page.tsx
+'use client';
 
-// Defina a interface para as props
+import React, { useState, useEffect } from 'react';
+
 interface MenuSuperiorProps {
-  politicaAtiva: string;
-  setPoliticaAtiva: (politicaId: string) => void;
+  politicaAtiva?: string; // Tornamos opcional com valor padrão
 }
 
-function MenuSuperior({ politicaAtiva, setPoliticaAtiva }: MenuSuperiorProps) {
+function MenuSuperior({ politicaAtiva = 'privacidade-dados' }: MenuSuperiorProps) {
   const [menuAberto, setMenuAberto] = useState(false);
+  const [activeSection, setActiveSection] = useState(politicaAtiva);
 
   const politicas = [
     {
@@ -43,10 +44,46 @@ function MenuSuperior({ politicaAtiva, setPoliticaAtiva }: MenuSuperiorProps) {
     }
   ];
 
+  // Atualiza a seção ativa quando a prop mudar
+  useEffect(() => {
+    setActiveSection(politicaAtiva);
+  }, [politicaAtiva]);
+
   const handlePoliticaClick = (politicaId: string) => {
-    setPoliticaAtiva(politicaId);
+    setActiveSection(politicaId);
     setMenuAberto(false);
+    
+    // Rolar para a seção correspondente
+    const elemento = document.getElementById(politicaId);
+    if (elemento) {
+      elemento.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   };
+
+  // Detecta a seção visível na rolagem
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setActiveSection(entry.target.id);
+          }
+        });
+      },
+      {
+        rootMargin: '-20% 0px -20% 0px',
+        threshold: 0.3
+      }
+    );
+
+    // Observa todas as seções
+    const sections = document.querySelectorAll('.secao[id]');
+    sections.forEach((section) => observer.observe(section));
+
+    return () => {
+      sections.forEach((section) => observer.unobserve(section));
+    };
+  }, []);
 
   return (
     <nav className="menu-superior">
@@ -75,7 +112,7 @@ function MenuSuperior({ politicaAtiva, setPoliticaAtiva }: MenuSuperiorProps) {
           {politicas.map((politica) => (
             <button
               key={politica.id}
-              className={`menu-link ${politicaAtiva === politica.id ? 'ativo' : ''}`}
+              className={`menu-link ${activeSection === politica.id ? 'ativo' : ''}`}
               onClick={() => handlePoliticaClick(politica.id)}
             >
               <span className="menu-icon">{politica.icon}</span>

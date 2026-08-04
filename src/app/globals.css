@@ -1151,7 +1151,318 @@ body {
 .menu-text {
   text-align: center;
 }
+/* ===== NOVOS ESTILOS PARA AS SEÇÕES COM ID ===== */
 
+/* Estilos para os cabeçalhos das seções */
+.secao-header {
+  padding: 20px 25px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-bottom: 3px solid var(--cor-destaque);
+  border-radius: var(--raio-borda) var(--raio-borda) 0 0;
+  margin: -30px -30px 25px -30px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .secao-header {
+    background: linear-gradient(135deg, #2a2a2a 0%, #333333 100%);
+  }
+}
+
+.secao-header h2 {
+  margin: 0 0 5px 0;
+  color: var(--cor-primaria);
+  font-size: 1.6rem;
+}
+
+.secao-header .data-atualizacao {
+  margin: 0;
+  color: var(--cor-texto-claro);
+  font-size: 0.85rem;
+  font-style: italic;
+  background: none;
+  padding: 0;
+  backdrop-filter: none;
+  display: block;
+}
+
+/* Ajuste para o conteúdo da seção */
+.secao-conteudo {
+  padding: 0;
+}
+
+.secao-conteudo h3 {
+  color: var(--cor-primaria);
+  font-size: 1.3rem;
+  margin-top: 30px;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--cor-borda);
+}
+
+.secao-conteudo h4 {
+  color: var(--cor-secundaria);
+  font-size: 1.1rem;
+  margin-top: 20px;
+  margin-bottom: 10px;
+}
+
+.secao-conteudo p {
+  color: var(--cor-texto-claro);
+  line-height: 1.8;
+  margin-bottom: 15px;
+}
+
+/* Ajustes para o footer */
+.footer-conteudo {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.footer-contatos {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  margin: 15px 0;
+  flex-wrap: wrap;
+}
+
+.footer-contatos p {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.footer-data {
+  font-size: 0.9rem;
+  opacity: 0.9;
+  margin-top: 10px;
+}
+
+.footer-direitos {
+  font-size: 0.8rem;
+  opacity: 0.7;
+  margin-top: 15px;
+}
+
+/* ===== ANIMAÇÃO DE SCROLL SUAVE PARA AS SEÇÕES ===== */
+html {
+  scroll-behavior: smooth;
+}
+
+/* ===== ESTILOS PARA DESTAQUE DA SEÇÃO ATIVA ===== */
+.secao:target {
+  animation: highlightSection 2s ease-out;
+  border-color: var(--cor-destaque);
+}
+
+@keyframes highlightSection {
+  0% {
+    box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.3);
+    transform: scale(1.01);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(52, 152, 219, 0.1);
+  }
+  100% {
+    box-shadow: var(--sombra-leve);
+    transform: scale(1);
+  }
+}
+
+/* ===== AJUSTES RESPONSIVOS ADICIONAIS ===== */
+@media (max-width: 768px) {
+  .secao-header {
+    padding: 15px 20px;
+    margin: -20px -20px 20px -20px;
+    border-radius: var(--raio-borda-pequeno) var(--raio-borda-pequeno) 0 0;
+  }
+  
+  .secao-header h2 {
+    font-size: 1.3rem;
+  }
+  
+  .footer-contatos {
+    flex-direction: column;
+    gap: 5px;
+  }
+}
+
+@media (max-width: 480px) {
+  .secao-header {
+    padding: 12px 15px;
+    margin: -15px -15px 15px -15px;
+  }
+  
+  .secao-header h2 {
+    font-size: 1.1rem;
+  }
+  
+  .footer-contatos {
+    gap: 8px;
+  }
+}
+
+/* ===== ESTILOS PARA O MENU EM DISPOSITIVOS MÓVEIS ===== */
+@media (max-width: 768px) {
+  .menu-links {
+    padding: 10px 0;
+  }
+  
+  .menu-link {
+    padding: 10px 15px;
+    font-size: 0.9rem;
+  }
+}
+
+/* ===== MELHORIAS DE ACESSIBILIDADE ===== */
+.menu-link:focus-visible,
+.secao:focus-visible {
+  outline: 3px solid var(--cor-destaque);
+  outline-offset: 2px;
+}
+
+/* ===== ESTILOS PARA CARREGAMENTO PROGRESSIVO ===== */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  .secao:target {
+    animation: none;
+  }
+}
+
+/* ===== SUPORTE PARA DARK MODE NO MENU ===== */
+@media (prefers-color-scheme: dark) {
+  .menu-superior {
+    background: linear-gradient(135deg, #1a2a4a 0%, #2a4a7a 100%);
+  }
+  
+  .menu-link {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .menu-link:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+  
+  .menu-link.ativo {
+    background: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  }
+  
+  .secao-conteudo h3 {
+    border-bottom-color: #404040;
+  }
+  
+  .secao-header .data-atualizacao {
+    color: #b0b0b0;
+  }
+}
+
+/* ===== IMPRESSÃO ===== */
+@media print {
+  .menu-superior {
+    display: none !important;
+  }
+  
+  .secao-header {
+    background: #f0f0f0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    margin: 0 0 20px 0 !important;
+    padding: 15px 20px !important;
+  }
+  
+  .secao {
+    break-inside: avoid;
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+  }
+  
+  .politicas-footer {
+    background: #1e3c72 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    color: white !important;
+  }
+}
+
+/* ===== ESTILOS PARA BOTÃO DO MENU HAMBÚRGUER ===== */
+.menu-hamburguer {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 10px;
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+.menu-hamburguer:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.menu-hamburguer:focus-visible {
+  outline: 2px solid white;
+  outline-offset: 2px;
+}
+
+@media (max-width: 768px) {
+  .menu-hamburguer {
+    display: flex;
+  }
+}
+
+/* ===== CORREÇÃO PARA O LAYOUT DE GRID DOS DIREITOS ===== */
+.grid-direitos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+/* ===== CORREÇÃO PARA LISTAS ANINHADAS ===== */
+.secao-conteudo ul ul,
+.secao-conteudo ol ol {
+  margin-top: 5px;
+  padding-left: 20px;
+}
+
+/* ===== ESTILOS PARA ÍCONES NAS SEÇÕES ===== */
+.secao-header h2 .secao-icon {
+  margin-right: 10px;
+}
+
+/* ===== MELHORIA PARA O FOOTER EM MOBILE ===== */
+@media (max-width: 480px) {
+  .politicas-footer {
+    padding: 25px 15px;
+    border-radius: var(--raio-borda-pequeno) var(--raio-borda-pequeno) 0 0;
+  }
+  
+  .politicas-footer > p {
+    font-size: 0.95rem;
+  }
+  
+  .footer-contatos p {
+    font-size: 0.9rem;
+  }
+  
+  .contato-email,
+  .contato-telefone {
+    display: block;
+    margin: 8px auto;
+    max-width: 280px;
+    font-size: 0.9rem;
+    padding: 10px 20px;
+  }
+}
 /* Responsividade */
 @media (max-width: 1200px) {
   .menu-links {
